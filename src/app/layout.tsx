@@ -29,8 +29,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'GameSync - Organize Your Board Game Sessions',
-  description: 'GameSync helps you find and organize board game sessions with players around you.',
+  title: 'GameSync - Organisez Vos Sessions de Jeux de Société',
+  description: 'GameSync vous aide à trouver et organiser des sessions de jeux de société avec des joueurs autour de vous.',
 };
 
 export default function RootLayout({
@@ -39,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SidebarProvider defaultOpen>
           <Sidebar collapsible="icon" className="border-r">

@@ -23,9 +23,9 @@ import { Terminal, Loader2, CheckCircle, Lightbulb, Gamepad2, UserCheck, MapPinn
 import type { SmartSchedulerFormData } from '@/lib/types';
 
 const formSchema = z.object({
-  gameName: z.string().min(2, { message: 'Game name must be at least 2 characters.' }),
-  playerPreferences: z.string().min(10, { message: 'Please enter player preferences.' }),
-  suggestedLocations: z.string().min(3, { message: 'Please enter at least one suggested location.' }),
+  gameName: z.string().min(2, { message: 'Le nom du jeu doit comporter au moins 2 caractères.' }),
+  playerPreferences: z.string().min(10, { message: 'Veuillez entrer les préférences des joueurs.' }),
+  suggestedLocations: z.string().min(3, { message: 'Veuillez entrer au moins un lieu suggéré.' }),
 });
 
 export function SmartSchedulerForm() {
@@ -64,17 +64,17 @@ export function SmartSchedulerForm() {
       });
       setSuggestion(result);
       toast({
-        title: 'Suggestion Ready!',
-        description: 'AI has provided a scheduling suggestion.',
+        title: 'Suggestion Prête !',
+        description: "L'IA a fourni une suggestion de planification.",
         variant: 'default',
       });
     } catch (e) {
-      console.error('Error fetching suggestion:', e);
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(`Failed to get suggestion: ${errorMessage}`);
+      console.error('Erreur lors de la récupération de la suggestion :', e);
+      const errorMessage = e instanceof Error ? e.message : 'Une erreur inconnue est survenue.';
+      setError(`Échec de l'obtention de la suggestion : ${errorMessage}`);
       toast({
-        title: 'Error',
-        description: `Could not fetch suggestion. ${errorMessage}`,
+        title: 'Erreur',
+        description: `Impossible de récupérer la suggestion. ${errorMessage}`,
         variant: 'destructive',
       });
     } finally {
@@ -93,12 +93,12 @@ export function SmartSchedulerForm() {
             name="gameName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary"/>Game Name</FormLabel>
+                <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary"/>Nom du Jeu</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Gloomhaven" {...field} />
+                  <Input placeholder="Ex : Gloomhaven" {...field} />
                 </FormControl>
                 <FormDescription>
-                  The board game you plan to play.
+                  Le jeu de société que vous prévoyez de jouer.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -110,16 +110,16 @@ export function SmartSchedulerForm() {
             name="playerPreferences"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary"/>Player Preferences</FormLabel>
+                <FormLabel className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-primary"/>Préférences des Joueurs</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Enter each player's preferences on a new line. E.g.,&#10;Alice: Prefers weekends, available after 6 PM.&#10;Bob: Any weekday evening, not Mondays."
+                    placeholder="Entrez les préférences de chaque joueur sur une nouvelle ligne. Ex :&#10;Alice : Préfère les week-ends, disponible après 18h.&#10;Bob : N'importe quel soir de semaine, pas les lundis."
                     className="resize-y min-h-[100px]"
                     {...field}
                   />
                 </FormControl>
                 <FormDescription>
-                  Include availability, preferred locations, or any other constraints for each player.
+                  Incluez la disponibilité, les lieux préférés ou toute autre contrainte pour chaque joueur.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -131,16 +131,16 @@ export function SmartSchedulerForm() {
             name="suggestedLocations"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2"><MapPinned className="h-5 w-5 text-primary"/>Suggested Locations</FormLabel>
+                <FormLabel className="flex items-center gap-2"><MapPinned className="h-5 w-5 text-primary"/>Lieux Suggérés</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="List possible locations, each on a new line. E.g.,&#10;My place&#10;The Friendly LGS&#10;Community Center"
+                    placeholder="Listez les lieux possibles, chacun sur une nouvelle ligne. Ex :&#10;Chez moi&#10;Le magasin de jeux local&#10;Centre communautaire"
                     className="resize-y min-h-[80px]"
                     {...field}
                   />
                 </FormControl>
                  <FormDescription>
-                  Provide a list of potential venues for the game session.
+                  Fournissez une liste de lieux potentiels pour la session de jeu.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -151,10 +151,10 @@ export function SmartSchedulerForm() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Getting Suggestion...
+                Obtention de la suggestion...
               </>
             ) : (
-              'Suggest Optimal Session'
+              'Suggérer une Session Optimale'
             )}
           </Button>
         </form>
@@ -163,7 +163,7 @@ export function SmartSchedulerForm() {
       {error && (
         <Alert variant="destructive" className="mt-8">
           <Terminal className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Erreur</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -171,12 +171,12 @@ export function SmartSchedulerForm() {
       {suggestion && (
         <Alert className="mt-8 border-green-500">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-700 font-semibold">AI Suggestion Received!</AlertTitle>
+          <AlertTitle className="text-green-700 font-semibold">Suggestion IA Reçue !</AlertTitle>
           <AlertDescription className="space-y-3 mt-2">
-            <p><strong>Suggested Time:</strong> {suggestion.suggestedTime}</p>
-            <p><strong>Suggested Location:</strong> {suggestion.suggestedLocation}</p>
+            <p><strong>Heure Suggérée :</strong> {suggestion.suggestedTime}</p>
+            <p><strong>Lieu Suggéré :</strong> {suggestion.suggestedLocation}</p>
             <div className="pt-2">
-              <p className="font-medium flex items-center gap-1"><Lightbulb className="h-4 w-4 text-yellow-500"/>Reasoning:</p>
+              <p className="font-medium flex items-center gap-1"><Lightbulb className="h-4 w-4 text-yellow-500"/>Raisonnement :</p>
               <p className="text-sm text-muted-foreground italic pl-1 border-l-2 border-muted ml-2">{suggestion.reasoning}</p>
             </div>
           </AlertDescription>

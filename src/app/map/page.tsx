@@ -9,21 +9,21 @@ export default function MapPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex items-center gap-2">
             <MapIcon className="h-8 w-8 text-primary" />
-            Interactive Session Map
+            Carte Interactive des Sessions
           </CardTitle>
           <CardDescription>
-            Discover gaming sessions happening near you. (Feature Coming Soon!)
+            Découvrez les sessions de jeu près de chez vous. (Fonctionnalité à venir !)
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
           <p className="text-lg text-muted-foreground mb-6">
-            Our interactive map will help you visualize nearby game sessions.
-            Stay tuned for this exciting feature!
+            Notre carte interactive vous aidera à visualiser les sessions de jeu à proximité.
+            Restez à l'écoute pour cette fonctionnalité passionnante !
           </p>
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
             <Image 
               src="https://placehold.co/1200x600.png" 
-              alt="Placeholder map of a city with pins" 
+              alt="Placeholder de carte d'une ville avec des épingles" 
               width={1200} 
               height={600}
               className="object-cover"
@@ -31,7 +31,7 @@ export default function MapPage() {
             />
           </div>
            <p className="text-sm text-muted-foreground mt-2">
-            Map data is illustrative. Actual feature will use real-time session locations.
+            Les données de la carte sont illustratives. La fonctionnalité réelle utilisera les emplacements des sessions en temps réel.
           </p>
         </CardContent>
       </Card>

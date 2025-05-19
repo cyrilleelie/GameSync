@@ -10,10 +10,10 @@ export default function SmartSchedulerPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex items-center gap-2">
              <Wand2 className="h-8 w-8 text-primary" />
-            Smart Session Scheduler
+            Planificateur de Session Intelligent
           </CardTitle>
           <CardDescription>
-            Let our AI assistant help you find the perfect time and location for your next game session based on everyone's preferences.
+            Laissez notre assistant IA vous aider à trouver le moment et le lieu parfaits pour votre prochaine session de jeu en fonction des préférences de chacun.
           </CardDescription>
         </CardHeader>
         <Separator />

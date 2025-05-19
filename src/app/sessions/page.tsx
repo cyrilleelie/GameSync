@@ -9,18 +9,18 @@ export default function SessionsPage() {
     <div className="container mx-auto py-8">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Game Sessions</h1>
-          <p className="text-muted-foreground">Browse upcoming board game sessions or create your own.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Sessions de Jeu</h1>
+          <p className="text-muted-foreground">Parcourez les sessions de jeu de société à venir ou créez la vôtre.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Filter className="mr-2 h-4 w-4" />
-            Filter
+            Filtrer
           </Button>
           <Button asChild>
             <Link href="/sessions/create">
               <PlusCircle className="mr-2 h-4 w-4" />
-              Create Session
+              Créer une Session
             </Link>
           </Button>
         </div>
@@ -34,9 +34,9 @@ export default function SessionsPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-xl text-muted-foreground">No sessions found.</p>
+          <p className="text-xl text-muted-foreground">Aucune session trouvée.</p>
           <Button asChild className="mt-4">
-            <Link href="/sessions/create">Be the first to create one!</Link>
+            <Link href="/sessions/create">Soyez le premier à en créer une !</Link>
           </Button>
         </div>
       )}

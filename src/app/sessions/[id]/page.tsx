@@ -23,9 +23,9 @@ export default async function SessionDetailPage({ params }: SessionDetailPagePro
      return (
       <Alert variant="destructive" className="mt-8">
         <Terminal className="h-4 w-4" />
-        <AlertTitle>Authentication Error</AlertTitle>
+        <AlertTitle>Erreur d'authentification</AlertTitle>
         <AlertDescription>
-          Could not determine logged-in user. Please try logging in again.
+          Impossible de déterminer l'utilisateur connecté. Veuillez réessayer de vous connecter.
         </AlertDescription>
       </Alert>
     );

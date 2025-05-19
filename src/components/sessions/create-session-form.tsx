@@ -20,16 +20,17 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale'; // Import French locale
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation'; // Corrected import
+import { useRouter } from 'next/navigation'; 
 import { useState } from 'react';
 
 
 const formSchema = z.object({
-  gameName: z.string().min(2, { message: 'Game name must be at least 2 characters.' }),
-  location: z.string().min(3, { message: 'Location must be at least 3 characters.' }),
-  dateTime: z.date({ required_error: 'Date and time are required.' }),
-  maxPlayers: z.coerce.number().min(2, { message: 'Must have at least 2 players.' }).max(20, { message: 'Cannot exceed 20 players.' }),
+  gameName: z.string().min(2, { message: 'Le nom du jeu doit comporter au moins 2 caractères.' }),
+  location: z.string().min(3, { message: 'Le lieu doit comporter au moins 3 caractères.' }),
+  dateTime: z.date({ required_error: 'La date et l\'heure sont requises.' }),
+  maxPlayers: z.coerce.number().min(2, { message: 'Il faut au moins 2 joueurs.' }).max(20, { message: 'Ne peut excéder 20 joueurs.' }),
   description: z.string().optional(),
 });
 
@@ -52,10 +53,10 @@ export function CreateSessionForm() {
     setIsSubmitting(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Form submitted:', values);
+    console.log('Formulaire soumis:', values);
     toast({
-      title: 'Session Created!',
-      description: `Your session for ${values.gameName} has been successfully created.`,
+      title: 'Session Créée !',
+      description: `Votre session pour ${values.gameName} a été créée avec succès.`,
       variant: 'default',
     });
     setIsSubmitting(false);
@@ -71,9 +72,9 @@ export function CreateSessionForm() {
           name="gameName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Game Name</FormLabel>
+              <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Nom du Jeu</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Wingspan, Terraforming Mars" {...field} />
+                <Input placeholder="Ex : Wingspan, Terraforming Mars" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,9 +86,9 @@ export function CreateSessionForm() {
           name="location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" />Location</FormLabel>
+              <FormLabel className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" />Lieu</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., My Place, Local Cafe Name" {...field} />
+                <Input placeholder="Ex : Chez moi, Nom du café local" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -100,7 +101,7 @@ export function CreateSessionForm() {
             name="dateTime"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="flex items-center gap-2"><CalendarIcon className="h-5 w-5 text-primary" />Date and Time</FormLabel>
+                <FormLabel className="flex items-center gap-2"><CalendarIcon className="h-5 w-5 text-primary" />Date et Heure</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -112,9 +113,9 @@ export function CreateSessionForm() {
                         )}
                       >
                         {field.value ? (
-                          format(field.value, 'PPP HH:mm')
+                          format(field.value, 'PPP HH:mm', { locale: fr })
                         ) : (
-                          <span>Pick a date and time</span>
+                          <span>Choisissez une date et une heure</span>
                         )}
                         <Clock className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
@@ -126,6 +127,7 @@ export function CreateSessionForm() {
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } // Disable past dates
+                      locale={fr} // Add French locale to Calendar
                     />
                     <div className="p-3 border-t border-border">
                        <Input 
@@ -151,9 +153,9 @@ export function CreateSessionForm() {
             name="maxPlayers"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" />Max Players</FormLabel>
+                <FormLabel className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" />Joueurs Max</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 4" {...field} />
+                  <Input type="number" placeholder="Ex : 4" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -166,23 +168,23 @@ export function CreateSessionForm() {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" />Description (Optional)</FormLabel>
+              <FormLabel className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" />Description (Optionnel)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Any additional details about the session, e.g., house rules, snacks, experience level."
+                  placeholder="Détails supplémentaires sur la session, ex : règles maison, snacks, niveau d'expérience."
                   className="resize-none"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                Provide any extra information participants might need.
+                Fournissez toute information supplémentaire dont les participants pourraient avoir besoin.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating Session...' : 'Create Session'}
+          {isSubmitting ? 'Création en cours...' : 'Créer la Session'}
         </Button>
       </form>
     </Form>

@@ -10,28 +10,28 @@ export default function HomePage() {
       <div className="text-center space-y-6">
         <Image 
           src="https://placehold.co/600x300.png" 
-          alt="Board games collage" 
+          alt="Collage de jeux de société" 
           width={600} 
           height={300} 
           className="rounded-lg shadow-xl mx-auto"
           data-ai-hint="board games collage"
         />
-        <h1 className="text-5xl font-bold tracking-tight text-primary">Welcome to GameSync!</h1>
+        <h1 className="text-5xl font-bold tracking-tight text-primary">Bienvenue sur GameSync !</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          The ultimate platform for board game enthusiasts to connect, schedule, and play.
-          Discover new games, find fellow players, and organize your next epic game night with ease.
+          La plateforme ultime pour les passionnés de jeux de société pour se connecter, planifier et jouer.
+          Découvrez de nouveaux jeux, trouvez d'autres joueurs et organisez facilement votre prochaine soirée jeux épique.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
             <Link href="/sessions">
               <Gamepad2 className="mr-2 h-5 w-5" />
-              Browse Sessions
+              Parcourir les Sessions
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/sessions/create">
               <PlusCircle className="mr-2 h-5 w-5" />
-              Create a Session
+              Créer une Session
             </Link>
           </Button>
         </div>
@@ -42,36 +42,36 @@ export default function HomePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Gamepad2 className="h-6 w-6 text-primary" />
-              Discover Games
+              Découvrez des Jeux
             </CardTitle>
-            <CardDescription>Find upcoming game sessions for your favorite board games or explore new ones.</CardDescription>
+            <CardDescription>Trouvez des sessions de jeu à venir pour vos jeux de société préférés ou explorez-en de nouveaux.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Browse a diverse list of sessions, filter by game, location, or date.</p>
+            <p>Parcourez une liste variée de sessions, filtrez par jeu, lieu ou date.</p>
           </CardContent>
         </Card>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-6 w-6 text-primary" />
-              Connect with Players
+              Connectez-vous avec des Joueurs
             </CardTitle>
-            <CardDescription>Meet new people who share your passion for board gaming.</CardDescription>
+            <CardDescription>Rencontrez de nouvelles personnes qui partagent votre passion pour les jeux de société.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Join sessions, create your own, and build your gaming community.</p>
+            <p>Rejoignez des sessions, créez les vôtres et construisez votre communauté de joueurs.</p>
           </CardContent>
         </Card>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PlusCircle className="h-6 w-6 text-primary" />
-              Easy Scheduling
+              Planification Facile
             </CardTitle>
-            <CardDescription>Organize your game nights effortlessly with our intuitive tools.</CardDescription>
+            <CardDescription>Organisez vos soirées jeux sans effort grâce à nos outils intuitifs.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Use our AI-powered Smart Scheduler to find the perfect time and place.</p>
+            <p>Utilisez notre Planificateur Intelligent alimenté par IA pour trouver le moment et le lieu parfaits.</p>
           </CardContent>
         </Card>
       </div>

@@ -18,39 +18,39 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
+    title: 'Tableau de Bord',
     href: '/',
     icon: LayoutDashboard,
-    label: 'Home',
+    label: 'Accueil',
   },
   {
     title: 'Sessions',
     href: '/sessions',
     icon: Gamepad2,
-    label: 'View Sessions',
+    label: 'Voir les Sessions',
   },
   {
-    title: 'Create Session',
+    title: 'Créer Session',
     href: '/sessions/create',
     icon: PlusCircle,
-    label: 'New Session',
+    label: 'Nouvelle Session',
   },
   {
-    title: 'Smart Scheduler',
+    title: 'Planif. Intelligent',
     href: '/smart-scheduler',
     icon: Wand2,
-    label: 'AI Scheduler',
+    label: 'Planificateur IA',
   },
   {
-    title: 'Map View',
+    title: 'Vue Carte',
     href: '/map',
     icon: Map,
-    label: 'Nearby Sessions',
+    label: 'Sessions à Proximité',
   },
   {
-    title: 'Profile',
+    title: 'Profil',
     href: '/profile',
     icon: Users,
-    label: 'My Profile',
+    label: 'Mon Profil',
   },
 ];

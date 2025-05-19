@@ -7,8 +7,8 @@ export default function CreateSessionPage() {
     <div className="container mx-auto py-8">
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold">Create New Game Session</CardTitle>
-          <CardDescription>Fill in the details below to schedule your next board game adventure.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Créer une Nouvelle Session de Jeu</CardTitle>
+          <CardDescription>Remplissez les détails ci-dessous pour planifier votre prochaine aventure de jeu de société.</CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">

@@ -19,8 +19,8 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
   const handleEditProfile = () => {
     // In a real app, this would navigate to an edit page or open a modal
     toast({
-      title: "Edit Profile",
-      description: "Profile editing functionality is coming soon!",
+      title: "Modifier le Profil",
+      description: "La fonctionnalité de modification de profil arrive bientôt !",
     });
   };
 
@@ -36,11 +36,11 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
             <User className="h-6 w-6 text-primary" />
             {user.name}
           </h2>
-          <p className="text-muted-foreground">GameSync Member</p>
+          <p className="text-muted-foreground">Membre GameSync</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleEditProfile} className="sm:ml-auto mt-4 sm:mt-0">
           <Edit3 className="mr-2 h-4 w-4" />
-          Edit Profile
+          Modifier le Profil
         </Button>
       </div>
 
@@ -49,7 +49,7 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
       <div>
         <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
           <Gamepad2 className="h-5 w-5 text-primary" />
-          Game Preferences
+          Préférences de Jeu
         </h3>
         {user.gamePreferences.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -60,7 +60,7 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground">No game preferences set.</p>
+          <p className="text-muted-foreground">Aucune préférence de jeu définie.</p>
         )}
       </div>
 
@@ -69,10 +69,10 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
       <div>
         <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-primary" />
-          Availability
+          Disponibilité
         </h3>
         <p className="text-foreground whitespace-pre-wrap">
-          {user.availability || 'No availability information provided.'}
+          {user.availability || "Aucune information de disponibilité fournie."}
         </p>
       </div>
     </div>

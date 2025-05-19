@@ -1,11 +1,11 @@
 'use server';
 
 /**
- * @fileOverview AI flow for suggesting optimal times and locations for a gaming session.
+ * @fileOverview Flux IA pour suggérer les moments et lieux optimaux pour une session de jeu.
  *
- * - suggestSessionDetails - A function that handles the session details suggestion process.
- * - SuggestSessionDetailsInput - The input type for the suggestSessionDetails function.
- * - SuggestSessionDetailsOutput - The return type for the suggestSessionDetails function.
+ * - suggestSessionDetails - Une fonction qui gère le processus de suggestion des détails de la session.
+ * - SuggestSessionDetailsInput - Le type d'entrée pour la fonction suggestSessionDetails.
+ * - SuggestSessionDetailsOutput - Le type de retour pour la fonction suggestSessionDetails.
  */
 
 import {ai} from '@/ai/genkit';
@@ -31,7 +31,7 @@ const SuggestSessionDetailsOutputSchema = z.object({
   suggestedLocation: z.string().describe('The suggested location for the gaming session.'),
   reasoning: z
     .string()
-    .describe('The AI reasoning behind the suggested time and location.'),
+    .describe("The AI reasoning behind the suggested time and location."),
 });
 export type SuggestSessionDetailsOutput = z.infer<typeof SuggestSessionDetailsOutputSchema>;
 
@@ -45,6 +45,8 @@ const prompt = ai.definePrompt({
   name: 'suggestSessionDetailsPrompt',
   input: {schema: SuggestSessionDetailsInputSchema},
   output: {schema: SuggestSessionDetailsOutputSchema},
+  // The prompt itself remains in English as it's for the LLM.
+  // Translating it could affect LLM performance or expected output structure.
   prompt: `You are an AI assistant helping to organize board game sessions.
 
   Based on the game to be played, player preferences, and possible locations, suggest an optimal time and location for the session.

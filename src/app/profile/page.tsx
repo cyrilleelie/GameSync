@@ -10,7 +10,7 @@ export default function ProfilePage() {
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>User not found. Please log in.</p>
+        <p>Utilisateur non trouvé. Veuillez vous connecter.</p>
       </div>
     );
   }
@@ -19,8 +19,8 @@ export default function ProfilePage() {
     <div className="container mx-auto py-8">
       <Card className="max-w-3xl mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold">My Profile</CardTitle>
-          <CardDescription>View and manage your GameSync profile details.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Mon Profil</CardTitle>
+          <CardDescription>Consultez et gérez les détails de votre profil GameSync.</CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">
