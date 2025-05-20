@@ -1,4 +1,6 @@
 
+export type UserRole = 'Administrateur' | 'Joueur';
+
 export interface Player {
   id: string;
   name: string;
@@ -6,6 +8,7 @@ export interface Player {
   avatarUrl?: string;
   gamePreferences: string[]; // list of game names
   availability: string; // textual description
+  role: UserRole; // Ajout du champ role
 }
 
 export interface GameSession {
@@ -18,19 +21,8 @@ export interface GameSession {
   currentPlayers: Player[];
   description?: string;
   host: Player;
-  // category?: string; // Supprimé
   duration?: string; // Nouvelle propriété pour la durée
 }
-
-// export type GameCategory = "Strategy" | "Party" | "Cooperative" | "Family" | "Abstract" | "Thematic"; // Supprimé
-
-// For Smart Scheduler form
-// Commenté car la page smart-scheduler a été supprimée
-// export interface SmartSchedulerFormData {
-//   gameName: string;
-//   playerPreferences: string; // Raw text input, each player on new line
-//   suggestedLocations: string; // Raw text input, each location on new line
-// }
 
 export interface BoardGame {
   id: string;

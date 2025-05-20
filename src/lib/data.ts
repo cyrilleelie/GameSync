@@ -1,6 +1,5 @@
 
 import type { Player, GameSession, BoardGame } from './types';
-// import { fr } from 'date-fns/locale'; // Non utilisé ici directement
 
 export const mockPlayers: Player[] = [
   {
@@ -10,6 +9,7 @@ export const mockPlayers: Player[] = [
     avatarUrl: 'https://placehold.co/100x100.png?text=AW',
     gamePreferences: ['Terraforming Mars', 'Wingspan', 'Scythe', 'Azul'],
     availability: 'Weekends, soirs de semaine après 19h',
+    role: 'Administrateur',
   },
   {
     id: '2',
@@ -18,6 +18,7 @@ export const mockPlayers: Player[] = [
     avatarUrl: 'https://placehold.co/100x100.png?text=BB',
     gamePreferences: ['Catan', 'Les Aventuriers du Rail', 'Carcassonne', 'King of Tokyo'],
     availability: 'Flexible, préfère les après-midis',
+    role: 'Joueur',
   },
   {
     id: '3',
@@ -26,6 +27,7 @@ export const mockPlayers: Player[] = [
     avatarUrl: 'https://placehold.co/100x100.png?text=CB',
     gamePreferences: ['Gloomhaven: Les Mâchoires du Lion', 'Pandemic Legacy', 'Spirit Island', 'Codenames'],
     availability: 'Samedis uniquement',
+    role: 'Joueur',
   },
 ];
 
@@ -188,7 +190,6 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[0]],
     host: mockPlayers[0],
     description: 'Recherche 3 autres joueurs pour une partie de Terraforming Mars. Débutants bienvenus !',
-    // category: getBoardGameByName('Terraforming Mars')?.category, // Supprimé
     duration: '3-4 heures',
   },
   {
@@ -201,7 +202,6 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[1], mockPlayers[0]],
     host: mockPlayers[1],
     description: 'Rejoignez-nous pour une partie relaxante de Wingspan. Nous avons des cookies !',
-    // category: getBoardGameByName('Wingspan')?.category, // Supprimé
     duration: 'Environ 90 minutes',
   },
   {
@@ -213,7 +213,6 @@ export const mockSessions: GameSession[] = [
     maxPlayers: 4,
     currentPlayers: [mockPlayers[2]],
     host: mockPlayers[2],
-    // category: getBoardGameByName('Catan')?.category, // Supprimé
     duration: '60-90 minutes',
   },
   {
@@ -226,7 +225,6 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[1], mockPlayers[0], mockPlayers[2]],
     host: mockPlayers[1],
     description: 'Continuons notre campagne des Mâchoires du Lion. Une place disponible !',
-    // category: getBoardGameByName('Gloomhaven: Les Mâchoires du Lion')?.category, // Supprimé
     duration: 'Par scénario ~2 heures',
   },
 ];
@@ -245,8 +243,15 @@ export const getMockSessionById = (id: string): GameSession | undefined => {
       console.error("Failed to parse sessions from localStorage in getMockSessionById", e);
     }
   }
-  return mockSessions.find(session => session.id === id);
+  // Fallback to mockSessions if not found in localStorage or if localStorage is not available
+  // This part might be redundant if create-session always initializes localStorage
+  const mockSession = mockSessions.find(session => session.id === id);
+  if (mockSession) {
+    return {...mockSession, dateTime: new Date(mockSession.dateTime)};
+  }
+  return undefined;
 };
+
 
 export const getMockPlayerById = (id: string): Player | undefined => {
   return mockPlayers.find(player => player.id === id);
