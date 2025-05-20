@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,14 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { register, loading } = useAuth();
+  const { register, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +38,19 @@ export default function RegisterPage() {
     const success = await register(name, email, password);
     if (success) {
       toast({ title: "Inscription réussie", description: "Votre compte a été créé. Bienvenue !" });
-      router.push('/'); // Redirect to homepage or dashboard
+      // router.push('/'); // Redirect is handled in AuthContext now
     } else {
       toast({ title: "Échec de l'inscription", description: "Un compte avec cet email existe déjà ou une erreur est survenue.", variant: "destructive" });
     }
   };
+
+  if (!isMounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -60,6 +73,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)} 
                 required 
+                disabled={authLoading}
               />
             </div>
             <div className="space-y-2">
@@ -71,6 +85,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
+                disabled={authLoading}
               />
             </div>
             <div className="space-y-2">
@@ -82,13 +97,14 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
+                disabled={authLoading}
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-              {loading ? 'Création en cours...' : 'S\'inscrire'}
+            <Button type="submit" className="w-full" disabled={authLoading}>
+              {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+              {authLoading ? 'Création en cours...' : 'S\'inscrire'}
             </Button>
             <p className="text-sm text-muted-foreground">
               Déjà un compte ?{' '}
