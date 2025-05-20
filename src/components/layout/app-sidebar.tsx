@@ -35,7 +35,7 @@ export function AppSidebar() {
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
+          <Link href="/" className="flex items-center gap-2 text-sidebar-primary transition-colors" prefetch>
             <Boxes className="h-8 w-8" /> 
             <h1 className="text-xl font-semibold">GameSync</h1>
           </Link>
@@ -51,7 +51,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
+        <Link href="/" className="flex items-center gap-2 text-sidebar-primary transition-colors" prefetch>
           <Boxes className="h-8 w-8" /> 
           <h1 className="text-xl font-semibold">GameSync</h1>
         </Link>
