@@ -24,7 +24,7 @@ export const mockPlayers: Player[] = [
     name: 'Charlie Brown',
     email: 'charlie@example.com',
     avatarUrl: 'https://placehold.co/100x100.png?text=CB',
-    gamePreferences: ['Gloomhaven', 'Pandemic Legacy', 'Spirit Island'],
+    gamePreferences: ['Gloomhaven: Les Mâchoires du Lion', 'Pandemic Legacy', 'Spirit Island'],
     availability: 'Samedis uniquement',
   },
 ];
@@ -72,6 +72,27 @@ export const mockBoardGames: BoardGame[] = [
     category: 'Strategy',
     description: 'Menez votre faction à la victoire dans une Europe alternative des années 1920.',
   },
+   {
+    id: 'bg7',
+    name: 'Pandemic Legacy',
+    imageUrl: 'https://placehold.co/300x200.png?text=Pandemic+Legacy',
+    category: 'Cooperative',
+    description: 'Sauvez le monde d\'une pandémie mondiale évolutive.',
+  },
+  {
+    id: 'bg8',
+    name: 'Spirit Island',
+    imageUrl: 'https://placehold.co/300x200.png?text=Spirit+Island',
+    category: 'Cooperative',
+    description: 'Incarnez des esprits ancestraux pour défendre votre île.',
+  },
+  {
+    id: 'bg9',
+    name: 'Carcassonne',
+    imageUrl: 'https://placehold.co/300x200.png?text=Carcassonne',
+    category: 'Family',
+    description: 'Construisez un paysage médiéval tuile par tuile.',
+  },
 ];
 
 export const getBoardGameByName = (name: string): BoardGame | undefined => {
@@ -91,6 +112,7 @@ export const mockSessions: GameSession[] = [
     host: mockPlayers[0],
     description: 'Recherche 3 autres joueurs pour une partie de Terraforming Mars. Débutants bienvenus !',
     category: 'Stratégie',
+    duration: '3-4 heures',
   },
   {
     id: 's2',
@@ -103,6 +125,7 @@ export const mockSessions: GameSession[] = [
     host: mockPlayers[1],
     description: 'Rejoignez-nous pour une partie relaxante de Wingspan. Nous avons des cookies !',
     category: 'Stratégie',
+    duration: 'Environ 90 minutes',
   },
   {
     id: 's3',
@@ -114,6 +137,7 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[2]],
     host: mockPlayers[2],
     category: 'Famille',
+    duration: '60-90 minutes',
   },
   {
     id: 's4',
@@ -126,6 +150,7 @@ export const mockSessions: GameSession[] = [
     host: mockPlayers[1],
     description: 'Continuons notre campagne des Mâchoires du Lion. Une place disponible !',
     category: 'Coopératif',
+    duration: 'Par scénario ~2 heures',
   },
 ];
 

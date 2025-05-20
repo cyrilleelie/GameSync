@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2, ArrowLeft } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2, ArrowLeft, Timer } from 'lucide-react'; // Ajout de Timer
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale'; // Import French locale
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +70,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
       window.removeEventListener('storage', handleStorageChange);
     };
 
-  }, [initialSession.id, router]);
+  }, [initialSession.id, router, toast]); // Ajout de toast aux dépendances
   
   useEffect(() => {
     setSession(initialSession); // Keep session in sync if initialSession prop changes
@@ -234,6 +234,12 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
               <h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary"/>Lieu</h3>
               <p>{session.location}</p>
             </div>
+            {session.duration && (
+               <div>
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><Timer className="h-5 w-5 text-primary"/>Durée Estimée</h3>
+                <p>{session.duration}</p>
+              </div>
+            )}
           </div>
           
           {session.description && (
@@ -272,4 +278,3 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     </div>
   );
 }
-

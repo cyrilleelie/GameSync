@@ -1,10 +1,11 @@
+
 import type { GameSession } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, MapPin, Users, Gamepad2, ArrowRight } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Gamepad2, ArrowRight, Timer } from 'lucide-react'; // Ajout de Timer
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale'; // Import French locale
 
@@ -56,6 +57,12 @@ export function SessionCard({ session }: SessionCardProps) {
             {session.currentPlayers.length} / {session.maxPlayers} joueurs
           </span>
         </div>
+        {session.duration && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Timer className="mr-2 h-4 w-4 text-primary" />
+            <span>Durée : {session.duration}</span>
+          </div>
+        )}
         {session.description && (
             <p className="text-sm text-foreground line-clamp-2 pt-2">{session.description}</p>
         )}

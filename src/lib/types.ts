@@ -19,6 +19,7 @@ export interface GameSession {
   description?: string;
   host: Player;
   category?: string; // e.g., Strategy, Party, Co-op. For potential future filtering.
+  duration?: string; // Nouvelle propriété pour la durée
 }
 
 export type GameCategory = "Strategy" | "Party" | "Cooperative" | "Family" | "Abstract" | "Thematic";

@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2 } from 'lucide-react';
+import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2, Timer } from 'lucide-react'; // Ajout de Timer
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,6 +43,7 @@ const formSchema = z.object({
   location: z.string().min(3, { message: 'Le lieu doit comporter au moins 3 caractères.' }),
   dateTime: z.date({ required_error: 'La date et l\'heure sont requises.' }),
   maxPlayers: z.coerce.number().min(2, { message: 'Il faut au moins 2 joueurs.' }).max(20, { message: 'Ne peut excéder 20 joueurs.' }),
+  duration: z.string().optional(), // Nouveau champ pour la durée
   description: z.string().optional(),
 });
 
@@ -70,11 +71,13 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
       location: sessionToEdit.location,
       dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
       maxPlayers: sessionToEdit.maxPlayers,
+      duration: sessionToEdit.duration || '',
       description: sessionToEdit.description || '',
     } : {
       gameName: '',
       location: '',
       maxPlayers: 4,
+      duration: '',
       description: '',
     },
   });
@@ -86,6 +89,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
         location: sessionToEdit.location,
         dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
         maxPlayers: sessionToEdit.maxPlayers,
+        duration: sessionToEdit.duration || '',
         description: sessionToEdit.description || '',
       });
     }
@@ -144,6 +148,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
             dateTime: values.dateTime,
             location: values.location,
             maxPlayers: values.maxPlayers,
+            duration: values.duration, // Ajout de la durée
             description: values.description,
             category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category,
           };
@@ -167,6 +172,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           maxPlayers: values.maxPlayers,
           currentPlayers: [currentUser], 
           host: currentUser,
+          duration: values.duration, // Ajout de la durée
           description: values.description,
           category: selectedGame ? selectedGame.category : undefined,
         };
@@ -329,6 +335,20 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
 
         <FormField
           control={form.control}
+          name="duration"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><Timer className="h-5 w-5 text-primary" />Durée (Optionnel)</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex : 2-3 heures, Environ 90 min" {...field} disabled={isSubmitting} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -362,4 +382,3 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
     </Form>
   );
 }
-
