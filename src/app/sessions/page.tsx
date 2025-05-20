@@ -18,7 +18,7 @@ export default function SessionsPage() {
             Filtrer
           </Button>
           <Button asChild>
-            <Link href="/sessions/create">
+            <Link href="/sessions/create" prefetch>
               <PlusCircle className="mr-2 h-4 w-4" />
               Créer une Session
             </Link>
@@ -36,7 +36,7 @@ export default function SessionsPage() {
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">Aucune session trouvée.</p>
           <Button asChild className="mt-4">
-            <Link href="/sessions/create">Soyez le premier à en créer une !</Link>
+            <Link href="/sessions/create" prefetch>Soyez le premier à en créer une !</Link>
           </Button>
         </div>
       )}

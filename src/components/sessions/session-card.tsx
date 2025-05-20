@@ -58,7 +58,7 @@ export function SessionCard({ session }: SessionCardProps) {
       </CardContent>
       <CardFooter>
         <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Link href={`/sessions/${session.id}`}>
+          <Link href={`/sessions/${session.id}`} prefetch>
             Voir les Détails
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>

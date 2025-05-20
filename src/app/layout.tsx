@@ -44,7 +44,7 @@ export default function RootLayout({
         <SidebarProvider defaultOpen>
           <Sidebar collapsible="icon" className="border-r">
             <SidebarHeader className="p-4">
-              <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
                 <GameSyncLogo className="h-8 w-8" />
                 <h1 className="text-xl font-semibold">GameSync</h1>
               </Link>
@@ -54,7 +54,7 @@ export default function RootLayout({
                 {navItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href={item.href} className="flex items-center gap-3">
+                      <Link href={item.href} className="flex items-center gap-3" prefetch>
                         <item.icon className="h-5 w-5" />
                         <span className="text-sm font-medium">{item.title}</span>
                       </Link>
@@ -69,7 +69,7 @@ export default function RootLayout({
             <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2 md:hidden">
               {/* Mobile Sidebar Trigger */}
               <SidebarTrigger className="md:hidden" />
-              <Link href="/" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors" prefetch>
                 <GameSyncLogo className="h-7 w-7" />
                 <h1 className="text-lg font-semibold">GameSync</h1>
               </Link>

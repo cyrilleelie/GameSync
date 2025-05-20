@@ -23,13 +23,13 @@ export default function HomePage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/sessions">
+            <Link href="/sessions" prefetch>
               <Gamepad2 className="mr-2 h-5 w-5" />
               Parcourir les Sessions
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/sessions/create">
+            <Link href="/sessions/create" prefetch>
               <PlusCircle className="mr-2 h-5 w-5" />
               Créer une Session
             </Link>
