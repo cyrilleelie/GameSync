@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<boolean>; // Simulate async login
   logout: () => void;
   register: (name: string, email: string, pass: string) => Promise<boolean>; // Simulate async registration
+  loginWithGoogle: () => Promise<boolean>; // Simulate async Google login
   loading: boolean;
 }
 
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
       setLoading(false);
+      router.push('/');
       return true;
     }
     setLoading(false);
@@ -65,11 +67,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       availability: 'Non spécifiée',
     };
     // In a real app, you'd add this to your user database. Here, we're just setting it.
-    // Note: mockPlayers won't actually be updated here for other components unless you manage it globally.
     setCurrentUser(newUser);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
     setLoading(false);
+    router.push('/');
     return true;
+  };
+
+  const loginWithGoogle = async (): Promise<boolean> => {
+    setLoading(true);
+    // Simulate API call to Google
+    await new Promise(resolve => setTimeout(resolve, 700));
+    // For simulation, let's log in Alice or a generic Google user
+    const googleUser = mockPlayers.find(p => p.email === 'alice@example.com') || mockPlayers[0]; 
+    if (googleUser) {
+      setCurrentUser(googleUser);
+      localStorage.setItem('currentUser', JSON.stringify(googleUser));
+      setLoading(false);
+      router.push('/');
+      return true;
+    }
+    setLoading(false);
+    return false;
   };
 
   const logout = () => {
@@ -79,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loading }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loading }}>
       {children}
     </AuthContext.Provider>
   );
