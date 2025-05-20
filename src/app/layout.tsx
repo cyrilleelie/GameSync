@@ -1,22 +1,14 @@
+
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+import { AppSidebar } from '@/components/layout/app-sidebar'; // Import a new component for the sidebar logic
 import { GameSyncLogo } from '@/components/icons/game-sync-logo';
-import { navItems } from '@/components/layout/sidebar-nav-items';
-import { Button } from '@/components/ui/button';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -41,44 +33,23 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SidebarProvider defaultOpen>
-          <Sidebar collapsible="icon" className="border-r">
-            <SidebarHeader className="p-4">
-              <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
-                <GameSyncLogo className="h-8 w-8" />
-                <h1 className="text-xl font-semibold">GameSync</h1>
-              </Link>
-            </SidebarHeader>
-            <SidebarContent>
-              <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href={item.href} className="flex items-center gap-3" prefetch>
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-sm font-medium">{item.title}</span>
-                      </Link>
-                    </Button>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarContent>
-          </Sidebar>
-
-          <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2 md:hidden">
-              {/* Mobile Sidebar Trigger */}
-              <SidebarTrigger className="md:hidden" />
-              <Link href="/" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors" prefetch>
-                <GameSyncLogo className="h-7 w-7" />
-                <h1 className="text-lg font-semibold">GameSync</h1>
-              </Link>
-            </header>
-            <main className="flex-1 p-4 md:p-6 overflow-auto">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
+        <AuthProvider> {/* Wrap with AuthProvider */}
+          <SidebarProvider defaultOpen>
+            <AppSidebar /> {/* Use the new AppSidebar component */}
+            <SidebarInset>
+              <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2 md:hidden">
+                <SidebarTrigger className="md:hidden" />
+                <Link href="/" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors" prefetch>
+                  <GameSyncLogo className="h-7 w-7" />
+                  <h1 className="text-lg font-semibold">GameSync</h1>
+                </Link>
+              </header>
+              <main className="flex-1 p-4 md:p-6 overflow-auto">
+                {children}
+              </main>
+            </SidebarInset>
+          </SidebarProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

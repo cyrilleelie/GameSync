@@ -2,6 +2,7 @@
 export interface Player {
   id: string;
   name: string;
+  email?: string; // Ajout de l'email
   avatarUrl?: string;
   gamePreferences: string[]; // list of game names
   availability: string; // textual description

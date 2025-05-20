@@ -1,3 +1,4 @@
+
 import type { Player, GameSession, BoardGame, GameCategory } from './types';
 import { fr } from 'date-fns/locale'; // Using fr for availability for consistency, can be adjusted
 
@@ -5,21 +6,24 @@ export const mockPlayers: Player[] = [
   {
     id: '1',
     name: 'Alice Wonderland',
-    avatarUrl: 'https://placehold.co/100x100.png',
+    email: 'alice@example.com',
+    avatarUrl: 'https://placehold.co/100x100.png?text=AW',
     gamePreferences: ['Terraforming Mars', 'Wingspan', 'Scythe'],
     availability: 'Weekends, soirs de semaine après 19h',
   },
   {
     id: '2',
     name: 'Bob Le Bricoleur', // Example of a translated name
-    avatarUrl: 'https://placehold.co/100x100.png',
+    email: 'bob@example.com',
+    avatarUrl: 'https://placehold.co/100x100.png?text=BB',
     gamePreferences: ['Catan', 'Les Aventuriers du Rail', 'Carcassonne'], // Ticket to Ride translated
     availability: 'Flexible, préfère les après-midis',
   },
   {
     id: '3',
     name: 'Charlie Brown',
-    avatarUrl: 'https://placehold.co/100x100.png',
+    email: 'charlie@example.com',
+    avatarUrl: 'https://placehold.co/100x100.png?text=CB',
     gamePreferences: ['Gloomhaven', 'Pandemic Legacy', 'Spirit Island'],
     availability: 'Samedis uniquement',
   },

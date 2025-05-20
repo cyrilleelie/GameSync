@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Users,
@@ -5,6 +6,9 @@ import {
   PlusCircle,
   Wand2,
   Map,
+  LogIn,
+  LogOut,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -14,6 +18,8 @@ export interface NavItem {
   icon: LucideIcon;
   label?: string;
   disabled?: boolean;
+  requiresAuth?: boolean; // Afficher si authentifié
+  requiresGuest?: boolean; // Afficher si non authentifié (invité)
 }
 
 export const navItems: NavItem[] = [
@@ -34,12 +40,14 @@ export const navItems: NavItem[] = [
     href: '/sessions/create',
     icon: PlusCircle,
     label: 'Nouvelle Session',
+    requiresAuth: true,
   },
   {
     title: 'Planif. Intelligent',
     href: '/smart-scheduler',
     icon: Wand2,
     label: 'Planificateur IA',
+    requiresAuth: true,
   },
   {
     title: 'Vue Carte',
@@ -52,5 +60,21 @@ export const navItems: NavItem[] = [
     href: '/profile',
     icon: Users,
     label: 'Mon Profil',
+    requiresAuth: true,
   },
+  {
+    title: 'Connexion',
+    href: '/login',
+    icon: LogIn,
+    label: 'Se connecter',
+    requiresGuest: true,
+  },
+  {
+    title: 'Inscription',
+    href: '/register',
+    icon: UserPlus,
+    label: 'S\'inscrire',
+    requiresGuest: true,
+  },
+  // Le lien de déconnexion sera géré différemment, typiquement un bouton avec une action.
 ];

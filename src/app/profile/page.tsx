@@ -1,16 +1,32 @@
+
+'use client'; // Convert to client component to use context
+
 import { UserProfileDisplay } from '@/components/profile/user-profile-display';
-import { mockPlayers } from '@/lib/data';
+import { useAuth } from '@/contexts/auth-context'; // Import useAuth
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-
-// In a real app, you'd fetch the logged-in user's data
-const currentUser = mockPlayers[0]; 
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
-  if (!currentUser) {
+  const { currentUser, loading } = useAuth(); // Get currentUser from context
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>Utilisateur non trouvé. Veuillez vous connecter.</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <p className="text-xl mb-4">Veuillez vous connecter pour voir votre profil.</p>
+        <Button asChild>
+          <Link href="/login">Se connecter</Link>
+        </Button>
       </div>
     );
   }
