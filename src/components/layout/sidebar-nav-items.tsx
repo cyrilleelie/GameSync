@@ -24,7 +24,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   {
-    title: 'Tableau de Bord',
+    title: 'Accueil',
     href: '/',
     icon: LayoutDashboard,
     label: 'Accueil',
@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
     href: '/sessions',
     icon: Gamepad2,
     label: 'Voir les Sessions',
-    requiresAuth: true, // Ajouté
+    requiresAuth: true,
   },
   {
     title: 'Créer Session',
@@ -55,7 +55,7 @@ export const navItems: NavItem[] = [
     href: '/map',
     icon: Map,
     label: 'Sessions à Proximité',
-    requiresAuth: true, // Ajouté
+    requiresAuth: true,
   },
   {
     title: 'Profil',
