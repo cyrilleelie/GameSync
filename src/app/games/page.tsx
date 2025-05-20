@@ -21,7 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function GamesPage() {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -46,11 +46,27 @@ export default function GamesPage() {
   }, []);
 
   const filteredGames = useMemo(() => {
-    if (!selectedTag) {
+    if (selectedTags.length === 0) {
       return mockBoardGames;
     }
-    return mockBoardGames.filter(game => game.tags?.includes(selectedTag));
-  }, [selectedTag]);
+    return mockBoardGames.filter(game =>
+      game.tags?.some(tag => selectedTags.includes(tag))
+    );
+  }, [selectedTags]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prevTags =>
+      prevTags.includes(tag)
+        ? prevTags.filter(t => t !== tag)
+        : [...prevTags, tag]
+    );
+  };
+
+  const getTriggerText = () => {
+    if (selectedTags.length === 0) return "Tous les tags";
+    if (selectedTags.length === 1) return selectedTags[0];
+    return `${selectedTags.length} tags sélectionnés`;
+  };
 
   if (!isMounted || authLoading || (!currentUser && !authLoading)) {
     return (
@@ -75,7 +91,7 @@ export default function GamesPage() {
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
           <ListFilter className="h-5 w-5 text-primary" />
-          Filtrer par tag
+          Filtrer par tag(s)
         </h2>
         <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
           <PopoverTrigger asChild>
@@ -85,7 +101,7 @@ export default function GamesPage() {
               aria-expanded={isTagPopoverOpen}
               className="w-full sm:w-[300px] justify-between"
             >
-              {selectedTag || "Tous les tags"}
+              {getTriggerText()}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -99,31 +115,31 @@ export default function GamesPage() {
                     key="all-tags"
                     value="Tous les tags"
                     onSelect={() => {
-                      setSelectedTag(null);
+                      setSelectedTags([]);
                       setIsTagPopoverOpen(false);
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedTag === null ? "opacity-100" : "opacity-0"
+                        selectedTags.length === 0 ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    Tous les tags
+                    Tous les tags (Réinitialiser)
                   </CommandItem>
                   {uniqueTags.map((tag) => (
                     <CommandItem
                       key={tag}
-                      value={tag}
-                      onSelect={(currentValue) => {
-                        setSelectedTag(currentValue === selectedTag ? null : currentValue);
-                        setIsTagPopoverOpen(false);
+                      value={tag} // for cmdk filtering
+                      onSelect={() => {
+                        toggleTag(tag);
+                        // Keep popover open for multi-select
                       }}
                     >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          selectedTag === tag ? "opacity-100" : "opacity-0"
+                          selectedTags.includes(tag) ? "opacity-100" : "opacity-0"
                         )}
                       />
                       {tag}
@@ -145,12 +161,12 @@ export default function GamesPage() {
       ) : (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">
-            {selectedTag 
-              ? `Aucun jeu ne correspond au tag "${selectedTag}".`
+            {selectedTags.length > 0
+              ? `Aucun jeu ne correspond aux tags sélectionnés.`
               : "Aucun jeu dans la bibliothèque pour le moment."}
           </p>
-          {selectedTag && (
-            <Button variant="link" onClick={() => setSelectedTag(null)} className="mt-2">
+          {selectedTags.length > 0 && (
+            <Button variant="link" onClick={() => setSelectedTags([])} className="mt-2">
               Voir tous les jeux
             </Button>
           )}
