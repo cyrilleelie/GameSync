@@ -14,8 +14,8 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GameSyncLogo } from '@/components/icons/game-sync-logo';
-import { LogOut, Loader2 } from 'lucide-react';
+// Removed: import { GameSyncLogo } from '@/components/icons/game-sync-logo';
+import { LogOut, Loader2, Boxes } from 'lucide-react'; // Added Boxes
 
 export function AppSidebar() {
   const { currentUser, logout, loading } = useAuth();
@@ -37,7 +37,7 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
           <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
-            <GameSyncLogo className="h-8 w-8" />
+            <Boxes className="h-8 w-8" /> {/* Replaced GameSyncLogo */}
             <h1 className="text-xl font-semibold">GameSync</h1>
           </Link>
         </SidebarHeader>
@@ -53,7 +53,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
-          <GameSyncLogo className="h-8 w-8" />
+          <Boxes className="h-8 w-8" /> {/* Replaced GameSyncLogo */}
           <h1 className="text-xl font-semibold">GameSync</h1>
         </Link>
       </SidebarHeader>

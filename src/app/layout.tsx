@@ -6,8 +6,9 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
 import { AppSidebar } from '@/components/layout/app-sidebar'; // Import a new component for the sidebar logic
-import { GameSyncLogo } from '@/components/icons/game-sync-logo';
+// Removed: import { GameSyncLogo } from '@/components/icons/game-sync-logo';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Boxes } from 'lucide-react'; // Added Boxes
 
 
 const geistSans = Geist({
@@ -40,7 +41,7 @@ export default function RootLayout({
               <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2 md:hidden">
                 <SidebarTrigger className="md:hidden" />
                 <Link href="/" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors" prefetch>
-                  <GameSyncLogo className="h-7 w-7" />
+                  <Boxes className="h-7 w-7" /> {/* Replaced GameSyncLogo */}
                   <h1 className="text-lg font-semibold">GameSync</h1>
                 </Link>
               </header>
