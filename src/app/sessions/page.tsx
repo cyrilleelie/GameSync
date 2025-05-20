@@ -6,7 +6,7 @@ import { SessionCard } from '@/components/sessions/session-card';
 import { mockSessions, mockBoardGames } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle, Filter, X, Star } from 'lucide-react';
+import { PlusCircle, Filter, X, Star, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -58,8 +58,11 @@ function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
 
 const DEFAULT_RADIUS = 10; // km
 const MAX_RADIUS = 100; // km
+const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
 
 export default function SessionsPage() {
+  const [allSessions, setAllSessions] = useState<GameSession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [gameNameFilters, setGameNameFilters] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState('');
@@ -73,7 +76,42 @@ export default function SessionsPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    // Load sessions from localStorage or initialize it
+    const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+    if (storedSessionsString) {
+      try {
+        const parsedSessions = JSON.parse(storedSessionsString);
+        if (Array.isArray(parsedSessions)) {
+          const sessionsWithParsedDates = parsedSessions.map((session: any) => ({
+            ...session,
+            dateTime: new Date(session.dateTime), // Ensure dateTime is a Date object
+            // Ensure player objects are fully formed if they were simplified
+            host: session.host || { id: 'unknown', name: 'Unknown Host'},
+            currentPlayers: Array.isArray(session.currentPlayers) ? session.currentPlayers.map((p: any) => p || {id: 'unknown', name: 'Unknown Player'}) : [],
+          }));
+          setAllSessions(sessionsWithParsedDates);
+        } else {
+          // Data in localStorage is not an array, initialize with mockSessions
+          const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+          localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
+          setAllSessions(initialSessions);
+        }
+      } catch (e) {
+        console.error("Failed to parse sessions from localStorage", e);
+        // Fallback to mockSessions if parsing fails
+        const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+        localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
+        setAllSessions(initialSessions);
+      }
+    } else {
+      // Initialize localStorage with mockSessions if it's empty
+      const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+      localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
+      setAllSessions(initialSessions);
+    }
+    setIsLoadingSessions(false);
   }, []);
+
 
   const uniqueGameNamesFromDb = useMemo(() => {
     const gameNames = new Set(mockBoardGames.map(game => game.name));
@@ -81,15 +119,14 @@ export default function SessionsPage() {
   }, []);
 
   const filteredSessions = useMemo(() => {
-    // Note: Radius filtering is not actually implemented here due to lack of geodata in mocks.
-    // This example focuses on UI and state management for the radius slider.
-    return mockSessions.filter(session => {
+    if (isLoadingSessions) return [];
+    return allSessions.filter(session => {
       const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.some(filterName => session.gameName.includes(filterName));
-      // Basic location match - a real app would use geocoding and distance calculation with the radiusFilter
-      const locationMatch = session.location.toLowerCase().includes(locationFilter.toLowerCase());
+      const locationMatch = !locationFilter || session.location.toLowerCase().includes(locationFilter.toLowerCase());
+      // Radius filtering is still simulated
       return gameNameMatch && locationMatch;
     });
-  }, [gameNameFilters, locationFilter, radiusFilter]); // radiusFilter added for completeness, though not used in logic here
+  }, [allSessions, gameNameFilters, locationFilter, radiusFilter, isLoadingSessions]);
 
   const resetFilters = () => {
     setGameNameFilters([]);
@@ -105,17 +142,15 @@ export default function SessionsPage() {
   };
   
   const canFilterByFavorites = !!currentUser && !!currentUser.gamePreferences && currentUser.gamePreferences.length > 0;
-  const favoritesFilterIsActive = canFilterByFavorites && arraysHaveSameElements(gameNameFilters, currentUser.gamePreferences as string[]);
+  const favoritesFilterIsActive = canFilterByFavorites && currentUser?.gamePreferences ? arraysHaveSameElements(gameNameFilters, currentUser.gamePreferences) : false;
 
 
   const handleFilterByFavorites = () => {
     if (currentUser && currentUser.gamePreferences && currentUser.gamePreferences.length > 0) {
       const userFavorites = currentUser.gamePreferences;
       if (favoritesFilterIsActive) {
-        // If favorites filter is active, toggle it off by clearing game filters
         setGameNameFilters([]);
       } else {
-        // Otherwise, activate it
         setGameNameFilters(userFavorites);
       }
     }
@@ -137,7 +172,7 @@ export default function SessionsPage() {
   ].filter(Boolean).length;
 
 
-  if (!isMounted) {
+  if (!isMounted || isLoadingSessions) {
     return (
       <div className="container mx-auto py-8">
          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -146,8 +181,8 @@ export default function SessionsPage() {
             <p className="text-muted-foreground">Parcourez les sessions de jeu de société à venir ou créez la vôtre.</p>
             </div>
         </div>
-        <div className="text-center py-12">
-          <p className="text-xl text-muted-foreground">Chargement des sessions...</p>
+        <div className="flex items-center justify-center min-h-[calc(100vh-15rem)]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       </div>
     );
@@ -329,20 +364,21 @@ export default function SessionsPage() {
       ) : (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">
-            Aucune session ne correspond à vos filtres.
+            {allSessions.length === 0 ? "Aucune session disponible pour le moment." : "Aucune session ne correspond à vos filtres."}
           </p>
-          {mockSessions.length > 0 && 
+          {allSessions.length > 0 && 
              (gameNameFilters.length > 0 || locationFilter || radiusFilter !== DEFAULT_RADIUS) && 
             <Button variant="link" onClick={resetFilters} className="mt-2">
               Voir toutes les sessions
             </Button>
           }
-          <Button asChild className="mt-4">
-            <Link href="/sessions/create" prefetch>Soyez le premier à en créer une !</Link>
-          </Button>
+           {(allSessions.length === 0 || activeFilterCount > 0) &&
+            <Button asChild className="mt-4">
+              <Link href="/sessions/create" prefetch>Soyez le premier à en créer une !</Link>
+            </Button>
+           }
         </div>
       )}
     </div>
   );
 }
-

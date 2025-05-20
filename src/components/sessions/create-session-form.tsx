@@ -25,14 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock } from 'lucide-react';
+import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale'; // Import French locale
+import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { mockBoardGames, getBoardGameByName } from '@/lib/data';
+import { mockBoardGames, getBoardGameByName, mockSessions } from '@/lib/data';
+import { useAuth } from '@/contexts/auth-context';
+import type { GameSession } from '@/lib/types';
 
 
 const formSchema = z.object({
@@ -46,6 +48,7 @@ const formSchema = z.object({
 export function CreateSessionForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,24 +63,71 @@ export function CreateSessionForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (!currentUser) {
+      toast({
+        title: "Utilisateur non connecté",
+        description: "Vous devez être connecté pour créer une session.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
     const selectedGame = getBoardGameByName(values.gameName);
     const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
-
-    // In a real app, you would save this session data including gameImageUrl
-    console.log('Formulaire soumis:', { ...values, gameImageUrl });
     
-    toast({
-      title: 'Session Créée !',
-      description: `Votre session pour ${values.gameName} a été créée avec succès.`,
-      variant: 'default',
-    });
-    setIsSubmitting(false);
-    // In a real app, you might get an ID back and redirect to the session page
-    // For now, we don't add to mockSessions, so this new session won't appear immediately unless page is reloaded with new static data
-    router.push('/sessions'); 
+    const newSessionId = 's' + Date.now();
+    const newSession: GameSession = {
+      id: newSessionId,
+      gameName: values.gameName,
+      gameImageUrl: gameImageUrl,
+      dateTime: values.dateTime, // This is already a Date object from the form
+      location: values.location,
+      maxPlayers: values.maxPlayers,
+      currentPlayers: [currentUser], // Host is automatically a player
+      host: currentUser,
+      description: values.description,
+      category: selectedGame ? selectedGame.category : undefined,
+    };
+
+    try {
+      const existingSessionsString = localStorage.getItem('gameSessions');
+      // Initialize with mockSessions if localStorage is empty or data is not an array
+      let sessionsToUpdate: GameSession[];
+      if (existingSessionsString) {
+        const parsedSessions = JSON.parse(existingSessionsString);
+        if (Array.isArray(parsedSessions)) {
+           sessionsToUpdate = parsedSessions.map((s: any) => ({...s, dateTime: new Date(s.dateTime)}));
+        } else {
+           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+        }
+      } else {
+        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+      }
+      
+      const updatedSessions = [...sessionsToUpdate, newSession];
+      // When saving to localStorage, Date objects are automatically converted to ISO strings by JSON.stringify
+      localStorage.setItem('gameSessions', JSON.stringify(updatedSessions));
+
+      toast({
+        title: 'Session Créée !',
+        description: `Votre session pour ${values.gameName} a été créée avec succès.`,
+        variant: 'default',
+      });
+      router.push('/sessions');
+    } catch (error) {
+      console.error("Failed to save session to localStorage", error);
+      toast({
+        title: 'Erreur de Sauvegarde',
+        description: "Impossible d'enregistrer la session localement.",
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -89,7 +139,7 @@ export function CreateSessionForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Nom du Jeu</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez un jeu" />
@@ -115,7 +165,7 @@ export function CreateSessionForm() {
             <FormItem>
               <FormLabel className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" />Lieu</FormLabel>
               <FormControl>
-                <Input placeholder="Ex : Chez moi, Nom du café local" {...field} />
+                <Input placeholder="Ex : Chez moi, Nom du café local" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -138,6 +188,7 @@ export function CreateSessionForm() {
                           'w-full pl-3 text-left font-normal',
                           !field.value && 'text-muted-foreground'
                         )}
+                        disabled={isSubmitting}
                       >
                         {field.value ? (
                           format(field.value, 'PPP HH:mm', { locale: fr })
@@ -153,8 +204,8 @@ export function CreateSessionForm() {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } // Disable past dates
-                      locale={fr} // Add French locale to Calendar
+                      disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) }
+                      locale={fr}
                     />
                     <div className="p-3 border-t border-border">
                        <Input 
@@ -168,6 +219,7 @@ export function CreateSessionForm() {
                               field.onChange(newDate);
                             }
                           }}
+                          disabled={isSubmitting}
                        />
                     </div>
                   </PopoverContent>
@@ -184,7 +236,7 @@ export function CreateSessionForm() {
               <FormItem>
                 <FormLabel className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" />Joueurs Max</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="Ex : 4" {...field} />
+                  <Input type="number" placeholder="Ex : 4" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -203,6 +255,7 @@ export function CreateSessionForm() {
                   placeholder="Détails supplémentaires sur la session, ex : règles maison, snacks, niveau d'expérience."
                   className="resize-none"
                   {...field}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>
@@ -213,7 +266,14 @@ export function CreateSessionForm() {
           )}
         />
         <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-          {isSubmitting ? 'Création en cours...' : 'Créer la Session'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Création en cours...
+            </>
+          ) : (
+            'Créer la Session'
+          )}
         </Button>
       </form>
     </Form>
