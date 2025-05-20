@@ -14,73 +14,73 @@ body {
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 97%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 75% 55%; /* Vibrant Red */
+    --primary: 220 85% 55%; /* Vibrant Blue */
     --primary-foreground: 0 0% 98%; /* Off-white text on primary */
-    --secondary: 20 90% 58%; /* Vibrant Orange */
-    --secondary-foreground: 0 0% 10%; /* Dark text on secondary */
+    --secondary: 250 70% 60%; /* Medium Violet */
+    --secondary-foreground: 0 0% 98%; /* Off-white text on secondary */
     --muted: 0 0% 94%; /* Light Gray */
     --muted-foreground: 0 0% 45%; /* Medium Gray for muted text */
-    --accent: 30 95% 55%; /* Bright Orange-Yellow */
+    --accent: 270 80% 65%; /* Bright Purple */
     --accent-foreground: 0 0% 10%; /* Dark text on accent */
-    --destructive: 0 84% 60%; /* Standard destructive red */
+    --destructive: 0 84% 60%; /* Standard destructive red - kept for clarity */
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 90%; /* Light gray border */
     --input: 0 0% 96%; /* Slightly off-white input bg */
-    --ring: 20 90% 58%; /* Orange for focus rings */
+    --ring: 250 70% 60%; /* Violet for focus rings */
     
-    --chart-1: 0 75% 55%; /* Vibrant Red */
-    --chart-2: 20 90% 58%; /* Vibrant Orange */
-    --chart-3: 30 95% 55%; /* Bright Orange-Yellow */
-    --chart-4: 0 65% 70%; /* Lighter Red */
-    --chart-5: 20 80% 75%; /* Lighter Orange */
+    --chart-1: 220 85% 55%; /* Vibrant Blue */
+    --chart-2: 250 70% 60%; /* Medium Violet */
+    --chart-3: 270 80% 65%; /* Bright Purple */
+    --chart-4: 220 75% 70%; /* Lighter Blue */
+    --chart-5: 250 60% 75%; /* Lighter Violet */
     
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 12%; /* Dark Gray for sidebar */
+    --sidebar-background: 220 15% 15%; /* Dark Slate Blue */
     --sidebar-foreground: 0 0% 90%; /* Light text for sidebar */
-    --sidebar-primary: 20 90% 58%; /* Orange for active items in sidebar */
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 20%; /* Slightly lighter dark gray for hover */
+    --sidebar-primary: 250 75% 65%; /* Violet for active items in sidebar */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 220 10% 25%; /* Slightly lighter dark slate blue for hover */
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 20 90% 58%;
+    --sidebar-border: 220 10% 20%;
+    --sidebar-ring: 250 75% 65%;
   }
 
   .dark {
-    --background: 0 0% 12%; /* Dark Gray */
+    --background: 220 15% 10%; /* Darker Blue-Gray */
     --foreground: 0 0% 90%; /* Light Gray text */
-    --card: 0 0% 18%; /* Slightly lighter dark gray */
+    --card: 220 15% 15%; /* Slightly lighter dark blue-gray */
     --card-foreground: 0 0% 90%;
-    --popover: 0 0% 18%;
+    --popover: 220 15% 15%;
     --popover-foreground: 0 0% 90%;
-    --primary: 0 75% 65%; /* Brighter Red */
+    --primary: 220 90% 65%; /* Brighter Blue */
     --primary-foreground: 0 0% 10%;
-    --secondary: 20 90% 65%; /* Brighter Orange */
+    --secondary: 250 80% 70%; /* Brighter Violet */
     --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 25%; /* Medium-Dark Gray */
+    --muted: 0 0% 25%; /* Medium-Dark Gray (kept for some muted elements) */
     --muted-foreground: 0 0% 65%; /* Medium-Light Gray */
-    --accent: 30 95% 65%; /* Brighter Orange-Yellow */
+    --accent: 270 90% 75%; /* Brighter Purple */
     --accent-foreground: 0 0% 10%;
-    --destructive: 0 80% 60%;
+    --destructive: 0 70% 55%; /* Darker destructive red */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 22%;
-    --input: 0 0% 20%;
-    --ring: 20 90% 65%; /* Brighter Orange for focus rings */
+    --border: 220 10% 22%; /* Dark blue-gray border */
+    --input: 220 10% 20%; /* Dark blue-gray input */
+    --ring: 250 80% 70%; /* Brighter Violet for focus rings */
 
-    --chart-1: 0 75% 65%;
-    --chart-2: 20 90% 65%;
-    --chart-3: 30 95% 65%;
-    --chart-4: 0 65% 75%;
-    --chart-5: 20 80% 80%;
+    --chart-1: 220 90% 65%;
+    --chart-2: 250 80% 70%;
+    --chart-3: 270 90% 75%;
+    --chart-4: 220 80% 80%;
+    --chart-5: 250 70% 85%;
 
-    --sidebar-background: 0 0% 8%; /* Even darker gray for sidebar */
+    --sidebar-background: 220 10% 8%; /* Even darker slate blue for sidebar */
     --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 20 90% 65%; /* Orange for active items */
+    --sidebar-primary: 250 85% 75%; /* Brighter Violet for active items */
     --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 15%; /* Hover state for sidebar */
+    --sidebar-accent: 220 10% 18%; /* Hover state for sidebar */
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 5%;
-    --sidebar-ring: 20 90% 65%;
+    --sidebar-border: 220 10% 12%;
+    --sidebar-ring: 250 85% 75%;
   }
 }
 
