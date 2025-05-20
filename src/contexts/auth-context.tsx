@@ -14,6 +14,7 @@ interface AuthContextType {
   logout: () => void;
   register: (name: string, email: string, pass: string) => Promise<boolean>; // Simulate async registration
   loginWithGoogle: () => Promise<boolean>; // Simulate async Google login
+  loginWithFacebook: () => Promise<boolean>; // Simulate async Facebook login
   loading: boolean;
 }
 
@@ -91,6 +92,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   };
 
+  const loginWithFacebook = async (): Promise<boolean> => {
+    setLoading(true);
+    // Simulate API call to Facebook
+    await new Promise(resolve => setTimeout(resolve, 700));
+    // For simulation, let's log in Bob or another generic user
+    const facebookUser = mockPlayers.find(p => p.email === 'bob@example.com') || mockPlayers[1] || mockPlayers[0];
+    if (facebookUser) {
+      setCurrentUser(facebookUser);
+      localStorage.setItem('currentUser', JSON.stringify(facebookUser));
+      setLoading(false);
+      router.push('/');
+      return true;
+    }
+    setLoading(false);
+    return false;
+  };
+
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
@@ -98,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loading }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loginWithFacebook, loading }}>
       {children}
     </AuthContext.Provider>
   );
