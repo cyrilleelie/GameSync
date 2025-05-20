@@ -20,18 +20,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { GameSession } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Slider } from "@/components/ui/slider"; // Importer le Slider
+import { Slider } from "@/components/ui/slider";
 import { useAuth } from '@/contexts/auth-context';
 
 // Small helper icon for badge removal
@@ -71,7 +64,6 @@ export default function SessionsPage() {
   const [gameNameFilters, setGameNameFilters] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState('');
   const [radiusFilter, setRadiusFilter] = useState<number>(DEFAULT_RADIUS);
-  const [categoryFilter, setCategoryFilter] = useState('');
   
   const [isGamePopoverOpen, setIsGamePopoverOpen] = useState(false);
   const [gameSearchQuery, setGameSearchQuery] = useState('');
@@ -81,11 +73,6 @@ export default function SessionsPage() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  const uniqueCategories = useMemo(() => {
-    const categories = new Set(mockSessions.map(session => session.category).filter(Boolean as (value: any) => value is string));
-    return ['Toutes', ...Array.from(categories)];
   }, []);
 
   const uniqueGameNamesFromDb = useMemo(() => {
@@ -100,16 +87,14 @@ export default function SessionsPage() {
       const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.some(filterName => session.gameName.includes(filterName));
       // Basic location match - a real app would use geocoding and distance calculation with the radiusFilter
       const locationMatch = session.location.toLowerCase().includes(locationFilter.toLowerCase());
-      const categoryMatch = categoryFilter === '' || categoryFilter === 'Toutes' || session.category === categoryFilter;
-      return gameNameMatch && locationMatch && categoryMatch;
+      return gameNameMatch && locationMatch;
     });
-  }, [gameNameFilters, locationFilter, categoryFilter, radiusFilter]); // radiusFilter added for completeness, though not used in logic here
+  }, [gameNameFilters, locationFilter, radiusFilter]); // radiusFilter added for completeness, though not used in logic here
 
   const resetFilters = () => {
     setGameNameFilters([]);
     setLocationFilter('');
     setRadiusFilter(DEFAULT_RADIUS);
-    setCategoryFilter('');
     setGameSearchQuery('');
   };
 
@@ -148,8 +133,7 @@ export default function SessionsPage() {
   const activeFilterCount = [
     gameNameFilters.length > 0, 
     locationFilter !== '', 
-    categoryFilter !== '' && categoryFilter !== 'Toutes',
-    radiusFilter !== DEFAULT_RADIUS, // Consider radius filter active if not default
+    radiusFilter !== DEFAULT_RADIUS,
   ].filter(Boolean).length;
 
 
@@ -314,21 +298,6 @@ export default function SessionsPage() {
                     </p>
                   </div>
 
-                  <div className="grid gap-3">
-                    <Label htmlFor="category">Catégorie</Label>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Sélectionner une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {uniqueCategories.map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </ScrollArea>
               <SheetFooter className="mt-auto pt-4 border-t">
@@ -363,7 +332,7 @@ export default function SessionsPage() {
             Aucune session ne correspond à vos filtres.
           </p>
           {mockSessions.length > 0 && 
-             (gameNameFilters.length > 0 || locationFilter || radiusFilter !== DEFAULT_RADIUS || (categoryFilter && categoryFilter !== 'Toutes')) && 
+             (gameNameFilters.length > 0 || locationFilter || radiusFilter !== DEFAULT_RADIUS) && 
             <Button variant="link" onClick={resetFilters} className="mt-2">
               Voir toutes les sessions
             </Button>
