@@ -19,13 +19,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2, Timer } from 'lucide-react'; // Ajout de Timer
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2, Timer, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,7 +44,7 @@ const formSchema = z.object({
   location: z.string().min(3, { message: 'Le lieu doit comporter au moins 3 caractères.' }),
   dateTime: z.date({ required_error: 'La date et l\'heure sont requises.' }),
   maxPlayers: z.coerce.number().min(2, { message: 'Il faut au moins 2 joueurs.' }).max(20, { message: 'Ne peut excéder 20 joueurs.' }),
-  duration: z.string().optional(), // Nouveau champ pour la durée
+  duration: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -59,6 +60,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isGameComboboxOpen, setIsGameComboboxOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -119,7 +121,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
         return;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
 
     const selectedGame = getBoardGameByName(values.gameName);
     const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
@@ -132,13 +134,13 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
         if (Array.isArray(parsedSessions)) {
            sessionsToUpdate = parsedSessions.map((s: any) => ({...s, dateTime: new Date(s.dateTime)}));
         } else {
-           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); // Fallback
+           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); 
         }
       } else {
-        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); // Fallback
+        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); 
       }
 
-      if (sessionToEdit) { // Editing existing session
+      if (sessionToEdit) { 
         const sessionIndex = sessionsToUpdate.findIndex(s => s.id === sessionToEdit.id);
         if (sessionIndex > -1) {
           sessionsToUpdate[sessionIndex] = {
@@ -148,7 +150,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
             dateTime: values.dateTime,
             location: values.location,
             maxPlayers: values.maxPlayers,
-            duration: values.duration, // Ajout de la durée
+            duration: values.duration, 
             description: values.description,
             category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category,
           };
@@ -161,7 +163,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
         } else {
           throw new Error("Session à modifier non trouvée.");
         }
-      } else { // Creating new session
+      } else { 
         const newSessionId = 's' + Date.now();
         const newSession: GameSession = {
           id: newSessionId,
@@ -172,7 +174,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           maxPlayers: values.maxPlayers,
           currentPlayers: [currentUser], 
           host: currentUser,
-          duration: values.duration, // Ajout de la durée
+          duration: values.duration, 
           description: values.description,
           category: selectedGame ? selectedGame.category : undefined,
         };
@@ -186,7 +188,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
       }
       
       localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(sessionsToUpdate));
-      router.refresh(); // Important to reflect changes if other pages are reading from localStorage
+      router.refresh(); 
 
     } catch (error) {
       console.error("Failed to save session to localStorage", error);
@@ -201,13 +203,17 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
     }
   }
   
-  if (!isMounted && sessionToEdit) { // Prevent rendering form with incorrect defaults before effect runs
+  if (!isMounted && sessionToEdit) { 
     return (
         <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
   }
+
+  const favoriteGameNames = currentUser?.gamePreferences || [];
+  const favoriteGames = mockBoardGames.filter(game => favoriteGameNames.includes(game.name)).sort((a, b) => a.name.localeCompare(b.name));
+  const otherGames = mockBoardGames.filter(game => !favoriteGameNames.includes(game.name)).sort((a, b) => a.name.localeCompare(b.name));
 
 
   return (
@@ -217,22 +223,107 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           control={form.control}
           name="gameName"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Nom du Jeu</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un jeu" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {mockBoardGames.map((game) => (
-                    <SelectItem key={game.id} value={game.name}>
-                      {game.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={isGameComboboxOpen} onOpenChange={setIsGameComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isGameComboboxOpen}
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                      disabled={isSubmitting}
+                    >
+                      {field.value
+                        ? mockBoardGames.find(
+                            (game) => game.name === field.value
+                          )?.name
+                        : "Sélectionnez un jeu"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Rechercher un jeu..." />
+                    <CommandList>
+                      <CommandEmpty>Aucun jeu trouvé.</CommandEmpty>
+                      {favoriteGames.length > 0 && (
+                        <CommandGroup heading="Favoris">
+                          {favoriteGames.map((game) => (
+                            <CommandItem
+                              value={game.name}
+                              key={game.id}
+                              onSelect={() => {
+                                form.setValue("gameName", game.name);
+                                setIsGameComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  game.name === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {game.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                      <CommandGroup heading={favoriteGames.length > 0 ? "Autres Jeux" : "Jeux"}>
+                        {otherGames.map((game) => (
+                          <CommandItem
+                            value={game.name}
+                            key={game.id}
+                            onSelect={() => {
+                              form.setValue("gameName", game.name);
+                              setIsGameComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                game.name === field.value
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {game.name}
+                          </CommandItem>
+                        ))}
+                        {favoriteGames.length === 0 && otherGames.length === 0 && mockBoardGames.length > 0 && (
+                           mockBoardGames.sort((a,b) => a.name.localeCompare(b.name)).map((game) => ( // Fallback if somehow both lists are empty but mockBoardGames isn't
+                            <CommandItem
+                              value={game.name}
+                              key={game.id}
+                              onSelect={() => {
+                                form.setValue("gameName", game.name);
+                                setIsGameComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  game.name === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {game.name}
+                            </CommandItem>
+                          ))
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
