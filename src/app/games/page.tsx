@@ -6,7 +6,7 @@ import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check, X } from 'lucide-react'; // Ajout de X
+import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check, X, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,7 +19,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge'; // Ajout de Badge
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 export default function GamesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -27,6 +28,7 @@ export default function GamesPage() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
@@ -69,6 +71,13 @@ export default function GamesPage() {
     return `${selectedTags.length} tags sélectionnés`;
   };
 
+  const handleRequestGame = () => {
+    toast({
+      title: "Demande d'ajout de jeu",
+      description: "Votre demande d'ajout de jeu a été (simulée) envoyée ! Nous l'examinerons bientôt.",
+    });
+  };
+
   if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -87,6 +96,10 @@ export default function GamesPage() {
           </h1>
           <p className="text-muted-foreground">Découvrez tous les jeux disponibles sur GameSync.</p>
         </div>
+        <Button variant="outline" onClick={handleRequestGame} size="sm" className="mt-4 sm:mt-0">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Demander un jeu
+        </Button>
       </div>
 
       <div className="mb-4">
@@ -117,13 +130,9 @@ export default function GamesPage() {
                     value="Tous les tags"
                     onSelect={() => {
                       setSelectedTags([]);
-                      // Garder le popover ouvert pour d'autres actions si besoin,
-                      // ou le fermer si "Tous les tags" est une action finale.
-                      // Pour l'instant, on le laisse ouvert.
-                      // setIsTagPopoverOpen(false);
                     }}
                   >
-                     <Check // On garde le check pour "Tous les tags" pour indiquer que c'est l'option active
+                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
                         selectedTags.length === 0 ? "opacity-100" : "opacity-0"
@@ -137,11 +146,9 @@ export default function GamesPage() {
                       value={tag}
                       onSelect={() => {
                         toggleTag(tag);
-                        // Laisser le popover ouvert pour la sélection multiple
                       }}
                     >
-                      {/* Suppression de l'icône Check ici pour les tags individuels */}
-                      <span className={cn("mr-2 h-4 w-4", selectedTags.includes(tag) ? "font-bold" : "")} /> {/* Espace pour alignement */}
+                      <span className={cn("mr-2 h-4 w-4")} /> {/* Espace pour alignement */}
                       {tag}
                     </CommandItem>
                   ))}
