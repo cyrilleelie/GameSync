@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2 } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale'; // Import French locale
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 interface SessionDetailClientProps {
   session: GameSession;
@@ -32,6 +33,7 @@ interface SessionDetailClientProps {
 
 export function SessionDetailClient({ session: initialSession, currentUser }: SessionDetailClientProps) {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
   const [session, setSession] = useState<GameSession>(initialSession);
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -82,11 +84,17 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     await new Promise(resolve => setTimeout(resolve, 1000));
     toast({ title: 'Session supprimée', description: `La session pour ${session.gameName} a été supprimée. (Simulé)`, variant: 'destructive' });
     // In a real app, redirect or update UI to reflect deletion
-    // router.push('/sessions'); 
+    router.push('/sessions'); 
   };
 
   return (
     <div className="container mx-auto py-8">
+      <div className="mb-6">
+        <Button variant="outline" onClick={() => router.back()} size="sm">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour
+        </Button>
+      </div>
       <Card className="max-w-3xl mx-auto shadow-xl">
         <CardHeader className="relative">
           {session.gameImageUrl ? (
@@ -196,3 +204,4 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     </div>
   );
 }
+
