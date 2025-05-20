@@ -6,15 +6,26 @@ import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2 } from 'lucide-react';
+import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from '@/lib/utils';
 
 export default function GamesPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -66,25 +77,63 @@ export default function GamesPage() {
           <ListFilter className="h-5 w-5 text-primary" />
           Filtrer par tag
         </h2>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedTag === null ? 'default' : 'outline'}
-            onClick={() => setSelectedTag(null)}
-            size="sm"
-          >
-            Tous les tags
-          </Button>
-          {uniqueTags.map((tag) => (
+        <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+          <PopoverTrigger asChild>
             <Button
-              key={tag}
-              variant={selectedTag === tag ? 'default' : 'outline'}
-              onClick={() => setSelectedTag(tag)}
-              size="sm"
+              variant="outline"
+              role="combobox"
+              aria-expanded={isTagPopoverOpen}
+              className="w-full sm:w-[300px] justify-between"
             >
-              {tag}
+              {selectedTag || "Tous les tags"}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
-          ))}
-        </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput placeholder="Rechercher un tag..." />
+              <CommandList>
+                <CommandEmpty>Aucun tag trouvé.</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem
+                    key="all-tags"
+                    value="Tous les tags"
+                    onSelect={() => {
+                      setSelectedTag(null);
+                      setIsTagPopoverOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedTag === null ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    Tous les tags
+                  </CommandItem>
+                  {uniqueTags.map((tag) => (
+                    <CommandItem
+                      key={tag}
+                      value={tag}
+                      onSelect={(currentValue) => {
+                        setSelectedTag(currentValue === selectedTag ? null : currentValue);
+                        setIsTagPopoverOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedTag === tag ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {tag}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {filteredGames.length > 0 ? (
