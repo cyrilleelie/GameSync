@@ -7,8 +7,8 @@ import {
   Wand2,
   Map,
   LogIn,
-  LogOut,
   UserPlus,
+  ClipboardList, // Ajout de l'icône
   type LucideIcon,
 } from 'lucide-react';
 
@@ -34,6 +34,13 @@ export const navItems: NavItem[] = [
     href: '/sessions',
     icon: Gamepad2,
     label: 'Voir les Sessions',
+    requiresAuth: true,
+  },
+  {
+    title: 'Mes Sessions', // Nouvelle page
+    href: '/my-sessions',
+    icon: ClipboardList,
+    label: 'Mes Sessions Inscrites',
     requiresAuth: true,
   },
   {
@@ -71,6 +78,4 @@ export const navItems: NavItem[] = [
     label: 'Se connecter',
     requiresGuest: true,
   },
-  // Le lien de déconnexion sera géré différemment, typiquement un bouton avec une action.
 ];
-
