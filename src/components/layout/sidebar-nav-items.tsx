@@ -7,6 +7,7 @@ import {
   Map,
   LogIn,
   ClipboardList, // Ajout de l'icône
+  LibraryBig, // Ajout de l'icône pour la bibliothèque de jeux
   type LucideIcon,
 } from 'lucide-react';
 
@@ -47,6 +48,12 @@ export const navItems: NavItem[] = [
     icon: PlusCircle,
     label: 'Nouvelle Session',
     requiresAuth: true,
+  },
+  {
+    title: 'Bibliothèque de Jeux',
+    href: '/games',
+    icon: LibraryBig,
+    label: 'Tous les jeux',
   },
   {
     title: 'Vue Carte',
