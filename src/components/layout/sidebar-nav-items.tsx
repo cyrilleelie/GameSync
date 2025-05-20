@@ -4,77 +4,82 @@ import {
   Users,
   Gamepad2,
   PlusCircle,
-  Map,
+  // Map, // Supprimé
   LogIn,
-  ClipboardList, // Ajout de l'icône
-  LibraryBig, // Ajout de l'icône pour la bibliothèque de jeux
+  ClipboardList,
+  LibraryBig,
+  LayoutList, // Ajout pour "Toutes les Sessions"
   type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
+  id?: string; // Pour l'Accordion
   title: string;
-  href: string;
+  href?: string; // Optionnel pour les parents
   icon: LucideIcon;
-  label?: string;
+  label?: string; // Utilisé pour les tooltips en mode icône, moins pertinent pour les sous-menus
   disabled?: boolean;
-  requiresAuth?: boolean; // Afficher si authentifié
-  requiresGuest?: boolean; // Afficher si non authentifié (invité)
+  requiresAuth?: boolean;
+  requiresGuest?: boolean;
+  children?: NavItem[]; // Pour les sous-menus
 }
 
 export const navItems: NavItem[] = [
   {
+    id: 'home',
     title: 'Accueil',
     href: '/',
     icon: LayoutDashboard,
-    label: 'Accueil',
   },
   {
+    id: 'sessions-accordion',
     title: 'Sessions',
-    href: '/sessions',
     icon: Gamepad2,
-    label: 'Voir les Sessions',
     requiresAuth: true,
+    children: [
+      {
+        id: 'all-sessions',
+        title: 'Toutes les Sessions',
+        href: '/sessions',
+        icon: LayoutList, // Icône pour le sous-menu
+        requiresAuth: true,
+      },
+      {
+        id: 'my-sessions',
+        title: 'Mes Sessions',
+        href: '/my-sessions',
+        icon: ClipboardList, // Icône pour le sous-menu
+        requiresAuth: true,
+      },
+      {
+        id: 'create-session',
+        title: 'Nouvelle Session',
+        href: '/sessions/create',
+        icon: PlusCircle, // Icône pour le sous-menu
+        requiresAuth: true,
+      },
+    ],
   },
   {
-    title: 'Mes Sessions', // Nouvelle page
-    href: '/my-sessions',
-    icon: ClipboardList,
-    label: 'Mes Sessions Inscrites',
-    requiresAuth: true,
-  },
-  {
-    title: 'Créer Session',
-    href: '/sessions/create',
-    icon: PlusCircle,
-    label: 'Nouvelle Session',
-    requiresAuth: true,
-  },
-  {
-    title: 'Bibliothèque de Jeux',
+    id: 'games',
+    title: 'Jeux', // Renommé depuis "Bibliothèque de Jeux"
     href: '/games',
     icon: LibraryBig,
-    label: 'Tous les jeux',
-    requiresAuth: true, // Modification: Ajout de requiresAuth
-  },
-  {
-    title: 'Vue Carte',
-    href: '/map',
-    icon: Map,
-    label: 'Sessions à Proximité',
     requiresAuth: true,
   },
+  // "Vue Carte" a été supprimé
   {
+    id: 'profile',
     title: 'Profil',
     href: '/profile',
     icon: Users,
-    label: 'Mon Profil',
     requiresAuth: true,
   },
   {
+    id: 'login',
     title: 'Connexion',
     href: '/login',
     icon: LogIn,
-    label: 'Se connecter',
     requiresGuest: true,
   },
 ];

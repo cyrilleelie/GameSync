@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { navItems } from '@/components/layout/sidebar-nav-items';
+import type { NavItem } from '@/components/layout/sidebar-nav-items';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -14,43 +15,91 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { LogOut, Loader2, Boxes } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const { currentUser, logout, loading: authLoading } = useAuth();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
+  const [activeAccordionValue, setActiveAccordionValue] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const displayedNavItems = useMemo(() => {
-    // Ensure navItems are only computed when fully ready to avoid mismatches
-    if (!isMounted || authLoading) return [];
-    return navItems.filter(item => {
-      if (item.requiresAuth && !currentUser) return false;
-      if (item.requiresGuest && currentUser) return false;
-      return true;
-    });
+    if (!isMounted) return []; // Wait for mount to ensure currentUser is resolved client-side
+    
+    return navItems
+      .filter(item => { // Filter top-level items
+        if (item.requiresAuth && !currentUser) return false;
+        if (item.requiresGuest && currentUser) return false;
+        return true;
+      })
+      .map(item => { // Map to new array, filtering children immutably
+        if (item.children) {
+          const visibleChildren = item.children.filter(child => {
+            if (child.requiresAuth && !currentUser) return false;
+            if (child.requiresGuest && currentUser) return false;
+            return true;
+          });
+          return { ...item, children: visibleChildren };
+        }
+        return item;
+      });
   }, [isMounted, authLoading, currentUser]);
+
+  useEffect(() => {
+    // Set active accordion based on current path
+    const activeParent = displayedNavItems.find(item => 
+      item.children?.some(child => child.href === pathname)
+    );
+    if (activeParent && activeParent.id) {
+      setActiveAccordionValue(activeParent.id);
+    } else {
+      // Optional: close accordion if no child is active and not explicitly opened by user
+      // setActiveAccordionValue(undefined); 
+    }
+  }, [pathname, displayedNavItems]);
+
 
   const handleLogout = async () => {
     await logout();
   };
 
+  const renderHeaderContent = () => {
+    if (!isMounted || authLoading) {
+      // Render a simple div for the header to match SSR and avoid hydration issues
+      return (
+        <div className="flex items-center gap-2 text-sidebar-primary">
+          <Boxes className="h-8 w-8" />
+          <h1 className="text-xl font-semibold">GameSync</h1>
+        </div>
+      );
+    }
+    // Mounted and auth is complete: render the Link
+    return (
+      <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
+        <Boxes className="h-8 w-8" />
+        <h1 className="text-xl font-semibold">GameSync</h1>
+      </Link>
+    );
+  };
+
+
   if (!isMounted) {
-    // This block is for Server-Side Rendering and the very first client render pass before useEffect runs.
-    // It should be as simple as possible and match what the server sends.
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {/* Render a simple div for the header */}
-          <div className="flex items-center gap-2 text-sidebar-primary">
-            <Boxes className="h-8 w-8" />
-            <h1 className="text-xl font-semibold">GameSync</h1>
-          </div>
+          {renderHeaderContent()}
         </SidebarHeader>
         <SidebarContent className="flex items-center justify-center flex-grow">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -59,23 +108,10 @@ export function AppSidebar() {
     );
   }
 
-  // If we reach here, isMounted is true.
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
-        {authLoading ? (
-          // Mounted, but auth is still loading: render a simple div
-          <div className="flex items-center gap-2 text-sidebar-primary">
-            <Boxes className="h-8 w-8" />
-            <h1 className="text-xl font-semibold">GameSync</h1>
-          </div>
-        ) : (
-          // Mounted and auth is complete: render the Link
-          <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
-            <Boxes className="h-8 w-8" />
-            <h1 className="text-xl font-semibold">GameSync</h1>
-          </Link>
-        )}
+        {renderHeaderContent()}
       </SidebarHeader>
       <SidebarContent>
         {authLoading ? (
@@ -83,21 +119,70 @@ export function AppSidebar() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <SidebarMenu className="flex-grow">
-            {displayedNavItems.map((item) => (
-              <SidebarMenuItem key={item.href} data-active={pathname === item.href}>
-                <Button
-                  variant={pathname === item.href ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={item.href} className="flex items-center gap-3" prefetch={item.href.startsWith('/')}>
-                    <item.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium">{item.title}</span>
-                  </Link>
-                </Button>
-              </SidebarMenuItem>
-            ))}
+          <SidebarMenu className="flex-grow px-2 py-0"> {/* Adjust padding for accordion items */}
+            {displayedNavItems.map((item) => {
+              if (item.children && item.children.length > 0 && item.id) {
+                return (
+                  <Accordion 
+                    type="single" 
+                    collapsible 
+                    className="w-full" 
+                    key={item.id}
+                    value={activeAccordionValue}
+                    onValueChange={setActiveAccordionValue}
+                  >
+                    <AccordionItem value={item.id} className="border-b-0">
+                      <AccordionTrigger 
+                        className={cn(
+                          "flex items-center w-full justify-between rounded-md px-2 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                          // Check if parent itself OR any child is active for parent highlighting (optional)
+                          // item.children.some(child => pathname === child.href) ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-1 pb-0 pl-5"> {/* Indent sub-items */}
+                        <SidebarMenu className="!gap-0.5"> {/* Tighter gap for sub-items */}
+                          {item.children.map((child) => (
+                            <SidebarMenuItem key={child.href} data-active={pathname === child.href}>
+                              <Button
+                                variant={pathname === child.href ? "secondary" : "ghost"}
+                                className="w-full justify-start h-auto py-[6px] px-2 text-sidebar-foreground/90" // Slightly different style for sub-items
+                                asChild
+                              >
+                                <Link href={child.href!} className="flex items-center gap-2.5" prefetch={child.href?.startsWith('/')}>
+                                  <child.icon className="h-4 w-4" />
+                                  <span className="text-sm font-normal">{child.title}</span>
+                                </Link>
+                              </Button>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                );
+              } else if (item.href) { // Regular top-level item
+                return (
+                  <SidebarMenuItem key={item.href} data-active={pathname === item.href}>
+                    <Button
+                      variant={pathname === item.href ? "secondary" : "ghost"}
+                      className="w-full justify-start text-sidebar-foreground"
+                      asChild
+                    >
+                      <Link href={item.href} className="flex items-center gap-3" prefetch={item.href.startsWith('/')}>
+                        <item.icon className="h-5 w-5" />
+                        <span className="text-sm font-medium">{item.title}</span>
+                      </Link>
+                    </Button>
+                  </SidebarMenuItem>
+                );
+              }
+              return null; // Should not happen if navItems are well-formed
+            })}
           </SidebarMenu>
         )}
       </SidebarContent>
