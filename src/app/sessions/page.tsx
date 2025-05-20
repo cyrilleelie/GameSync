@@ -53,6 +53,15 @@ const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  const sortedArr1 = [...arr1].sort();
+  const sortedArr2 = [...arr2].sort();
+  return sortedArr1.every((value, index) => value === sortedArr2[index]);
+}
+
 export default function SessionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [gameNameFilters, setGameNameFilters] = useState<string[]>([]);
@@ -103,7 +112,15 @@ export default function SessionsPage() {
 
   const handleFilterByFavorites = () => {
     if (currentUser && currentUser.gamePreferences && currentUser.gamePreferences.length > 0) {
-      setGameNameFilters(currentUser.gamePreferences);
+      const userFavorites = currentUser.gamePreferences;
+      // Check if current gameNameFilters are exactly the user's favorites
+      if (arraysHaveSameElements(gameNameFilters, userFavorites)) {
+        // If yes, toggle off (clear game filters)
+        setGameNameFilters([]);
+      } else {
+        // If no, toggle on (set game filters to favorites)
+        setGameNameFilters(userFavorites);
+      }
     }
   };
 
