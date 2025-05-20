@@ -54,6 +54,7 @@ export const navItems: NavItem[] = [
     href: '/games',
     icon: LibraryBig,
     label: 'Tous les jeux',
+    requiresAuth: true, // Modification: Ajout de requiresAuth
   },
   {
     title: 'Vue Carte',

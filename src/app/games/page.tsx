@@ -1,16 +1,31 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { mockBoardGames } from '@/lib/data';
 import type { BoardGame, GameCategory } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter } from 'lucide-react';
+import { LibraryBig, ListFilter, Loader2 } from 'lucide-react'; // Ajout de Loader2
 import { categoryTranslations } from '@/lib/category-translations';
+import { useAuth } from '@/contexts/auth-context'; // Ajout de useAuth
+import { useRouter } from 'next/navigation'; // Ajout de useRouter
 
 export default function GamesPage() {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory | null>(null);
+  const { currentUser, loading: authLoading } = useAuth(); // Ajout de useAuth
+  const router = useRouter(); // Ajout de useRouter
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !authLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, authLoading, router, isMounted]);
 
   const uniqueCategories = useMemo(() => {
     const categories = new Set<GameCategory>();
@@ -30,6 +45,14 @@ export default function GamesPage() {
     }
     return mockBoardGames.filter(game => game.category === selectedCategory);
   }, [selectedCategory]);
+
+  if (!isMounted || authLoading || (!currentUser && !authLoading)) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
