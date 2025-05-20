@@ -3,18 +3,17 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { mockBoardGames } from '@/lib/data';
-import type { BoardGame, GameCategory } from '@/lib/types';
+import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2 } from 'lucide-react'; // Ajout de Loader2
-import { categoryTranslations } from '@/lib/category-translations';
-import { useAuth } from '@/contexts/auth-context'; // Ajout de useAuth
-import { useRouter } from 'next/navigation'; // Ajout de useRouter
+import { LibraryBig, ListFilter, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function GamesPage() {
-  const [selectedCategory, setSelectedCategory] = useState<GameCategory | null>(null);
-  const { currentUser, loading: authLoading } = useAuth(); // Ajout de useAuth
-  const router = useRouter(); // Ajout de useRouter
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -27,24 +26,20 @@ export default function GamesPage() {
     }
   }, [currentUser, authLoading, router, isMounted]);
 
-  const uniqueCategories = useMemo(() => {
-    const categories = new Set<GameCategory>();
+  const uniqueTags = useMemo(() => {
+    const tags = new Set<string>();
     mockBoardGames.forEach(game => {
-      if (game.category) {
-        categories.add(game.category);
-      }
+      game.tags?.forEach(tag => tags.add(tag));
     });
-    return Array.from(categories).sort((a, b) => 
-      (categoryTranslations[a] || a).localeCompare(categoryTranslations[b] || b, 'fr')
-    );
+    return Array.from(tags).sort((a, b) => a.localeCompare(b, 'fr'));
   }, []);
 
   const filteredGames = useMemo(() => {
-    if (!selectedCategory) {
+    if (!selectedTag) {
       return mockBoardGames;
     }
-    return mockBoardGames.filter(game => game.category === selectedCategory);
-  }, [selectedCategory]);
+    return mockBoardGames.filter(game => game.tags?.includes(selectedTag));
+  }, [selectedTag]);
 
   if (!isMounted || authLoading || (!currentUser && !authLoading)) {
     return (
@@ -69,24 +64,24 @@ export default function GamesPage() {
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
           <ListFilter className="h-5 w-5 text-primary" />
-          Filtrer par catégorie
+          Filtrer par tag
         </h2>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={selectedCategory === null ? 'default' : 'outline'}
-            onClick={() => setSelectedCategory(null)}
+            variant={selectedTag === null ? 'default' : 'outline'}
+            onClick={() => setSelectedTag(null)}
             size="sm"
           >
-            Toutes les catégories
+            Tous les tags
           </Button>
-          {uniqueCategories.map((category) => (
+          {uniqueTags.map((tag) => (
             <Button
-              key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
-              onClick={() => setSelectedCategory(category)}
+              key={tag}
+              variant={selectedTag === tag ? 'default' : 'outline'}
+              onClick={() => setSelectedTag(tag)}
               size="sm"
             >
-              {categoryTranslations[category] || category}
+              {tag}
             </Button>
           ))}
         </div>
@@ -101,13 +96,13 @@ export default function GamesPage() {
       ) : (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">
-            {selectedCategory 
-              ? `Aucun jeu ne correspond à la catégorie "${categoryTranslations[selectedCategory] || selectedCategory}".`
+            {selectedTag 
+              ? `Aucun jeu ne correspond au tag "${selectedTag}".`
               : "Aucun jeu dans la bibliothèque pour le moment."}
           </p>
-          {selectedCategory && (
-            <Button variant="link" onClick={() => setSelectedCategory(null)} className="mt-2">
-              Voir toutes les catégories
+          {selectedTag && (
+            <Button variant="link" onClick={() => setSelectedTag(null)} className="mt-2">
+              Voir tous les jeux
             </Button>
           )}
         </div>

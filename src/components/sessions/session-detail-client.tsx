@@ -6,9 +6,9 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2, ArrowLeft, Timer } from 'lucide-react'; // Ajout de Timer
+import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2, ArrowLeft, Timer } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale'; // Import French locale
+import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation'; 
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 
 const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
 
@@ -44,8 +44,6 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
 
   useEffect(() => {
     setIsMounted(true);
-    // Optionally, re-fetch session from localStorage if it can be updated by other means
-    // For now, assume initialSession is up-to-date or updated by joining/leaving actions
     const handleStorageChange = () => {
       const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
       if (storedSessionsString) {
@@ -55,7 +53,6 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
           if (updatedSession) {
             setSession(updatedSession);
           } else {
-            // Session might have been deleted
             toast({ title: "Session introuvable", description: "Cette session n'existe plus.", variant: "destructive" });
             router.push('/sessions');
           }
@@ -70,10 +67,10 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
       window.removeEventListener('storage', handleStorageChange);
     };
 
-  }, [initialSession.id, router, toast]); // Ajout de toast aux dépendances
+  }, [initialSession.id, router, toast]);
   
   useEffect(() => {
-    setSession(initialSession); // Keep session in sync if initialSession prop changes
+    setSession(initialSession);
   }, [initialSession]);
 
 
@@ -90,13 +87,11 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
 
   const updateLocalStorageSessions = (updatedSessions: GameSession[]) => {
     localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(updatedSessions));
-    // Dispatch a custom event to notify other components if needed, or rely on router.refresh()
-    // For immediate local state update, we already use setSession.
   };
 
   const handleJoinSession = async () => {
     setIsJoining(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
     let sessions: GameSession[] = [];
@@ -106,7 +101,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     if (sessionIndex > -1 && sessions[sessionIndex].currentPlayers.length < sessions[sessionIndex].maxPlayers) {
       if (!sessions[sessionIndex].currentPlayers.some(p => p.id === currentUser.id)) {
         sessions[sessionIndex].currentPlayers.push(currentUser);
-        setSession(sessions[sessionIndex]); // Update local state
+        setSession(sessions[sessionIndex]);
         updateLocalStorageSessions(sessions);
         toast({ title: 'Rejoint avec succès !', description: `Vous avez rejoint la session pour ${session.gameName}.` });
       }
@@ -118,7 +113,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
 
   const handleLeaveSession = async () => {
     setIsLeaving(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
     let sessions: GameSession[] = [];
@@ -127,7 +122,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     const sessionIndex = sessions.findIndex(s => s.id === session.id);
     if (sessionIndex > -1) {
       sessions[sessionIndex].currentPlayers = sessions[sessionIndex].currentPlayers.filter(p => p.id !== currentUser.id);
-      setSession(sessions[sessionIndex]); // Update local state
+      setSession(sessions[sessionIndex]);
       updateLocalStorageSessions(sessions);
       toast({ title: 'Session quittée', description: `Vous avez quitté la session pour ${session.gameName}.`, variant: 'default' });
     } else {
@@ -137,7 +132,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
   };
   
   const handleDeleteSession = async () => {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
     let sessions: GameSession[] = [];
@@ -148,7 +143,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     
     toast({ title: 'Session supprimée', description: `La session pour ${session.gameName} a été supprimée.`, variant: 'default' });
     router.push('/sessions');
-    router.refresh(); // To ensure sessions list page re-fetches
+    router.refresh();
   };
 
   return (
@@ -183,7 +178,7 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
                 {session.gameName}
               </CardTitle>
               <CardDescription>Organisé par : <span className="font-medium text-primary">{session.host.name}</span></CardDescription>
-              {session.category && <Badge variant="secondary" className="mt-2">{session.category}</Badge>}
+              {/* {session.category && <Badge variant="secondary" className="mt-2">{session.category}</Badge>} Supprimé */}
             </div>
             {isUserHost ? (
               <div className="flex gap-2 mt-2 sm:mt-0">

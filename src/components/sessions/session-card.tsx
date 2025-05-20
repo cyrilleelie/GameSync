@@ -4,10 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CalendarDays, MapPin, Users, Gamepad2, ArrowRight, Timer } from 'lucide-react'; // Ajout de Timer
+// import { Badge } from '@/components/ui/badge'; // Badge n'est plus utilisé ici pour category
+import { CalendarDays, MapPin, Users, Gamepad2, ArrowRight, Timer } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale'; // Import French locale
+import { fr } from 'date-fns/locale';
 
 interface SessionCardProps {
   session: GameSession;
@@ -40,7 +40,7 @@ export function SessionCard({ session }: SessionCardProps) {
           {session.gameName}
         </CardTitle>
         <CardDescription>Organisé par {session.host.name}</CardDescription>
-        {session.category && <Badge variant="outline" className="mt-1 w-fit">{session.category}</Badge>}
+        {/* {session.category && <Badge variant="outline" className="mt-1 w-fit">{session.category}</Badge>} Supprimé */}
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
         <div className="flex items-center text-sm text-muted-foreground">

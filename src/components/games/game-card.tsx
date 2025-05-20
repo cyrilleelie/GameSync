@@ -6,15 +6,12 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Gamepad2 } from 'lucide-react';
-import { getTranslatedCategory } from '@/lib/category-translations';
 
 interface GameCardProps {
   game: BoardGame;
 }
 
 export function GameCard({ game }: GameCardProps) {
-  const translatedCategory = getTranslatedCategory(game.category);
-
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-4">
@@ -36,7 +33,13 @@ export function GameCard({ game }: GameCardProps) {
         <CardTitle className="text-xl flex items-center gap-2">
           {game.name}
         </CardTitle>
-        {translatedCategory && <Badge variant="outline" className="mt-1 w-fit">{translatedCategory}</Badge>}
+        {game.tags && game.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {game.tags.map(tag => (
+              <Badge key={tag} variant="outline">{tag}</Badge>
+            ))}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
         {game.description && (

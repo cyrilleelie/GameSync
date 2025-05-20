@@ -18,23 +18,24 @@ export interface GameSession {
   currentPlayers: Player[];
   description?: string;
   host: Player;
-  category?: string; // e.g., Strategy, Party, Co-op. For potential future filtering.
+  // category?: string; // Supprimé
   duration?: string; // Nouvelle propriété pour la durée
 }
 
-export type GameCategory = "Strategy" | "Party" | "Cooperative" | "Family" | "Abstract" | "Thematic";
+// export type GameCategory = "Strategy" | "Party" | "Cooperative" | "Family" | "Abstract" | "Thematic"; // Supprimé
 
 // For Smart Scheduler form
-export interface SmartSchedulerFormData {
-  gameName: string;
-  playerPreferences: string; // Raw text input, each player on new line
-  suggestedLocations: string; // Raw text input, each location on new line
-}
+// Commenté car la page smart-scheduler a été supprimée
+// export interface SmartSchedulerFormData {
+//   gameName: string;
+//   playerPreferences: string; // Raw text input, each player on new line
+//   suggestedLocations: string; // Raw text input, each location on new line
+// }
 
 export interface BoardGame {
   id: string;
   name: string;
   imageUrl: string;
-  category?: GameCategory;
+  tags?: string[]; // Remplacé category par tags
   description?: string;
 }

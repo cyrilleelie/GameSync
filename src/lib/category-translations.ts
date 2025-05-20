@@ -1,18 +1,5 @@
 
-import type { GameCategory } from './types';
-
-export const categoryTranslations: Record<GameCategory, string> = {
-  Strategy: 'Stratégie',
-  Party: 'Ambiance',
-  Cooperative: 'Coopératif',
-  Family: 'Familial',
-  Abstract: 'Abstrait',
-  Thematic: 'Thématique',
-};
-
-export const getTranslatedCategory = (category?: GameCategory): string | undefined => {
-  if (!category) {
-    return undefined;
-  }
-  return categoryTranslations[category] || category; // Fallback to original if no translation
-};
+// This file is no longer needed as categories have been replaced by tags.
+// Keeping it empty or deleting it. For safety, I'll make it empty.
+// If you were to have a predefined list of tags that need translation,
+// a similar mechanism could be used.

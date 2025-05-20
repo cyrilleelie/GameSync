@@ -152,7 +152,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
             maxPlayers: values.maxPlayers,
             duration: values.duration, 
             description: values.description,
-            category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category,
+            // category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category, // Supprimé
           };
           toast({
             title: 'Session Modifiée !',
@@ -176,7 +176,7 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           host: currentUser,
           duration: values.duration, 
           description: values.description,
-          category: selectedGame ? selectedGame.category : undefined,
+          // category: selectedGame ? selectedGame.category : undefined, // Supprimé
         };
         sessionsToUpdate.push(newSession);
         toast({
