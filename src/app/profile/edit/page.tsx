@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Loader2, Edit3 } from 'lucide-react';
+import { Loader2, Edit3, ArrowLeft } from 'lucide-react'; // Ajout de ArrowLeft
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -31,6 +31,12 @@ export default function EditProfilePage() {
 
   return (
     <div className="container mx-auto py-8">
+      <div className="mb-6">
+        <Button variant="outline" onClick={() => router.back()} size="sm">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour
+        </Button>
+      </div>
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex items-center gap-2">
