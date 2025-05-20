@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { SessionCard } from '@/components/sessions/session-card';
-import { mockSessions } from '@/lib/data';
+import { mockSessions, mockBoardGames } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PlusCircle, Filter, X } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import {
   Select,
   SelectContent,
@@ -27,10 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { GameSession } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function SessionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [gameNameFilter, setGameNameFilter] = useState('');
+  const [gameNameFilters, setGameNameFilters] = useState<string[]>([]); // Changed to array for multiple game names
   const [locationFilter, setLocationFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
@@ -39,22 +41,37 @@ export default function SessionsPage() {
     return ['Toutes', ...Array.from(categories)];
   }, []);
 
+  const uniqueGameNamesFromDb = useMemo(() => {
+    const gameNames = new Set(mockBoardGames.map(game => game.name));
+    return Array.from(gameNames).sort();
+  }, []);
+
   const filteredSessions = useMemo(() => {
     return mockSessions.filter(session => {
-      const gameNameMatch = session.gameName.toLowerCase().includes(gameNameFilter.toLowerCase());
+      const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.includes(session.gameName);
       const locationMatch = session.location.toLowerCase().includes(locationFilter.toLowerCase());
       const categoryMatch = categoryFilter === '' || categoryFilter === 'Toutes' || session.category === categoryFilter;
       return gameNameMatch && locationMatch && categoryMatch;
     });
-  }, [gameNameFilter, locationFilter, categoryFilter]);
+  }, [gameNameFilters, locationFilter, categoryFilter]);
 
   const resetFilters = () => {
-    setGameNameFilter('');
+    setGameNameFilters([]);
     setLocationFilter('');
     setCategoryFilter('');
   };
 
-  const activeFilterCount = [gameNameFilter, locationFilter, categoryFilter === 'Toutes' ? '' : categoryFilter].filter(Boolean).length;
+  const handleGameNameFilterChange = (gameName: string, isChecked: boolean) => {
+    setGameNameFilters(prev =>
+      isChecked ? [...prev, gameName] : prev.filter(name => name !== gameName)
+    );
+  };
+
+  const activeFilterCount = [
+    gameNameFilters.length > 0, 
+    locationFilter !== '', 
+    categoryFilter !== '' && categoryFilter !== 'Toutes'
+  ].filter(Boolean).length;
 
   return (
     <div className="container mx-auto py-8">
@@ -83,41 +100,54 @@ export default function SessionsPage() {
                   Affinez votre recherche pour trouver la session parfaite.
                 </SheetDescription>
               </SheetHeader>
-              <div className="grid gap-6 py-6 flex-grow overflow-y-auto pr-2">
-                <div className="grid gap-3">
-                  <Label htmlFor="gameName">Nom du jeu</Label>
-                  <Input
-                    id="gameName"
-                    value={gameNameFilter}
-                    onChange={(e) => setGameNameFilter(e.target.value)}
-                    placeholder="Ex : Terraforming Mars"
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="location">Lieu</Label>
-                  <Input
-                    id="location"
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                    placeholder="Ex : Centre-ville"
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="category">Catégorie</Label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueCategories.map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
+              <ScrollArea className="flex-grow pr-6"> {/* Added ScrollArea for potentially long lists */}
+                <div className="grid gap-6 py-6">
+                  <div className="grid gap-3">
+                    <Label>Nom du jeu</Label>
+                    <div className="space-y-2 max-h-60"> {/* Max height for game list */}
+                      {uniqueGameNamesFromDb.map(gameName => (
+                        <div key={gameName} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`game-filter-${gameName.replace(/\W/g, '-')}`} // Make ID more robust
+                            checked={gameNameFilters.includes(gameName)}
+                            onCheckedChange={(checked) => handleGameNameFilterChange(gameName, !!checked)}
+                          />
+                          <Label htmlFor={`game-filter-${gameName.replace(/\W/g, '-')}`} className="font-normal cursor-pointer">
+                            {gameName}
+                          </Label>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
+                      {uniqueGameNamesFromDb.length === 0 && (
+                        <p className="text-sm text-muted-foreground">Aucun jeu disponible pour le filtrage.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="location">Lieu</Label>
+                    <Input
+                      id="location"
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      placeholder="Ex : Centre-ville"
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="category">Catégorie</Label>
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Sélectionner une catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueCategories.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
               <SheetFooter className="mt-auto pt-4 border-t">
                 <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
                   <X className="mr-2 h-4 w-4" />
@@ -129,8 +159,8 @@ export default function SessionsPage() {
               </SheetFooter>
             </SheetContent>
           </Sheet>
-          <Button asChild>
-            <Link href="/sessions/create" prefetch>
+          <Button asChild prefetch>
+            <Link href="/sessions/create">
               <PlusCircle className="mr-2 h-4 w-4" />
               Créer une Session
             </Link>
@@ -149,7 +179,8 @@ export default function SessionsPage() {
           <p className="text-xl text-muted-foreground">
             Aucune session ne correspond à vos filtres.
           </p>
-          {mockSessions.length > 0 && (
+          {mockSessions.length > 0 && ( // Only show if there are sessions to potentially show
+             (gameNameFilters.length > 0 || locationFilter || (categoryFilter && categoryFilter !== 'Toutes')) && // And if any filter is active
             <Button variant="link" onClick={resetFilters} className="mt-2">
               Voir toutes les sessions
             </Button>
