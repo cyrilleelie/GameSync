@@ -6,7 +6,7 @@ import { SessionCard } from '@/components/sessions/session-card';
 import { mockSessions, mockBoardGames } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle, Filter, X } from 'lucide-react';
+import { PlusCircle, Filter, X, Star } from 'lucide-react'; // Ajout de Star
 import {
   Sheet,
   SheetContent,
@@ -31,6 +31,27 @@ import type { GameSession } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAuth } from '@/contexts/auth-context'; // Import pour accéder à l'utilisateur connecté
+
+// Small helper icon for badge removal
+const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
+);
 
 export default function SessionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -41,6 +62,8 @@ export default function SessionsPage() {
   const [isGamePopoverOpen, setIsGamePopoverOpen] = useState(false);
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+
+  const { currentUser } = useAuth(); // Récupérer l'utilisateur connecté
 
   useEffect(() => {
     setIsMounted(true);
@@ -78,6 +101,12 @@ export default function SessionsPage() {
     );
   };
 
+  const handleFilterByFavorites = () => {
+    if (currentUser && currentUser.gamePreferences && currentUser.gamePreferences.length > 0) {
+      setGameNameFilters(currentUser.gamePreferences);
+    }
+  };
+
   const popoverGameList = useMemo(() => {
     if (!gameSearchQuery) {
       return uniqueGameNamesFromDb;
@@ -93,7 +122,9 @@ export default function SessionsPage() {
     categoryFilter !== '' && categoryFilter !== 'Toutes'
   ].filter(Boolean).length;
 
-  if (!isMounted) { // Prevent hydration mismatch by not rendering filter UI on server
+  const canFilterByFavorites = !!currentUser && !!currentUser.gamePreferences && currentUser.gamePreferences.length > 0;
+
+  if (!isMounted) {
     return (
       <div className="container mx-auto py-8">
          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -101,7 +132,6 @@ export default function SessionsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Sessions de Jeu</h1>
             <p className="text-muted-foreground">Parcourez les sessions de jeu de société à venir ou créez la vôtre.</p>
             </div>
-            {/* Placeholder for buttons or loading state */}
         </div>
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">Chargement des sessions...</p>
@@ -137,7 +167,7 @@ export default function SessionsPage() {
                   Affinez votre recherche pour trouver la session parfaite.
                 </SheetDescription>
               </SheetHeader>
-              <ScrollArea className="flex-grow pr-4"> {/* Adjusted pr for scrollbar */}
+              <ScrollArea className="flex-grow pr-4">
                 <div className="grid gap-6 py-6">
                   
                   <div className="grid gap-3">
@@ -203,6 +233,26 @@ export default function SessionsPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {currentUser && (
+                    <div className="grid gap-3">
+                       <Button 
+                        variant="outline" 
+                        onClick={handleFilterByFavorites} 
+                        disabled={!canFilterByFavorites}
+                        className="w-full"
+                      >
+                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                        Filtrer par mes favoris
+                      </Button>
+                      {!canFilterByFavorites && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          {currentUser.gamePreferences && currentUser.gamePreferences.length === 0 ? "Vous n'avez pas de jeux favoris." : "Connectez-vous pour utiliser cette fonction."}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
 
                   <div className="grid gap-3">
                     <Label htmlFor="location">Lieu</Label>
@@ -275,23 +325,3 @@ export default function SessionsPage() {
     </div>
   );
 }
-
-// Small helper icon for badge removal (assuming XCircle might not be available or desired)
-const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
