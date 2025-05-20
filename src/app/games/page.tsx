@@ -6,7 +6,7 @@ import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check } from 'lucide-react';
+import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check, X } from 'lucide-react'; // Ajout de X
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge'; // Ajout de Badge
 
 export default function GamesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -68,7 +69,7 @@ export default function GamesPage() {
     return `${selectedTags.length} tags sélectionnés`;
   };
 
-  if (!isMounted || authLoading || (!currentUser && !authLoading)) {
+  if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -88,7 +89,7 @@ export default function GamesPage() {
         </div>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
           <ListFilter className="h-5 w-5 text-primary" />
           Filtrer par tag(s)
@@ -116,10 +117,13 @@ export default function GamesPage() {
                     value="Tous les tags"
                     onSelect={() => {
                       setSelectedTags([]);
-                      setIsTagPopoverOpen(false);
+                      // Garder le popover ouvert pour d'autres actions si besoin,
+                      // ou le fermer si "Tous les tags" est une action finale.
+                      // Pour l'instant, on le laisse ouvert.
+                      // setIsTagPopoverOpen(false);
                     }}
                   >
-                    <Check
+                     <Check // On garde le check pour "Tous les tags" pour indiquer que c'est l'option active
                       className={cn(
                         "mr-2 h-4 w-4",
                         selectedTags.length === 0 ? "opacity-100" : "opacity-0"
@@ -130,18 +134,14 @@ export default function GamesPage() {
                   {uniqueTags.map((tag) => (
                     <CommandItem
                       key={tag}
-                      value={tag} // for cmdk filtering
+                      value={tag}
                       onSelect={() => {
                         toggleTag(tag);
-                        // Keep popover open for multi-select
+                        // Laisser le popover ouvert pour la sélection multiple
                       }}
                     >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedTags.includes(tag) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
+                      {/* Suppression de l'icône Check ici pour les tags individuels */}
+                      <span className={cn("mr-2 h-4 w-4", selectedTags.includes(tag) ? "font-bold" : "")} /> {/* Espace pour alignement */}
                       {tag}
                     </CommandItem>
                   ))}
@@ -151,6 +151,26 @@ export default function GamesPage() {
           </PopoverContent>
         </Popover>
       </div>
+      
+      {selectedTags.length > 0 && (
+        <div className="mb-8 flex flex-wrap gap-2">
+          <p className="text-sm font-medium mr-2 self-center">Filtres actifs:</p>
+          {selectedTags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
+              {tag}
+              <button
+                type="button"
+                onClick={() => toggleTag(tag)}
+                className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                aria-label={`Retirer ${tag}`}
+              >
+                <X className="h-3 w-3 text-destructive hover:text-destructive/80" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
 
       {filteredGames.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
