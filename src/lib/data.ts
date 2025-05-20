@@ -8,7 +8,7 @@ export const mockPlayers: Player[] = [
     name: 'Alice Wonderland',
     email: 'alice@example.com',
     avatarUrl: 'https://placehold.co/100x100.png?text=AW',
-    gamePreferences: ['Terraforming Mars', 'Wingspan', 'Scythe'],
+    gamePreferences: ['Terraforming Mars', 'Wingspan', 'Scythe', 'Azul'],
     availability: 'Weekends, soirs de semaine après 19h',
   },
   {
@@ -16,7 +16,7 @@ export const mockPlayers: Player[] = [
     name: 'Bob Le Bricoleur', // Example of a translated name
     email: 'bob@example.com',
     avatarUrl: 'https://placehold.co/100x100.png?text=BB',
-    gamePreferences: ['Catan', 'Les Aventuriers du Rail', 'Carcassonne'], // Ticket to Ride translated
+    gamePreferences: ['Catan', 'Les Aventuriers du Rail', 'Carcassonne', 'King of Tokyo'],
     availability: 'Flexible, préfère les après-midis',
   },
   {
@@ -24,7 +24,7 @@ export const mockPlayers: Player[] = [
     name: 'Charlie Brown',
     email: 'charlie@example.com',
     avatarUrl: 'https://placehold.co/100x100.png?text=CB',
-    gamePreferences: ['Gloomhaven: Les Mâchoires du Lion', 'Pandemic Legacy', 'Spirit Island'],
+    gamePreferences: ['Gloomhaven: Les Mâchoires du Lion', 'Pandemic Legacy', 'Spirit Island', 'Codenames'],
     availability: 'Samedis uniquement',
   },
 ];
@@ -93,6 +93,83 @@ export const mockBoardGames: BoardGame[] = [
     category: 'Family',
     description: 'Construisez un paysage médiéval tuile par tuile.',
   },
+  {
+    id: 'bg10',
+    name: 'Azul',
+    imageUrl: 'https://placehold.co/300x200.png?text=Azul',
+    category: 'Abstract',
+    description: 'Décorez les murs du Palais Royal de Evora.',
+  },
+  {
+    id: 'bg11',
+    name: 'Everdell',
+    imageUrl: 'https://placehold.co/300x200.png?text=Everdell',
+    category: 'Strategy',
+    description: 'Construisez une charmante ville de créatures forestières.',
+  },
+  {
+    id: 'bg12',
+    name: 'Root',
+    imageUrl: 'https://placehold.co/300x200.png?text=Root',
+    category: 'Strategy',
+    description: 'Guidez votre faction asymétrique à la domination de la forêt.',
+  },
+  {
+    id: 'bg13',
+    name: 'The Quacks of Quedlinburg',
+    imageUrl: 'https://placehold.co/300x200.png?text=Quacks+Of+Q',
+    category: 'Family',
+    description: 'Préparez des potions magiques en tirant des ingrédients d\'un sac.',
+  },
+  {
+    id: 'bg14',
+    name: '7 Wonders Duel',
+    imageUrl: 'https://placehold.co/300x200.png?text=7+Wonders+Duel',
+    category: 'Strategy',
+    description: 'Construisez des merveilles et menez votre civilisation à la victoire (pour 2 joueurs).',
+  },
+  {
+    id: 'bg15',
+    name: 'Codenames',
+    imageUrl: 'https://placehold.co/300x200.png?text=Codenames',
+    category: 'Party',
+    description: 'Donnez des indices d\'un mot pour faire deviner vos agents secrets.',
+  },
+  {
+    id: 'bg16',
+    name: 'Cascadia',
+    imageUrl: 'https://placehold.co/300x200.png?text=Cascadia',
+    category: 'Abstract',
+    description: 'Créez un écosystème diversifié dans le Nord-Ouest Pacifique.',
+  },
+  {
+    id: 'bg17',
+    name: 'Brass: Birmingham',
+    imageUrl: 'https://placehold.co/300x200.png?text=Brass+Birmingham',
+    category: 'Strategy',
+    description: 'Développez votre réseau industriel pendant la révolution industrielle anglaise.',
+  },
+  {
+    id: 'bg18',
+    name: 'Lost Ruins of Arnak',
+    imageUrl: 'https://placehold.co/300x200.png?text=Arnak',
+    category: 'Strategy', // Often Strategy/Deck-building/Worker Placement
+    description: 'Explorez une île inhabitée, trouvez des artéfacts et affrontez des gardiens.',
+  },
+  {
+    id: 'bg19',
+    name: 'King of Tokyo',
+    imageUrl: 'https://placehold.co/300x200.png?text=King+Of+Tokyo',
+    category: 'Party',
+    description: 'Incarnez des monstres gigantesques et battez-vous pour contrôler Tokyo.',
+  },
+  {
+    id: 'bg20',
+    name: 'Patchwork',
+    imageUrl: 'https://placehold.co/300x200.png?text=Patchwork',
+    category: 'Abstract',
+    description: 'Créez la plus belle couverture en assemblant des pièces de tissu (pour 2 joueurs).',
+  },
 ];
 
 export const getBoardGameByName = (name: string): BoardGame | undefined => {
@@ -111,7 +188,7 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[0]],
     host: mockPlayers[0],
     description: 'Recherche 3 autres joueurs pour une partie de Terraforming Mars. Débutants bienvenus !',
-    category: 'Stratégie',
+    category: getBoardGameByName('Terraforming Mars')?.category,
     duration: '3-4 heures',
   },
   {
@@ -124,7 +201,7 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[1], mockPlayers[0]],
     host: mockPlayers[1],
     description: 'Rejoignez-nous pour une partie relaxante de Wingspan. Nous avons des cookies !',
-    category: 'Stratégie',
+    category: getBoardGameByName('Wingspan')?.category,
     duration: 'Environ 90 minutes',
   },
   {
@@ -136,12 +213,12 @@ export const mockSessions: GameSession[] = [
     maxPlayers: 4,
     currentPlayers: [mockPlayers[2]],
     host: mockPlayers[2],
-    category: 'Famille',
+    category: getBoardGameByName('Catan')?.category,
     duration: '60-90 minutes',
   },
   {
     id: 's4',
-    gameName: 'Gloomhaven: Les Mâchoires du Lion', // Translated game name
+    gameName: 'Gloomhaven: Les Mâchoires du Lion',
     gameImageUrl: getBoardGameByName('Gloomhaven: Les Mâchoires du Lion')?.imageUrl,
     dateTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
     location: 'Sous-sol de Bob',
@@ -149,15 +226,31 @@ export const mockSessions: GameSession[] = [
     currentPlayers: [mockPlayers[1], mockPlayers[0], mockPlayers[2]],
     host: mockPlayers[1],
     description: 'Continuons notre campagne des Mâchoires du Lion. Une place disponible !',
-    category: 'Coopératif',
+    category: getBoardGameByName('Gloomhaven: Les Mâchoires du Lion')?.category,
     duration: 'Par scénario ~2 heures',
   },
 ];
 
 export const getMockSessionById = (id: string): GameSession | undefined => {
+  // Attempt to load from localStorage first, then fall back to mockSessions
+  // This is a simplified approach; a real app would fetch from a DB
+  const storedSessionsString = typeof window !== 'undefined' ? localStorage.getItem('gameSessions') : null;
+  if (storedSessionsString) {
+    try {
+      const parsedSessions: GameSession[] = JSON.parse(storedSessionsString).map((s: any) => ({
+        ...s,
+        dateTime: new Date(s.dateTime) // Ensure dateTime is a Date object
+      }));
+      const foundSession = parsedSessions.find(s => s.id === id);
+      if (foundSession) return foundSession;
+    } catch (e) {
+      console.error("Failed to parse sessions from localStorage in getMockSessionById", e);
+    }
+  }
   return mockSessions.find(session => session.id === id);
 };
 
 export const getMockPlayerById = (id: string): Player | undefined => {
   return mockPlayers.find(player => player.id === id);
 };
+
