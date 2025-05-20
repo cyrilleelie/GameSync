@@ -31,6 +31,7 @@ import type { GameSession } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Slider } from "@/components/ui/slider"; // Importer le Slider
 import { useAuth } from '@/contexts/auth-context';
 
 // Small helper icon for badge removal
@@ -62,10 +63,14 @@ function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
   return sortedArr1.every((value, index) => value === sortedArr2[index]);
 }
 
+const DEFAULT_RADIUS = 10; // km
+const MAX_RADIUS = 100; // km
+
 export default function SessionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [gameNameFilters, setGameNameFilters] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState('');
+  const [radiusFilter, setRadiusFilter] = useState<number>(DEFAULT_RADIUS);
   const [categoryFilter, setCategoryFilter] = useState('');
   
   const [isGamePopoverOpen, setIsGamePopoverOpen] = useState(false);
@@ -89,17 +94,21 @@ export default function SessionsPage() {
   }, []);
 
   const filteredSessions = useMemo(() => {
+    // Note: Radius filtering is not actually implemented here due to lack of geodata in mocks.
+    // This example focuses on UI and state management for the radius slider.
     return mockSessions.filter(session => {
       const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.some(filterName => session.gameName.includes(filterName));
+      // Basic location match - a real app would use geocoding and distance calculation with the radiusFilter
       const locationMatch = session.location.toLowerCase().includes(locationFilter.toLowerCase());
       const categoryMatch = categoryFilter === '' || categoryFilter === 'Toutes' || session.category === categoryFilter;
       return gameNameMatch && locationMatch && categoryMatch;
     });
-  }, [gameNameFilters, locationFilter, categoryFilter]);
+  }, [gameNameFilters, locationFilter, categoryFilter, radiusFilter]); // radiusFilter added for completeness, though not used in logic here
 
   const resetFilters = () => {
     setGameNameFilters([]);
     setLocationFilter('');
+    setRadiusFilter(DEFAULT_RADIUS);
     setCategoryFilter('');
     setGameSearchQuery('');
   };
@@ -118,8 +127,10 @@ export default function SessionsPage() {
     if (currentUser && currentUser.gamePreferences && currentUser.gamePreferences.length > 0) {
       const userFavorites = currentUser.gamePreferences;
       if (favoritesFilterIsActive) {
+        // If favorites filter is active, toggle it off by clearing game filters
         setGameNameFilters([]);
       } else {
+        // Otherwise, activate it
         setGameNameFilters(userFavorites);
       }
     }
@@ -137,7 +148,8 @@ export default function SessionsPage() {
   const activeFilterCount = [
     gameNameFilters.length > 0, 
     locationFilter !== '', 
-    categoryFilter !== '' && categoryFilter !== 'Toutes'
+    categoryFilter !== '' && categoryFilter !== 'Toutes',
+    radiusFilter !== DEFAULT_RADIUS, // Consider radius filter active if not default
   ].filter(Boolean).length;
 
 
@@ -273,16 +285,35 @@ export default function SessionsPage() {
                     </div>
                   )}
 
-
                   <div className="grid gap-3">
-                    <Label htmlFor="location">Lieu</Label>
+                    <Label htmlFor="location">Ville / Code Postal</Label>
                     <Input
                       id="location"
                       value={locationFilter}
                       onChange={(e) => setLocationFilter(e.target.value)}
-                      placeholder="Ex : Centre-ville"
+                      placeholder="Ex : Paris ou 75001"
                     />
                   </div>
+
+                  <div className="grid gap-3">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="radius">Rayon</Label>
+                      <span className="text-sm text-muted-foreground">{radiusFilter} km</span>
+                    </div>
+                    <Slider
+                      id="radius"
+                      min={0}
+                      max={MAX_RADIUS}
+                      step={5}
+                      value={[radiusFilter]}
+                      onValueChange={(value) => setRadiusFilter(value[0])}
+                      className="[&>span]:bg-primary"
+                    />
+                     <p className="text-xs text-muted-foreground">
+                      Le filtrage par rayon est simulé dans cette version.
+                    </p>
+                  </div>
+
                   <div className="grid gap-3">
                     <Label htmlFor="category">Catégorie</Label>
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -332,7 +363,7 @@ export default function SessionsPage() {
             Aucune session ne correspond à vos filtres.
           </p>
           {mockSessions.length > 0 && 
-             (gameNameFilters.length > 0 || locationFilter || (categoryFilter && categoryFilter !== 'Toutes')) && 
+             (gameNameFilters.length > 0 || locationFilter || radiusFilter !== DEFAULT_RADIUS || (categoryFilter && categoryFilter !== 'Toutes')) && 
             <Button variant="link" onClick={resetFilters} className="mt-2">
               Voir toutes les sessions
             </Button>
