@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,17 +16,20 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import type { Player } from '@/lib/types';
-import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays } from 'lucide-react';
+import { mockBoardGames } from '@/lib/data';
+import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, XCircle } from 'lucide-react';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit comporter au moins 2 caractères.' }),
   avatarUrl: z.string().url({ message: 'Veuillez entrer une URL valide pour l\'avatar ou laissez vide pour utiliser une image par défaut.' }).optional().or(z.literal('')),
-  gamePreferences: z.string().optional(),
+  gamePreferences: z.array(z.string()).optional(), // Changé en array de strings
   availability: z.string().optional(),
 });
 
@@ -41,29 +44,46 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
   const router = useRouter();
   const { updateUserProfile, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedGameToAdd, setSelectedGameToAdd] = useState<string>('');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: user.name || '',
       avatarUrl: user.avatarUrl || '',
-      gamePreferences: user.gamePreferences?.join('\n') || '',
+      gamePreferences: user.gamePreferences || [],
       availability: user.availability || '',
     },
   });
 
+  const currentFavoriteGames = form.watch('gamePreferences') || [];
+
+  const handleAddFavoriteGame = () => {
+    if (selectedGameToAdd && !currentFavoriteGames.includes(selectedGameToAdd)) {
+      form.setValue('gamePreferences', [...currentFavoriteGames, selectedGameToAdd], { shouldValidate: true });
+      setSelectedGameToAdd(''); // Reset selection
+    } else if (currentFavoriteGames.includes(selectedGameToAdd)) {
+        toast({
+            title: "Jeu déjà ajouté",
+            description: `${selectedGameToAdd} est déjà dans vos favoris.`,
+            variant: "default",
+        });
+    }
+  };
+
+  const handleRemoveFavoriteGame = (gameToRemove: string) => {
+    form.setValue('gamePreferences', currentFavoriteGames.filter(game => game !== gameToRemove), { shouldValidate: true });
+  };
+
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
-    const gamePreferencesArray = values.gamePreferences
-      ? values.gamePreferences.split('\n').map(pref => pref.trim()).filter(pref => pref !== '')
-      : [];
     
     const avatarUrlOrDefault = values.avatarUrl || `https://placehold.co/100x100.png?text=${values.name.substring(0,1).toUpperCase()}`;
 
     const success = await updateUserProfile({
       ...values,
       avatarUrl: avatarUrlOrDefault,
-      gamePreferences: gamePreferencesArray,
+      // gamePreferences est déjà un tableau de chaînes
     });
 
     setIsSubmitting(false);
@@ -74,7 +94,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         description: 'Vos informations ont été enregistrées avec succès.',
       });
       router.push('/profile');
-      router.refresh(); // Pour s'assurer que la page de profil récupère les nouvelles données
+      router.refresh(); 
     } else {
       toast({
         title: 'Erreur',
@@ -83,6 +103,10 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       });
     }
   }
+
+  const availableGamesToAdd = mockBoardGames.filter(
+    (bg) => !currentFavoriteGames.includes(bg.name)
+  );
 
   return (
     <Form {...form}>
@@ -118,27 +142,65 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="gamePreferences"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Préférences de Jeu</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Listez vos jeux préférés, un par ligne."
-                  className="resize-y min-h-[100px]"
-                  {...field}
-                  disabled={isSubmitting || authLoading}
-                />
-              </FormControl>
-              <FormDescription>
-                Entrez chaque jeu ou type de jeu préféré sur une nouvelle ligne.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Jeux Favoris</FormLabel>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Select value={selectedGameToAdd} onValueChange={setSelectedGameToAdd}>
+                <SelectTrigger disabled={isSubmitting || authLoading || availableGamesToAdd.length === 0}>
+                  <SelectValue placeholder={availableGamesToAdd.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableGamesToAdd.map((game) => (
+                    <SelectItem key={game.id} value={game.name}>
+                      {game.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddFavoriteGame}
+                disabled={isSubmitting || authLoading || !selectedGameToAdd}
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span className="sr-only">Ajouter le jeu</span>
+              </Button>
+            </div>
+            <FormDescription>
+              Ajoutez vos jeux de société préférés à votre liste.
+            </FormDescription>
+            <FormField
+              control={form.control}
+              name="gamePreferences"
+              render={({ field }) => (
+                <>
+                  {field.value && field.value.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {field.value.map((gameName) => (
+                        <Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">
+                          {gameName}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFavoriteGame(gameName)}
+                            disabled={isSubmitting || authLoading}
+                            className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none"
+                            aria-label={`Retirer ${gameName}`}
+                          >
+                            <XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <FormMessage />
+                </>
+              )}
+            />
+          </div>
+        </FormItem>
 
         <FormField
           control={form.control}
