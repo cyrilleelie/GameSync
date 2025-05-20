@@ -1,10 +1,30 @@
+
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gamepad2, PlusCircle, Users } from "lucide-react";
+import { Gamepad2, PlusCircle, Users, LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context";
+import { useEffect, useState } from "react";
 
 export default function HomePage() {
+  const { currentUser, loading: authLoading } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
       <div className="text-center space-y-6">
@@ -22,18 +42,29 @@ export default function HomePage() {
           Découvrez de nouveaux jeux, trouvez d'autres joueurs et organisez facilement votre prochaine soirée jeux épique.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/sessions" prefetch>
-              <Gamepad2 className="mr-2 h-5 w-5" />
-              Parcourir les Sessions
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="/sessions/create" prefetch>
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Créer une Session
-            </Link>
-          </Button>
+          {currentUser ? (
+            <>
+              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Link href="/sessions" prefetch>
+                  <Gamepad2 className="mr-2 h-5 w-5" />
+                  Parcourir les Sessions
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/sessions/create" prefetch>
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Créer une Session
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Link href="/login" prefetch>
+                <LogIn className="mr-2 h-5 w-5" />
+                Se connecter pour commencer
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

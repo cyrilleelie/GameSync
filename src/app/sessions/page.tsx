@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 // Small helper icon for badge removal
 const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,10 +73,16 @@ export default function SessionsPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [isMounted, setIsMounted] = useState(false);
 
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
+    if (!authLoading && !currentUser) {
+      router.push('/login');
+      return;
+    }
+
     // Load sessions from localStorage or initialize it
     const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
     if (storedSessionsString) {
@@ -84,33 +91,29 @@ export default function SessionsPage() {
         if (Array.isArray(parsedSessions)) {
           const sessionsWithParsedDates = parsedSessions.map((session: any) => ({
             ...session,
-            dateTime: new Date(session.dateTime), // Ensure dateTime is a Date object
-            // Ensure player objects are fully formed if they were simplified
+            dateTime: new Date(session.dateTime), 
             host: session.host || { id: 'unknown', name: 'Unknown Host'},
             currentPlayers: Array.isArray(session.currentPlayers) ? session.currentPlayers.map((p: any) => p || {id: 'unknown', name: 'Unknown Player'}) : [],
           }));
           setAllSessions(sessionsWithParsedDates);
         } else {
-          // Data in localStorage is not an array, initialize with mockSessions
           const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
           localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
           setAllSessions(initialSessions);
         }
       } catch (e) {
         console.error("Failed to parse sessions from localStorage", e);
-        // Fallback to mockSessions if parsing fails
         const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
         localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
         setAllSessions(initialSessions);
       }
     } else {
-      // Initialize localStorage with mockSessions if it's empty
       const initialSessions = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
       localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(initialSessions));
       setAllSessions(initialSessions);
     }
     setIsLoadingSessions(false);
-  }, []);
+  }, [currentUser, authLoading, router]);
 
 
   const uniqueGameNamesFromDb = useMemo(() => {
@@ -119,14 +122,13 @@ export default function SessionsPage() {
   }, []);
 
   const filteredSessions = useMemo(() => {
-    if (isLoadingSessions) return [];
+    if (isLoadingSessions || authLoading || !currentUser) return [];
     return allSessions.filter(session => {
       const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.some(filterName => session.gameName.includes(filterName));
       const locationMatch = !locationFilter || session.location.toLowerCase().includes(locationFilter.toLowerCase());
-      // Radius filtering is still simulated
       return gameNameMatch && locationMatch;
     });
-  }, [allSessions, gameNameFilters, locationFilter, radiusFilter, isLoadingSessions]);
+  }, [allSessions, gameNameFilters, locationFilter, radiusFilter, isLoadingSessions, authLoading, currentUser]);
 
   const resetFilters = () => {
     setGameNameFilters([]);
@@ -172,7 +174,7 @@ export default function SessionsPage() {
   ].filter(Boolean).length;
 
 
-  if (!isMounted || isLoadingSessions) {
+  if (!isMounted || isLoadingSessions || authLoading || (!currentUser && !authLoading)) {
     return (
       <div className="container mx-auto py-8">
          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">

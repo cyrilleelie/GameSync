@@ -1,8 +1,36 @@
+
+'use client';
+
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapIcon } from 'lucide-react';
+import { MapIcon, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function MapPage() {
+  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !authLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, authLoading, router, isMounted]);
+
+  if (!isMounted || authLoading || (!currentUser && !authLoading)) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
   return (
     <div className="container mx-auto py-8">
       <Card className="shadow-xl">
