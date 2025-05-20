@@ -4,17 +4,18 @@
 import type { Player } from '@/lib/types';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockPlayers } from '@/lib/data'; // Using mockPlayers for now
+import { mockPlayers } from '@/lib/data'; 
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   currentUser: Player | null;
   setCurrentUser: Dispatch<SetStateAction<Player | null>>;
-  login: (email: string, pass: string) => Promise<boolean>; // Simulate async login
+  login: (email: string, pass: string) => Promise<boolean>;
   logout: () => void;
-  register: (name: string, email: string, pass: string) => Promise<boolean>; // Simulate async registration
-  loginWithGoogle: () => Promise<boolean>; // Simulate async Google login
-  loginWithFacebook: () => Promise<boolean>; // Simulate async Facebook login
+  register: (name: string, email: string, pass: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
+  loginWithFacebook: () => Promise<boolean>;
+  updateUserProfile: (updatedData: Partial<Player>) => Promise<boolean>; // Nouvelle fonction
   loading: boolean;
 }
 
@@ -22,11 +23,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(true); // To handle initial state check
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Simulate checking for an existing session (e.g., from localStorage)
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
@@ -36,9 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, _pass: string): Promise<boolean> => {
     setLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    const user = mockPlayers.find(p => p.email === email); // Simple mock lookup
+    const user = mockPlayers.find(p => p.email === email);
     if (user) {
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
@@ -52,22 +51,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (name: string, email: string, _pass: string): Promise<boolean> => {
     setLoading(true);
-    // Simulate API call & user creation
     await new Promise(resolve => setTimeout(resolve, 500));
     const existingUser = mockPlayers.find(p => p.email === email);
     if (existingUser) {
       setLoading(false);
-      return false; // User already exists
+      return false; 
     }
     const newUser: Player = {
-      id: String(mockPlayers.length + 1),
+      id: String(mockPlayers.length + 1), // Attention : ceci n'est pas robuste pour une vraie BDD
       name,
       email,
-      avatarUrl: `https://placehold.co/100x100.png?text=${name.substring(0,1)}`,
+      avatarUrl: `https://placehold.co/100x100.png?text=${name.substring(0,1).toUpperCase()}`,
       gamePreferences: [],
       availability: 'Non spécifiée',
     };
-    // In a real app, you'd add this to your user database. Here, we're just setting it.
     setCurrentUser(newUser);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
     setLoading(false);
@@ -77,9 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithGoogle = async (): Promise<boolean> => {
     setLoading(true);
-    // Simulate API call to Google
     await new Promise(resolve => setTimeout(resolve, 700));
-    // For simulation, let's log in Alice or a generic Google user
     const googleUser = mockPlayers.find(p => p.email === 'alice@example.com') || mockPlayers[0]; 
     if (googleUser) {
       setCurrentUser(googleUser);
@@ -94,9 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithFacebook = async (): Promise<boolean> => {
     setLoading(true);
-    // Simulate API call to Facebook
     await new Promise(resolve => setTimeout(resolve, 700));
-    // For simulation, let's log in Bob or another generic user
     const facebookUser = mockPlayers.find(p => p.email === 'bob@example.com') || mockPlayers[1] || mockPlayers[0];
     if (facebookUser) {
       setCurrentUser(facebookUser);
@@ -109,6 +102,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   };
 
+  const updateUserProfile = async (updatedData: Partial<Player>): Promise<boolean> => {
+    if (!currentUser) return false;
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    
+    const updatedUser = { ...currentUser, ...updatedData };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    
+    // Simulate updating in mockPlayers array if needed for other parts of the app (though not ideal for true persistence)
+    const userIndex = mockPlayers.findIndex(p => p.id === currentUser.id);
+    if (userIndex > -1) {
+      mockPlayers[userIndex] = updatedUser;
+    }
+
+    setLoading(false);
+    return true;
+  };
+
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
@@ -116,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loginWithFacebook, loading }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loginWithFacebook, updateUserProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Player } from '@/lib/types';
@@ -7,23 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { User, CalendarDays, Gamepad2, Edit3 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link'; // Importer Link
 
 interface UserProfileDisplayProps {
   user: Player;
 }
 
 export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
-  const { toast } = useToast();
-
-  const handleEditProfile = () => {
-    // In a real app, this would navigate to an edit page or open a modal
-    toast({
-      title: "Modifier le Profil",
-      description: "La fonctionnalité de modification de profil arrive bientôt !",
-    });
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -37,10 +28,13 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
             {user.name}
           </h2>
           <p className="text-muted-foreground">Membre GameSync</p>
+          {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
         </div>
-        <Button variant="outline" size="sm" onClick={handleEditProfile} className="sm:ml-auto mt-4 sm:mt-0">
-          <Edit3 className="mr-2 h-4 w-4" />
-          Modifier le Profil
+        <Button variant="outline" size="sm" asChild className="sm:ml-auto mt-4 sm:mt-0">
+          <Link href="/profile/edit">
+            <Edit3 className="mr-2 h-4 w-4" />
+            Modifier le Profil
+          </Link>
         </Button>
       </div>
 
@@ -51,7 +45,7 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
           <Gamepad2 className="h-5 w-5 text-primary" />
           Préférences de Jeu
         </h3>
-        {user.gamePreferences.length > 0 ? (
+        {user.gamePreferences && user.gamePreferences.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {user.gamePreferences.map((game) => (
               <Badge key={game} variant="secondary" className="text-sm px-3 py-1">
