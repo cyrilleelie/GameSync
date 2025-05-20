@@ -26,10 +26,6 @@ export function AppSidebar() {
     setIsMounted(true);
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-  };
-
   const displayedNavItems = useMemo(() => {
     // Ensure navItems are only computed when fully ready to avoid mismatches
     if (!isMounted || authLoading) return [];
@@ -40,24 +36,8 @@ export function AppSidebar() {
     });
   }, [isMounted, authLoading, currentUser]);
 
-  // Helper function to determine header content
-  const renderHeaderContent = () => {
-    // Only render the Link when fully mounted and authentication is complete
-    if (isMounted && !authLoading) {
-      return (
-        <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
-          <Boxes className="h-8 w-8" />
-          <h1 className="text-xl font-semibold">GameSync</h1>
-        </Link>
-      );
-    }
-    // For SSR, initial client render before mount, or while auth is loading after mount, render a simple div
-    return (
-      <div className="flex items-center gap-2 text-sidebar-primary">
-        <Boxes className="h-8 w-8" />
-        <h1 className="text-xl font-semibold">GameSync</h1>
-      </div>
-    );
+  const handleLogout = async () => {
+    await logout();
   };
 
   if (!isMounted) {
@@ -66,7 +46,7 @@ export function AppSidebar() {
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {/* Render the div version, consistent with renderHeaderContent's logic for !isMounted */}
+          {/* Render a simple div for the header */}
           <div className="flex items-center gap-2 text-sidebar-primary">
             <Boxes className="h-8 w-8" />
             <h1 className="text-xl font-semibold">GameSync</h1>
@@ -80,11 +60,22 @@ export function AppSidebar() {
   }
 
   // If we reach here, isMounted is true.
-  // The main sidebar structure is rendered, and internal parts become dynamic.
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
-        {renderHeaderContent()}
+        {authLoading ? (
+          // Mounted, but auth is still loading: render a simple div
+          <div className="flex items-center gap-2 text-sidebar-primary">
+            <Boxes className="h-8 w-8" />
+            <h1 className="text-xl font-semibold">GameSync</h1>
+          </div>
+        ) : (
+          // Mounted and auth is complete: render the Link
+          <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
+            <Boxes className="h-8 w-8" />
+            <h1 className="text-xl font-semibold">GameSync</h1>
+          </Link>
+        )}
       </SidebarHeader>
       <SidebarContent>
         {authLoading ? (
@@ -110,7 +101,7 @@ export function AppSidebar() {
           </SidebarMenu>
         )}
       </SidebarContent>
-      {currentUser && !authLoading && ( // Ensure user details in footer only render when auth is complete
+      {currentUser && !authLoading && ( 
         <SidebarFooter className="p-2 border-t">
             <div className="p-2 mb-2 text-center">
                 <p className="text-sm font-medium text-sidebar-foreground">{currentUser.name}</p>
