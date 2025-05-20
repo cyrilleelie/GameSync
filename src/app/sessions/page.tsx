@@ -6,7 +6,7 @@ import { SessionCard } from '@/components/sessions/session-card';
 import { mockSessions, mockBoardGames } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle, Filter, X, Star } from 'lucide-react'; // Ajout de Star
+import { PlusCircle, Filter, X, Star } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -31,7 +31,7 @@ import type { GameSession } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useAuth } from '@/contexts/auth-context'; // Import pour accéder à l'utilisateur connecté
+import { useAuth } from '@/contexts/auth-context';
 
 // Small helper icon for badge removal
 const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,7 +72,7 @@ export default function SessionsPage() {
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const [isMounted, setIsMounted] = useState(false);
 
-  const { currentUser } = useAuth(); // Récupérer l'utilisateur connecté
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     setIsMounted(true);
@@ -90,7 +90,7 @@ export default function SessionsPage() {
 
   const filteredSessions = useMemo(() => {
     return mockSessions.filter(session => {
-      const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.includes(session.gameName);
+      const gameNameMatch = gameNameFilters.length === 0 || gameNameFilters.some(filterName => session.gameName.includes(filterName));
       const locationMatch = session.location.toLowerCase().includes(locationFilter.toLowerCase());
       const categoryMatch = categoryFilter === '' || categoryFilter === 'Toutes' || session.category === categoryFilter;
       return gameNameMatch && locationMatch && categoryMatch;
@@ -109,16 +109,17 @@ export default function SessionsPage() {
       isChecked ? [...prev, gameName] : prev.filter(name => name !== gameName)
     );
   };
+  
+  const canFilterByFavorites = !!currentUser && !!currentUser.gamePreferences && currentUser.gamePreferences.length > 0;
+  const favoritesFilterIsActive = canFilterByFavorites && arraysHaveSameElements(gameNameFilters, currentUser.gamePreferences as string[]);
+
 
   const handleFilterByFavorites = () => {
     if (currentUser && currentUser.gamePreferences && currentUser.gamePreferences.length > 0) {
       const userFavorites = currentUser.gamePreferences;
-      // Check if current gameNameFilters are exactly the user's favorites
-      if (arraysHaveSameElements(gameNameFilters, userFavorites)) {
-        // If yes, toggle off (clear game filters)
+      if (favoritesFilterIsActive) {
         setGameNameFilters([]);
       } else {
-        // If no, toggle on (set game filters to favorites)
         setGameNameFilters(userFavorites);
       }
     }
@@ -139,7 +140,6 @@ export default function SessionsPage() {
     categoryFilter !== '' && categoryFilter !== 'Toutes'
   ].filter(Boolean).length;
 
-  const canFilterByFavorites = !!currentUser && !!currentUser.gamePreferences && currentUser.gamePreferences.length > 0;
 
   if (!isMounted) {
     return (
@@ -254,13 +254,16 @@ export default function SessionsPage() {
                   {currentUser && (
                     <div className="grid gap-3">
                        <Button 
-                        variant="outline" 
+                        variant={favoritesFilterIsActive ? "secondary" : "outline"}
                         onClick={handleFilterByFavorites} 
                         disabled={!canFilterByFavorites}
                         className="w-full"
                       >
-                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                        Filtrer par mes favoris
+                        <Star 
+                          className="mr-2 h-4 w-4 text-yellow-500"
+                          fill={favoritesFilterIsActive ? 'currentColor' : 'none'}
+                        />
+                        {favoritesFilterIsActive ? "Filtre Favoris (Activé)" : "Filtrer par mes favoris"}
                       </Button>
                       {!canFilterByFavorites && (
                         <p className="text-xs text-muted-foreground text-center">
@@ -342,3 +345,4 @@ export default function SessionsPage() {
     </div>
   );
 }
+
