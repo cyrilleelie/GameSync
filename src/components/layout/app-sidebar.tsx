@@ -15,26 +15,55 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { LogOut, Loader2, Boxes } from 'lucide-react'; 
+import { useState, useEffect, useMemo } from 'react'; // Ensure useMemo is imported here
 
 export function AppSidebar() {
-  const { currentUser, logout, loading } = useAuth();
+  const { currentUser, logout, loading: authLoading } = useAuth();
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
   };
 
-  const displayedNavItems = navItems.filter(item => {
-    if (loading) return false; // Don't display items if auth state is still loading
-    if (item.requiresAuth && !currentUser) return false;
-    if (item.requiresGuest && currentUser) return false;
-    return true;
-  });
+  // displayedNavItems will only be computed when isMounted is true and authLoading is false
+  const displayedNavItems = useMemo(() => {
+    if (!isMounted || authLoading) return [];
+    return navItems.filter(item => {
+      if (item.requiresAuth && !currentUser) return false;
+      if (item.requiresGuest && currentUser) return false;
+      return true;
+    });
+  }, [isMounted, authLoading, currentUser]);
 
-  if (loading) {
+  if (!isMounted) {
+    // Render a basic placeholder or minimal UI during server render and initial client render before mount
+    // This avoids rendering the potentially problematic Link until hydration is complete.
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
+          {/* Simplified header: no Link component here to prevent hydration mismatch on its className */}
+          <div className="flex items-center gap-2 text-sidebar-primary">
+            <Boxes className="h-8 w-8" /> 
+            <h1 className="text-xl font-semibold">GameSync</h1>
+          </div>
+        </SidebarHeader>
+        <SidebarContent className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <Sidebar collapsible="icon" className="border-r">
+        <SidebarHeader className="p-4">
+          {/* The Link now renders only after mount, or if auth is still loading post-mount */}
           <Link href="/" className="flex items-center gap-2 text-sidebar-primary transition-colors" prefetch>
             <Boxes className="h-8 w-8" /> 
             <h1 className="text-xl font-semibold">GameSync</h1>
@@ -47,11 +76,10 @@ export function AppSidebar() {
     );
   }
   
-
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2 text-sidebar-primary transition-colors" prefetch>
+        <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
           <Boxes className="h-8 w-8" /> 
           <h1 className="text-xl font-semibold">GameSync</h1>
         </Link>
