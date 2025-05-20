@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,6 +18,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -24,10 +32,11 @@ import { fr } from 'date-fns/locale'; // Import French locale
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation'; 
 import { useState } from 'react';
+import { mockBoardGames, getBoardGameByName } from '@/lib/data';
 
 
 const formSchema = z.object({
-  gameName: z.string().min(2, { message: 'Le nom du jeu doit comporter au moins 2 caractères.' }),
+  gameName: z.string({ required_error: 'Veuillez sélectionner un jeu.'}).min(1, { message: 'Veuillez sélectionner un jeu.' }),
   location: z.string().min(3, { message: 'Le lieu doit comporter au moins 3 caractères.' }),
   dateTime: z.date({ required_error: 'La date et l\'heure sont requises.' }),
   maxPlayers: z.coerce.number().min(2, { message: 'Il faut au moins 2 joueurs.' }).max(20, { message: 'Ne peut excéder 20 joueurs.' }),
@@ -53,7 +62,13 @@ export function CreateSessionForm() {
     setIsSubmitting(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Formulaire soumis:', values);
+
+    const selectedGame = getBoardGameByName(values.gameName);
+    const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
+
+    // In a real app, you would save this session data including gameImageUrl
+    console.log('Formulaire soumis:', { ...values, gameImageUrl });
+    
     toast({
       title: 'Session Créée !',
       description: `Votre session pour ${values.gameName} a été créée avec succès.`,
@@ -61,6 +76,7 @@ export function CreateSessionForm() {
     });
     setIsSubmitting(false);
     // In a real app, you might get an ID back and redirect to the session page
+    // For now, we don't add to mockSessions, so this new session won't appear immediately unless page is reloaded with new static data
     router.push('/sessions'); 
   }
 
@@ -73,9 +89,20 @@ export function CreateSessionForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Nom du Jeu</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex : Wingspan, Terraforming Mars" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez un jeu" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {mockBoardGames.map((game) => (
+                    <SelectItem key={game.id} value={game.name}>
+                      {game.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -136,8 +163,10 @@ export function CreateSessionForm() {
                           onChange={(e) => {
                             const [hours, minutes] = e.target.value.split(':').map(Number);
                             const newDate = field.value ? new Date(field.value) : new Date();
-                            newDate.setHours(hours, minutes);
-                            field.onChange(newDate);
+                            if (!isNaN(hours) && !isNaN(minutes)) {
+                              newDate.setHours(hours, minutes);
+                              field.onChange(newDate);
+                            }
                           }}
                        />
                     </div>

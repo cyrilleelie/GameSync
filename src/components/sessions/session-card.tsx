@@ -13,21 +13,25 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session }: SessionCardProps) {
-  const formattedDate = format(session.dateTime, 'd MMM yyyy', { locale: fr });
-  const formattedTime = format(session.dateTime, 'HH:mm', { locale: fr });
+  const formattedDate = format(new Date(session.dateTime), 'd MMM yyyy', { locale: fr });
+  const formattedTime = format(new Date(session.dateTime), 'HH:mm', { locale: fr });
 
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-4">
-        {session.gameImageUrl && (
-          <div className="relative h-40 w-full mb-4 rounded-t-md overflow-hidden">
+        {session.gameImageUrl ? (
+          <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
             <Image
               src={session.gameImageUrl}
-              alt={session.gameName}
+              alt={`Boîte du jeu ${session.gameName}`}
               layout="fill"
               objectFit="cover"
-              data-ai-hint="board game art"
+              data-ai-hint="board game box"
             />
+          </div>
+        ) : (
+           <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted flex items-center justify-center">
+            <Gamepad2 className="h-16 w-16 text-muted-foreground" />
           </div>
         )}
         <CardTitle className="text-2xl flex items-center gap-2">
@@ -57,8 +61,8 @@ export function SessionCard({ session }: SessionCardProps) {
         )}
       </CardContent>
       <CardFooter>
-        <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Link href={`/sessions/${session.id}`} prefetch>
+        <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" prefetch>
+          <Link href={`/sessions/${session.id}`}>
             Voir les Détails
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>

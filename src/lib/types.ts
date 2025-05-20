@@ -28,3 +28,11 @@ export interface SmartSchedulerFormData {
   playerPreferences: string; // Raw text input, each player on new line
   suggestedLocations: string; // Raw text input, each location on new line
 }
+
+export interface BoardGame {
+  id: string;
+  name: string;
+  imageUrl: string;
+  category?: GameCategory;
+  description?: string;
+}

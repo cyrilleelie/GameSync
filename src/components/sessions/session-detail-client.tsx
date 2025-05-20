@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { GameSession, Player } from '@/lib/types';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, UserCircle, Gamepad2 } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Info, LogIn, LogOut, Edit, Trash2, Gamepad2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale'; // Import French locale
 import { useToast } from '@/hooks/use-toast';
@@ -88,15 +89,19 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
     <div className="container mx-auto py-8">
       <Card className="max-w-3xl mx-auto shadow-xl">
         <CardHeader className="relative">
-          {session.gameImageUrl && (
-            <div className="relative h-60 w-full mb-4 rounded-t-md overflow-hidden">
+          {session.gameImageUrl ? (
+            <div className="relative h-72 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
               <Image
                 src={session.gameImageUrl}
-                alt={session.gameName}
+                alt={`Boîte du jeu ${session.gameName}`}
                 layout="fill"
                 objectFit="cover"
                 data-ai-hint="board game box"
               />
+            </div>
+          ) : (
+            <div className="relative h-72 w-full mb-4 rounded-t-md overflow-hidden bg-muted flex items-center justify-center">
+              <Gamepad2 className="h-24 w-24 text-muted-foreground" />
             </div>
           )}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
