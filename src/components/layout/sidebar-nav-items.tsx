@@ -34,6 +34,7 @@ export const navItems: NavItem[] = [
     href: '/sessions',
     icon: Gamepad2,
     label: 'Voir les Sessions',
+    requiresAuth: true, // Ajouté
   },
   {
     title: 'Créer Session',
@@ -54,6 +55,7 @@ export const navItems: NavItem[] = [
     href: '/map',
     icon: Map,
     label: 'Sessions à Proximité',
+    requiresAuth: true, // Ajouté
   },
   {
     title: 'Profil',
