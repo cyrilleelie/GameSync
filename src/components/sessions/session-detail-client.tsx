@@ -24,7 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation'; 
+import Link from 'next/link'; // Import Link
+
+const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
 
 interface SessionDetailClientProps {
   session: GameSession;
@@ -33,7 +36,7 @@ interface SessionDetailClientProps {
 
 export function SessionDetailClient({ session: initialSession, currentUser }: SessionDetailClientProps) {
   const { toast } = useToast();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
   const [session, setSession] = useState<GameSession>(initialSession);
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -41,10 +44,40 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    // Optionally, re-fetch session from localStorage if it can be updated by other means
+    // For now, assume initialSession is up-to-date or updated by joining/leaving actions
+    const handleStorageChange = () => {
+      const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+      if (storedSessionsString) {
+        try {
+          const parsedSessions: GameSession[] = JSON.parse(storedSessionsString).map((s:any) => ({...s, dateTime: new Date(s.dateTime)}));
+          const updatedSession = parsedSessions.find(s => s.id === initialSession.id);
+          if (updatedSession) {
+            setSession(updatedSession);
+          } else {
+            // Session might have been deleted
+            toast({ title: "Session introuvable", description: "Cette session n'existe plus.", variant: "destructive" });
+            router.push('/sessions');
+          }
+        } catch (e) {
+          console.error("Error refreshing session from localStorage", e);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+
+  }, [initialSession.id, router]);
   
+  useEffect(() => {
+    setSession(initialSession); // Keep session in sync if initialSession prop changes
+  }, [initialSession]);
+
+
   if (!isMounted) {
-     // Render nothing or a placeholder until client-side hydration is complete
     return null;
   }
 
@@ -55,36 +88,67 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
   const formattedDate = format(new Date(session.dateTime), 'd MMMM yyyy', { locale: fr });
   const formattedTime = format(new Date(session.dateTime), 'HH:mm', { locale: fr });
 
+  const updateLocalStorageSessions = (updatedSessions: GameSession[]) => {
+    localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(updatedSessions));
+    // Dispatch a custom event to notify other components if needed, or rely on router.refresh()
+    // For immediate local state update, we already use setSession.
+  };
+
   const handleJoinSession = async () => {
     setIsJoining(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSession(prev => ({
-      ...prev,
-      currentPlayers: [...prev.currentPlayers, currentUser],
-    }));
-    toast({ title: 'Rejoint avec succès !', description: `Vous avez rejoint la session pour ${session.gameName}.` });
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+
+    const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+    let sessions: GameSession[] = [];
+    if (storedSessionsString) sessions = JSON.parse(storedSessionsString).map((s:any) => ({...s, dateTime: new Date(s.dateTime)}));
+    
+    const sessionIndex = sessions.findIndex(s => s.id === session.id);
+    if (sessionIndex > -1 && sessions[sessionIndex].currentPlayers.length < sessions[sessionIndex].maxPlayers) {
+      if (!sessions[sessionIndex].currentPlayers.some(p => p.id === currentUser.id)) {
+        sessions[sessionIndex].currentPlayers.push(currentUser);
+        setSession(sessions[sessionIndex]); // Update local state
+        updateLocalStorageSessions(sessions);
+        toast({ title: 'Rejoint avec succès !', description: `Vous avez rejoint la session pour ${session.gameName}.` });
+      }
+    } else {
+      toast({ title: 'Erreur', description: 'Impossible de rejoindre la session (peut-être complète ou introuvable).', variant: 'destructive'});
+    }
     setIsJoining(false);
   };
 
   const handleLeaveSession = async () => {
     setIsLeaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSession(prev => ({
-      ...prev,
-      currentPlayers: prev.currentPlayers.filter(p => p.id !== currentUser.id),
-    }));
-    toast({ title: 'Session quittée', description: `Vous avez quitté la session pour ${session.gameName}.`, variant: 'destructive' });
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+
+    const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+    let sessions: GameSession[] = [];
+    if (storedSessionsString) sessions = JSON.parse(storedSessionsString).map((s:any) => ({...s, dateTime: new Date(s.dateTime)}));
+
+    const sessionIndex = sessions.findIndex(s => s.id === session.id);
+    if (sessionIndex > -1) {
+      sessions[sessionIndex].currentPlayers = sessions[sessionIndex].currentPlayers.filter(p => p.id !== currentUser.id);
+      setSession(sessions[sessionIndex]); // Update local state
+      updateLocalStorageSessions(sessions);
+      toast({ title: 'Session quittée', description: `Vous avez quitté la session pour ${session.gameName}.`, variant: 'default' });
+    } else {
+      toast({ title: 'Erreur', description: 'Session introuvable.', variant: 'destructive'});
+    }
     setIsLeaving(false);
   };
   
   const handleDeleteSession = async () => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({ title: 'Session supprimée', description: `La session pour ${session.gameName} a été supprimée. (Simulé)`, variant: 'destructive' });
-    // In a real app, redirect or update UI to reflect deletion
-    router.push('/sessions'); 
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    
+    const storedSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+    let sessions: GameSession[] = [];
+    if (storedSessionsString) sessions = JSON.parse(storedSessionsString).map((s:any) => ({...s, dateTime: new Date(s.dateTime)}));
+    
+    const updatedSessions = sessions.filter(s => s.id !== session.id);
+    updateLocalStorageSessions(updatedSessions);
+    
+    toast({ title: 'Session supprimée', description: `La session pour ${session.gameName} a été supprimée.`, variant: 'default' });
+    router.push('/sessions');
+    router.refresh(); // To ensure sessions list page re-fetches
   };
 
   return (
@@ -123,7 +187,11 @@ export function SessionDetailClient({ session: initialSession, currentUser }: Se
             </div>
             {isUserHost ? (
               <div className="flex gap-2 mt-2 sm:mt-0">
-                <Button variant="outline" size="sm"><Edit className="mr-2 h-4 w-4" /> Modifier</Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/sessions/${session.id}/edit`}>
+                    <Edit className="mr-2 h-4 w-4" /> Modifier
+                  </Link>
+                </Button>
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button>

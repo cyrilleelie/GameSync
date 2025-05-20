@@ -27,15 +27,16 @@ import {
 } from "@/components/ui/select";
 import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mockBoardGames, getBoardGameByName, mockSessions } from '@/lib/data';
 import { useAuth } from '@/contexts/auth-context';
 import type { GameSession } from '@/lib/types';
 
+const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
 
 const formSchema = z.object({
   gameName: z.string({ required_error: 'Veuillez sélectionner un jeu.'}).min(1, { message: 'Veuillez sélectionner un jeu.' }),
@@ -45,33 +46,73 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export function CreateSessionForm() {
+type SessionFormValues = z.infer<typeof formSchema>;
+
+interface CreateSessionFormProps {
+  sessionToEdit?: GameSession;
+}
+
+export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const form = useForm<SessionFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: sessionToEdit ? {
+      gameName: sessionToEdit.gameName,
+      location: sessionToEdit.location,
+      dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
+      maxPlayers: sessionToEdit.maxPlayers,
+      description: sessionToEdit.description || '',
+    } : {
       gameName: '',
       location: '',
       maxPlayers: 4,
       description: '',
     },
   });
+  
+  useEffect(() => {
+    if (sessionToEdit && isMounted) {
+      form.reset({
+        gameName: sessionToEdit.gameName,
+        location: sessionToEdit.location,
+        dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
+        maxPlayers: sessionToEdit.maxPlayers,
+        description: sessionToEdit.description || '',
+      });
+    }
+  }, [sessionToEdit, form, isMounted]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+
+  async function onSubmit(values: SessionFormValues) {
     setIsSubmitting(true);
 
     if (!currentUser) {
       toast({
         title: "Utilisateur non connecté",
-        description: "Vous devez être connecté pour créer une session.",
+        description: "Vous devez être connecté pour " + (sessionToEdit ? "modifier" : "créer") + " une session.",
         variant: "destructive",
       });
       setIsSubmitting(false);
       return;
+    }
+
+    if (sessionToEdit && sessionToEdit.host.id !== currentUser.id) {
+        toast({
+            title: "Action non autorisée",
+            description: "Vous n'êtes pas l'hôte de cette session.",
+            variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
     }
 
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
@@ -79,56 +120,89 @@ export function CreateSessionForm() {
     const selectedGame = getBoardGameByName(values.gameName);
     const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
     
-    const newSessionId = 's' + Date.now();
-    const newSession: GameSession = {
-      id: newSessionId,
-      gameName: values.gameName,
-      gameImageUrl: gameImageUrl,
-      dateTime: values.dateTime, // This is already a Date object from the form
-      location: values.location,
-      maxPlayers: values.maxPlayers,
-      currentPlayers: [currentUser], // Host is automatically a player
-      host: currentUser,
-      description: values.description,
-      category: selectedGame ? selectedGame.category : undefined,
-    };
-
     try {
-      const existingSessionsString = localStorage.getItem('gameSessions');
-      // Initialize with mockSessions if localStorage is empty or data is not an array
-      let sessionsToUpdate: GameSession[];
+      const existingSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
+      let sessionsToUpdate: GameSession[] = [];
       if (existingSessionsString) {
         const parsedSessions = JSON.parse(existingSessionsString);
         if (Array.isArray(parsedSessions)) {
            sessionsToUpdate = parsedSessions.map((s: any) => ({...s, dateTime: new Date(s.dateTime)}));
         } else {
-           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); // Fallback
         }
       } else {
-        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)}));
+        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); // Fallback
+      }
+
+      if (sessionToEdit) { // Editing existing session
+        const sessionIndex = sessionsToUpdate.findIndex(s => s.id === sessionToEdit.id);
+        if (sessionIndex > -1) {
+          sessionsToUpdate[sessionIndex] = {
+            ...sessionsToUpdate[sessionIndex],
+            gameName: values.gameName,
+            gameImageUrl: gameImageUrl,
+            dateTime: values.dateTime,
+            location: values.location,
+            maxPlayers: values.maxPlayers,
+            description: values.description,
+            category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category,
+          };
+          toast({
+            title: 'Session Modifiée !',
+            description: `Votre session pour ${values.gameName} a été modifiée avec succès.`,
+            variant: 'default',
+          });
+          router.push(`/sessions/${sessionToEdit.id}`);
+        } else {
+          throw new Error("Session à modifier non trouvée.");
+        }
+      } else { // Creating new session
+        const newSessionId = 's' + Date.now();
+        const newSession: GameSession = {
+          id: newSessionId,
+          gameName: values.gameName,
+          gameImageUrl: gameImageUrl,
+          dateTime: values.dateTime,
+          location: values.location,
+          maxPlayers: values.maxPlayers,
+          currentPlayers: [currentUser], 
+          host: currentUser,
+          description: values.description,
+          category: selectedGame ? selectedGame.category : undefined,
+        };
+        sessionsToUpdate.push(newSession);
+        toast({
+          title: 'Session Créée !',
+          description: `Votre session pour ${values.gameName} a été créée avec succès.`,
+          variant: 'default',
+        });
+        router.push('/sessions');
       }
       
-      const updatedSessions = [...sessionsToUpdate, newSession];
-      // When saving to localStorage, Date objects are automatically converted to ISO strings by JSON.stringify
-      localStorage.setItem('gameSessions', JSON.stringify(updatedSessions));
+      localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(sessionsToUpdate));
+      router.refresh(); // Important to reflect changes if other pages are reading from localStorage
 
-      toast({
-        title: 'Session Créée !',
-        description: `Votre session pour ${values.gameName} a été créée avec succès.`,
-        variant: 'default',
-      });
-      router.push('/sessions');
     } catch (error) {
       console.error("Failed to save session to localStorage", error);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
       toast({
         title: 'Erreur de Sauvegarde',
-        description: "Impossible d'enregistrer la session localement.",
+        description: `Impossible d'enregistrer la session localement. ${errorMessage}`,
         variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
     }
   }
+  
+  if (!isMounted && sessionToEdit) { // Prevent rendering form with incorrect defaults before effect runs
+    return (
+        <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
 
   return (
     <Form {...form}>
@@ -139,7 +213,7 @@ export function CreateSessionForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Nom du Jeu</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez un jeu" />
@@ -203,7 +277,16 @@ export function CreateSessionForm() {
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={field.onChange}
+                      onSelect={(date) => {
+                        if (date) {
+                            const currentTime = field.value || new Date();
+                            date.setHours(currentTime.getHours());
+                            date.setMinutes(currentTime.getMinutes());
+                            field.onChange(date);
+                        } else {
+                            field.onChange(undefined);
+                        }
+                      }}
                       disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) }
                       locale={fr}
                     />
@@ -269,13 +352,14 @@ export function CreateSessionForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Création en cours...
+              {sessionToEdit ? 'Modification en cours...' : 'Création en cours...'}
             </>
           ) : (
-            'Créer la Session'
+            sessionToEdit ? 'Modifier la Session' : 'Créer la Session'
           )}
         </Button>
       </form>
     </Form>
   );
 }
+
