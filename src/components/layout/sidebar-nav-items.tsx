@@ -4,10 +4,8 @@ import {
   Users,
   Gamepad2,
   PlusCircle,
-  Wand2,
   Map,
   LogIn,
-  UserPlus,
   ClipboardList, // Ajout de l'icône
   type LucideIcon,
 } from 'lucide-react';
@@ -48,13 +46,6 @@ export const navItems: NavItem[] = [
     href: '/sessions/create',
     icon: PlusCircle,
     label: 'Nouvelle Session',
-    requiresAuth: true,
-  },
-  {
-    title: 'Planif. Intelligent',
-    href: '/smart-scheduler',
-    icon: Wand2,
-    label: 'Planificateur IA',
     requiresAuth: true,
   },
   {

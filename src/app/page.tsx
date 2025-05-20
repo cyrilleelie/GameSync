@@ -44,22 +44,22 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {currentUser ? (
             <>
-              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/sessions" prefetch>
+              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground" prefetch>
+                <Link href="/sessions">
                   <Gamepad2 className="mr-2 h-5 w-5" />
                   Parcourir les Sessions
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/sessions/create" prefetch>
+              <Button asChild size="lg" variant="outline" prefetch>
+                <Link href="/sessions/create">
                   <PlusCircle className="mr-2 h-5 w-5" />
                   Créer une Session
                 </Link>
               </Button>
             </>
           ) : (
-            <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/login" prefetch>
+            <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground" prefetch>
+              <Link href="/login">
                 <LogIn className="mr-2 h-5 w-5" />
                 Se connecter pour commencer
               </Link>
@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
+      <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl w-full">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -91,18 +91,6 @@ export default function HomePage() {
           </CardHeader>
           <CardContent>
             <p>Rejoignez des sessions, créez les vôtres et construisez votre communauté de joueurs.</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PlusCircle className="h-6 w-6 text-primary" />
-              Planification Facile
-            </CardTitle>
-            <CardDescription>Organisez vos soirées jeux sans effort grâce à nos outils intuitifs.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Utilisez notre Planificateur Intelligent alimenté par IA pour trouver le moment et le lieu parfaits.</p>
           </CardContent>
         </Card>
       </div>
