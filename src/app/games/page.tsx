@@ -18,9 +18,20 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { RequestGameForm } from '@/components/games/request-game-form';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+// Removed useToast as it's now handled in RequestGameForm
 
 export default function GamesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -28,7 +39,7 @@ export default function GamesPage() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
-  const { toast } = useToast();
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -53,7 +64,7 @@ export default function GamesPage() {
       return mockBoardGames;
     }
     return mockBoardGames.filter(game =>
-      game.tags?.some(tag => selectedTags.includes(tag))
+      selectedTags.some(tag => game.tags?.includes(tag)) // Changed from every to some for OR logic
     );
   }, [selectedTags]);
 
@@ -69,13 +80,6 @@ export default function GamesPage() {
     if (selectedTags.length === 0) return "Tous les tags";
     if (selectedTags.length === 1) return selectedTags[0];
     return `${selectedTags.length} tags sélectionnés`;
-  };
-
-  const handleRequestGame = () => {
-    toast({
-      title: "Demande d'ajout de jeu",
-      description: "Votre demande d'ajout de jeu a été (simulée) envoyée ! Nous l'examinerons bientôt.",
-    });
   };
 
   if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
@@ -96,10 +100,23 @@ export default function GamesPage() {
           </h1>
           <p className="text-muted-foreground">Découvrez tous les jeux disponibles sur GameSync.</p>
         </div>
-        <Button variant="outline" onClick={handleRequestGame} size="sm" className="mt-4 sm:mt-0">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Demander un jeu
-        </Button>
+        <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="mt-4 sm:mt-0">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Demander un jeu
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Demander l'ajout d'un jeu</DialogTitle>
+              <DialogDescription>
+                Le jeu que vous cherchez n'est pas dans la liste ? Remplissez ce formulaire pour nous le faire savoir.
+              </DialogDescription>
+            </DialogHeader>
+            <RequestGameForm onSubmitSuccess={() => setIsRequestDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="mb-4">
@@ -148,7 +165,9 @@ export default function GamesPage() {
                         toggleTag(tag);
                       }}
                     >
-                      <span className={cn("mr-2 h-4 w-4")} /> {/* Espace pour alignement */}
+                      <span className={cn("mr-2 h-4 w-4", selectedTags.includes(tag) ? "opacity-100" : "opacity-0")}>
+                         <Check className="h-4 w-4" />
+                      </span>
                       {tag}
                     </CommandItem>
                   ))}
