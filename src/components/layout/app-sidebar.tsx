@@ -14,8 +14,8 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { LogOut, Loader2, Boxes } from 'lucide-react'; 
-import { useState, useEffect, useMemo } from 'react'; // Ensure useMemo is imported here
+import { LogOut, Loader2, Boxes } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 
 export function AppSidebar() {
   const { currentUser, logout, loading: authLoading } = useAuth();
@@ -60,11 +60,12 @@ export function AppSidebar() {
   }
 
   if (authLoading) {
+    // Auth is still loading, but component is mounted
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {/* The Link now renders only after mount, or if auth is still loading post-mount */}
-          <Link href="/" className="flex items-center gap-2 text-sidebar-primary transition-colors" prefetch>
+          {/* Ensure className is consistent with the final Link below. Removed transition-colors. */}
+          <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
             <Boxes className="h-8 w-8" /> 
             <h1 className="text-xl font-semibold">GameSync</h1>
           </Link>
@@ -76,6 +77,7 @@ export function AppSidebar() {
     );
   }
   
+  // Fully mounted and auth state is resolved
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
