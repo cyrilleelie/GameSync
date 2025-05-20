@@ -69,12 +69,6 @@ export const navItems: NavItem[] = [
     label: 'Se connecter',
     requiresGuest: true,
   },
-  {
-    title: 'Inscription',
-    href: '/register',
-    icon: UserPlus,
-    label: 'S\'inscrire',
-    requiresGuest: true,
-  },
   // Le lien de déconnexion sera géré différemment, typiquement un bouton avec une action.
 ];
+
