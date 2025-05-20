@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, CalendarDays, Gamepad2, Edit3 } from 'lucide-react';
-import Link from 'next/link'; // Importer Link
+import { User, CalendarDays, Gamepad2, Edit3, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import Link from 'next/link'; 
 
 interface UserProfileDisplayProps {
   user: Player;
@@ -27,7 +27,10 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
             <User className="h-6 w-6 text-primary" />
             {user.name}
           </h2>
-          <p className="text-muted-foreground">Membre GameSync</p>
+          <p className="text-muted-foreground flex items-center gap-1 text-sm justify-center sm:justify-start">
+            <ShieldCheck className="h-4 w-4 text-primary" /> 
+            <span className="capitalize">{user.role}</span>
+          </p>
           {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
         </div>
         <Button variant="outline" size="sm" asChild className="sm:ml-auto mt-4 sm:mt-0">

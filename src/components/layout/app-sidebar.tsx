@@ -14,8 +14,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-// Removed: import { GameSyncLogo } from '@/components/icons/game-sync-logo';
-import { LogOut, Loader2, Boxes } from 'lucide-react'; // Added Boxes
+import { LogOut, Loader2, Boxes } from 'lucide-react'; 
 
 export function AppSidebar() {
   const { currentUser, logout, loading } = useAuth();
@@ -23,10 +22,10 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    // Toast or further redirection can be handled by the logout function itself or here
   };
 
   const displayedNavItems = navItems.filter(item => {
+    if (loading) return false; // Don't display items if auth state is still loading
     if (item.requiresAuth && !currentUser) return false;
     if (item.requiresGuest && currentUser) return false;
     return true;
@@ -37,7 +36,7 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
           <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
-            <Boxes className="h-8 w-8" /> {/* Replaced GameSyncLogo */}
+            <Boxes className="h-8 w-8" /> 
             <h1 className="text-xl font-semibold">GameSync</h1>
           </Link>
         </SidebarHeader>
@@ -53,7 +52,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary-foreground transition-colors" prefetch>
-          <Boxes className="h-8 w-8" /> {/* Replaced GameSyncLogo */}
+          <Boxes className="h-8 w-8" /> 
           <h1 className="text-xl font-semibold">GameSync</h1>
         </Link>
       </SidebarHeader>
@@ -79,7 +78,8 @@ export function AppSidebar() {
         <SidebarFooter className="p-2 border-t">
             <div className="p-2 mb-2 text-center">
                 <p className="text-sm font-medium text-sidebar-foreground">{currentUser.name}</p>
-                <p className="text-xs text-sidebar-foreground/70">{currentUser.email}</p>
+                {currentUser.email && <p className="text-xs text-sidebar-foreground/70">{currentUser.email}</p>}
+                <p className="text-xs text-sidebar-foreground/70 capitalize">{currentUser.role}</p> 
             </div>
           <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
             <LogOut className="mr-2 h-5 w-5" />
@@ -90,4 +90,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
