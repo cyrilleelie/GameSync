@@ -36,15 +36,15 @@ export function AppSidebar() {
   }, []);
 
   const displayedNavItems = useMemo(() => {
-    if (!isMounted) return []; // Wait for mount to ensure currentUser is resolved client-side
+    if (!isMounted) return [];
     
     return navItems
-      .filter(item => { // Filter top-level items
+      .filter(item => {
         if (item.requiresAuth && !currentUser) return false;
         if (item.requiresGuest && currentUser) return false;
         return true;
       })
-      .map(item => { // Map to new array, filtering children immutably
+      .map(item => {
         if (item.children) {
           const visibleChildren = item.children.filter(child => {
             if (child.requiresAuth && !currentUser) return false;
@@ -58,15 +58,11 @@ export function AppSidebar() {
   }, [isMounted, authLoading, currentUser]);
 
   useEffect(() => {
-    // Set active accordion based on current path
     const activeParent = displayedNavItems.find(item => 
       item.children?.some(child => child.href === pathname)
     );
     if (activeParent && activeParent.id) {
       setActiveAccordionValue(activeParent.id);
-    } else {
-      // Optional: close accordion if no child is active and not explicitly opened by user
-      // setActiveAccordionValue(undefined); 
     }
   }, [pathname, displayedNavItems]);
 
@@ -75,31 +71,37 @@ export function AppSidebar() {
     await logout();
   };
 
+  // This function defines how the header (logo + title) is rendered based on mount and auth state
   const renderHeaderContent = () => {
     if (!isMounted || authLoading) {
-      // Render a simple div for the header to match SSR and avoid hydration issues
+      // SSR and initial client render / auth loading: Simple div, no Link to avoid hydration mismatch
       return (
-        <div className="flex items-center gap-2 text-sidebar-primary">
-          <Boxes className="h-8 w-8" />
-          <h1 className="text-xl font-semibold">GameSync</h1>
+        <div className="flex items-center gap-2">
+          <Boxes className="h-8 w-8 text-sidebar-primary" /> {/* Icon with a solid color */}
+          <h1 className="text-xl font-semibold text-sidebar-primary">GameSync</h1>
         </div>
       );
     }
-    // Mounted and auth is complete: render the Link
+    // Mounted and auth is complete: render the Link with gradient
     return (
-      <Link href="/" className="flex items-center gap-2 text-sidebar-primary" prefetch>
-        <Boxes className="h-8 w-8" />
-        <h1 className="text-xl font-semibold">GameSync</h1>
+      <Link href="/" className="flex items-center gap-2 group" prefetch>
+        <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
+          <Boxes className="h-8 w-8 inline-block align-middle" /> {/* Icon will attempt to use text gradient */}
+          <h1 className="text-xl font-semibold inline-block align-middle">GameSync</h1>
+        </span>
       </Link>
     );
   };
-
 
   if (!isMounted) {
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {renderHeaderContent()}
+          {/* Render the div version, consistent with renderHeaderContent's logic for !isMounted */}
+          <div className="flex items-center gap-2">
+            <Boxes className="h-8 w-8 text-sidebar-primary" />
+            <h1 className="text-xl font-semibold text-sidebar-primary">GameSync</h1>
+          </div>
         </SidebarHeader>
         <SidebarContent className="flex items-center justify-center flex-grow">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -114,12 +116,12 @@ export function AppSidebar() {
         {renderHeaderContent()}
       </SidebarHeader>
       <SidebarContent>
-        {authLoading ? (
+        {authLoading && isMounted ? ( // Show loader only if mounted and auth is still loading
           <div className="flex items-center justify-center flex-grow">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <SidebarMenu className="flex-grow px-2 py-0"> {/* Adjust padding for accordion items */}
+          <SidebarMenu className="flex-grow px-2 py-0">
             {displayedNavItems.map((item) => {
               if (item.children && item.children.length > 0 && item.id) {
                 return (
@@ -135,8 +137,6 @@ export function AppSidebar() {
                       <AccordionTrigger 
                         className={cn(
                           "flex items-center w-full justify-between rounded-md px-2 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                          // Check if parent itself OR any child is active for parent highlighting (optional)
-                          // item.children.some(child => pathname === child.href) ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -144,13 +144,13 @@ export function AppSidebar() {
                           <span>{item.title}</span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0 pl-5"> {/* Indent sub-items */}
-                        <SidebarMenu className="!gap-0.5"> {/* Tighter gap for sub-items */}
+                      <AccordionContent className="pt-1 pb-0 pl-5">
+                        <SidebarMenu className="!gap-0.5">
                           {item.children.map((child) => (
                             <SidebarMenuItem key={child.href} data-active={pathname === child.href}>
                               <Button
                                 variant={pathname === child.href ? "secondary" : "ghost"}
-                                className="w-full justify-start h-auto py-[6px] px-2 text-sidebar-foreground/90" // Slightly different style for sub-items
+                                className="w-full justify-start h-auto py-[6px] px-2 text-sidebar-foreground/90"
                                 asChild
                               >
                                 <Link href={child.href!} className="flex items-center gap-2.5" prefetch={child.href?.startsWith('/')}>
@@ -165,7 +165,7 @@ export function AppSidebar() {
                     </AccordionItem>
                   </Accordion>
                 );
-              } else if (item.href) { // Regular top-level item
+              } else if (item.href) {
                 return (
                   <SidebarMenuItem key={item.href} data-active={pathname === item.href}>
                     <Button
@@ -181,7 +181,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               }
-              return null; // Should not happen if navItems are well-formed
+              return null;
             })}
           </SidebarMenu>
         )}
