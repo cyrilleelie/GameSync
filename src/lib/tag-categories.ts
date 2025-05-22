@@ -2,19 +2,19 @@
 export const TAG_CATEGORY_DETAILS = {
   type: {
     name: 'Type de Jeu / Public Cible',
-    colorClass: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-700 dark:text-blue-200 dark:border-blue-500',
+    colorClass: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-500',
   },
   theme: {
     name: 'Thématique / Univers',
-    colorClass: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-700 dark:text-emerald-200 dark:border-emerald-500',
+    colorClass: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-green-200 dark:border-green-500',
   },
   mechanics: {
     name: 'Mécaniques Principales',
-    colorClass: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700 dark:text-amber-200 dark:border-amber-500',
+    colorClass: 'bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-700 dark:text-sky-200 dark:border-sky-500',
   },
   interaction: {
     name: 'Interaction entre Joueurs',
-    colorClass: 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-700 dark:text-rose-200 dark:border-rose-500',
+    colorClass: 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-700 dark:text-yellow-200 dark:border-yellow-500',
   },
 } as const;
 
