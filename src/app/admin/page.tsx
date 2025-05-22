@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -31,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { getTagCategoryColorClass, getTranslatedTagCategory } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
-import { EditGameForm } from '@/components/admin/edit-game-form'; // New import
+import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -41,8 +40,10 @@ export default function AdminPage() {
   const [accessDenied, setAccessDenied] = useState(false);
 
   const [adminGamesList, setAdminGamesList] = useState<BoardGame[]>(mockBoardGames);
-  const [isEditGameDialogOpen, setIsEditGameDialogOpen] = useState(false);
+  const [isGameFormDialogOpen, setIsGameFormDialogOpen] = useState(false);
   const [currentGameToEdit, setCurrentGameToEdit] = useState<BoardGame | null>(null);
+  const [isAddingGame, setIsAddingGame] = useState(false);
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -58,37 +59,63 @@ export default function AdminPage() {
     }
   }, [currentUser, authLoading, router, isMounted]);
 
-  const handleAddGame = () => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: "L'ajout de nouveaux jeux sera bientôt disponible.",
-    });
-    // TODO: Implement Add Game functionality, potentially reusing EditGameForm with no gameToEdit
+  const handleOpenAddGameDialog = () => {
+    setIsAddingGame(true);
+    setCurrentGameToEdit(null); // Clear any game being edited
+    setIsGameFormDialogOpen(true);
   };
 
   const handleOpenEditGameDialog = (game: BoardGame) => {
+    setIsAddingGame(false);
     setCurrentGameToEdit(game);
-    setIsEditGameDialogOpen(true);
+    setIsGameFormDialogOpen(true);
   };
 
-  const handleSaveEditedGame = (updatedGameData: BoardGame) => {
-    setAdminGamesList(prevGames =>
-      prevGames.map(g => (g.id === updatedGameData.id ? { ...g, ...updatedGameData } : g))
-    );
-    setIsEditGameDialogOpen(false);
+  const handleSaveGame = (gameData: GameFormValues) => {
+    if (isAddingGame || !gameData.id) { // Adding new game
+      const newGame: BoardGame = {
+        ...gameData,
+        id: 'bg' + Date.now().toString(), // Generate new ID
+        name: gameData.name,
+        imageUrl: gameData.imageUrl || `https://placehold.co/300x200.png?text=${encodeURIComponent(gameData.name)}`,
+        tags: gameData.tags || [],
+        description: gameData.description,
+      };
+      setAdminGamesList(prevGames => [newGame, ...prevGames]);
+      toast({
+        title: "Jeu Ajouté",
+        description: `Le jeu "${newGame.name}" a été ajouté à la liste.`,
+      });
+    } else { // Editing existing game
+      setAdminGamesList(prevGames =>
+        prevGames.map(g => (g.id === gameData.id ? { ...g, ...gameData } as BoardGame : g))
+      );
+      toast({
+        title: "Jeu Modifié",
+        description: `Les données du jeu "${gameData.name}" ont été mises à jour.`,
+      });
+    }
+    setIsGameFormDialogOpen(false);
     setCurrentGameToEdit(null);
-    toast({
-      title: "Jeu Modifié",
-      description: `Les données du jeu "${updatedGameData.name}" ont été mises à jour.`,
-    });
+    setIsAddingGame(false);
   };
+
+  const handleCloseGameFormDialog = () => {
+    setIsGameFormDialogOpen(false);
+    setCurrentGameToEdit(null);
+    setIsAddingGame(false);
+  };
+
 
   const handleDeleteGame = (gameName: string) => {
+    // For now, this will only show a toast. Full delete functionality would filter adminGamesList.
     toast({
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
-    // TODO: Implement Delete Game functionality
+    // Example of how to delete (if we were to implement it fully):
+    // setAdminGamesList(prevGames => prevGames.filter(g => g.name !== gameName));
+    // toast({ title: "Jeu Supprimé", description: `Le jeu "${gameName}" a été retiré.`});
   };
 
   if (!isMounted || authLoading) {
@@ -162,7 +189,7 @@ export default function AdminPage() {
                       <CardTitle>Gestion des Jeux</CardTitle>
                       <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
                     </div>
-                    <Button onClick={handleAddGame}>
+                    <Button onClick={handleOpenAddGameDialog}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Ajouter un jeu
                     </Button>
@@ -265,29 +292,23 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      {currentGameToEdit && (
-        <Dialog open={isEditGameDialogOpen} onOpenChange={(isOpen) => {
-          setIsEditGameDialogOpen(isOpen);
-          if (!isOpen) setCurrentGameToEdit(null);
-        }}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Modifier le jeu : {currentGameToEdit.name}</DialogTitle>
-              <DialogDescription>
-                Modifiez les informations du jeu ci-dessous.
-              </DialogDescription>
-            </DialogHeader>
-            <EditGameForm
-              gameToEdit={currentGameToEdit}
-              onSave={handleSaveEditedGame}
-              onCancel={() => {
-                setIsEditGameDialogOpen(false);
-                setCurrentGameToEdit(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <Dialog open={isGameFormDialogOpen} onOpenChange={setIsGameFormDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {isAddingGame ? "Ajouter un nouveau jeu" : `Modifier le jeu : ${currentGameToEdit?.name || ''}`}
+            </DialogTitle>
+            <DialogDescription>
+              {isAddingGame ? "Remplissez les informations du nouveau jeu ci-dessous." : "Modifiez les informations du jeu ci-dessous."}
+            </DialogDescription>
+          </DialogHeader>
+          <EditGameForm
+            gameToEdit={isAddingGame ? null : currentGameToEdit}
+            onSave={handleSaveGame}
+            onCancel={handleCloseGameFormDialog}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

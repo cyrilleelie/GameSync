@@ -25,8 +25,8 @@ from 'react';
 import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const editGameFormSchema = z.object({
-  id: z.string(), // Keep id, not editable but needed for update
+const gameFormSchema = z.object({
+  id: z.string().optional(), // Optional: not present for new games
   name: z.string().min(1, { message: "Le nom du jeu est requis." }),
   imageUrl: z.string().url({ message: "Veuillez entrer une URL d'image valide." }).or(z.literal('')),
   description: z.string().optional(),
@@ -36,28 +36,38 @@ const editGameFormSchema = z.object({
   })).optional(),
 });
 
-type EditGameFormValues = z.infer<typeof editGameFormSchema>;
+export type GameFormValues = z.infer<typeof gameFormSchema>;
 
-interface EditGameFormProps {
-  gameToEdit: BoardGame;
-  onSave: (updatedGameData: EditGameFormValues) => void;
+interface GameFormProps {
+  gameToEdit?: BoardGame | null; // Optional: if null/undefined, it's "add" mode
+  onSave: (gameData: GameFormValues) => void;
   onCancel: () => void;
 }
 
-export function EditGameForm({ gameToEdit, onSave, onCancel }: EditGameFormProps) {
+export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagCategory, setNewTagCategory] = useState<TagCategoryKey | ''>('');
 
-  const form = useForm<EditGameFormValues>({
-    resolver: zodResolver(editGameFormSchema),
-    defaultValues: {
-      id: gameToEdit.id,
-      name: gameToEdit.name || '',
-      imageUrl: gameToEdit.imageUrl || '',
-      description: gameToEdit.description || '',
-      tags: gameToEdit.tags || [],
-    },
+  const isEditMode = !!gameToEdit;
+
+  const form = useForm<GameFormValues>({
+    resolver: zodResolver(gameFormSchema),
+    defaultValues: gameToEdit
+      ? {
+          id: gameToEdit.id,
+          name: gameToEdit.name || '',
+          imageUrl: gameToEdit.imageUrl || '',
+          description: gameToEdit.description || '',
+          tags: gameToEdit.tags || [],
+        }
+      : {
+          name: '',
+          imageUrl: '',
+          description: '',
+          tags: [],
+          // id is omitted for add mode
+        },
   });
 
   const { fields: tagFields, append: appendTag, remove: removeTag } = useFieldArray({
@@ -73,15 +83,13 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: EditGameFormProps
         setNewTagName('');
         setNewTagCategory('');
       } else {
-        // Optionally show a toast message that tag already exists
         console.warn("Tag already exists in this category");
       }
     }
   };
 
-  async function onSubmit(values: EditGameFormValues) {
+  async function onSubmit(values: GameFormValues) {
     setIsSubmitting(true);
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     onSave(values);
     setIsSubmitting(false);
@@ -138,7 +146,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: EditGameFormProps
             <div className="flex flex-wrap gap-2 mb-3 p-2 border rounded-md bg-muted/50">
               {tagFields.map((tag, index) => (
                 <Badge
-                  key={tag.id} // useFieldArray provides an id
+                  key={tag.id}
                   variant="customColor"
                   className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
                 >
@@ -215,7 +223,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: EditGameFormProps
                 Sauvegarde...
               </>
             ) : (
-              'Sauvegarder les modifications'
+              isEditMode ? 'Sauvegarder les modifications' : 'Ajouter le jeu'
             )}
           </Button>
         </div>
