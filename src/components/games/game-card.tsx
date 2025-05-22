@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react'; // Ensured React is imported
+import React, { useState, useMemo } from 'react';
 import type { BoardGame, Player } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,10 +28,11 @@ import { cn } from '@/lib/utils';
 
 interface GameCardProps {
   game: BoardGame;
+  showCreateSessionButton?: boolean; // New prop
 }
 
 // Renamed original component
-function GameCardComponent({ game }: GameCardProps) {
+function GameCardComponent({ game, showCreateSessionButton = false }: GameCardProps) {
   const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isProcessingOwned, setIsProcessingOwned] = useState(false);
@@ -286,11 +287,13 @@ function GameCardComponent({ game }: GameCardProps) {
                   )}
                 </Button>
               )}
-              <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80 hover:bg-primary/10" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
-                <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
-                  <CalendarPlus className="h-5 w-5" />
-                </Link>
-              </Button>
+              {showCreateSessionButton && (
+                <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80 hover:bg-primary/10" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
+                  <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
+                    <CalendarPlus className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -319,4 +322,3 @@ function GameCardComponent({ game }: GameCardProps) {
 
 // Export memoized version
 export const GameCard = React.memo(GameCardComponent);
-

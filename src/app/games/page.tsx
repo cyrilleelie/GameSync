@@ -25,13 +25,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { RequestGameForm } from '@/components/games/request-game-form';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-// Removed useToast as it's now handled in RequestGameForm
 
 export default function GamesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -64,7 +61,7 @@ export default function GamesPage() {
       return mockBoardGames;
     }
     return mockBoardGames.filter(game =>
-      selectedTags.some(tag => game.tags?.includes(tag)) // Changed from every to some for OR logic
+      selectedTags.some(tag => game.tags?.includes(tag))
     );
   }, [selectedTags]);
 
@@ -201,7 +198,7 @@ export default function GamesPage() {
       {filteredGames.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredGames.map((game) => (
-            <GameCard key={game.id} game={game} />
+            <GameCard key={game.id} game={game} showCreateSessionButton={false} />
           ))}
         </div>
       ) : (
