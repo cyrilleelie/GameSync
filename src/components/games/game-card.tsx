@@ -25,7 +25,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from '@/lib/utils';
-import { getTagCategoryColorClass } from '@/lib/tag-categories'; // Import the new helper
+import { getTagCategoryColorClass } from '@/lib/tag-categories'; 
 
 interface GameCardProps {
   game: BoardGame;
@@ -173,20 +173,6 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-4">
         <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
-          {game.imageUrl ? (
-            <Image
-              src={game.imageUrl}
-              alt={`Boîte du jeu ${game.name}`}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover"
-              data-ai-hint="board game box"
-            />
-          ) : (
-             <div className="flex items-center justify-center h-full">
-              <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-            </div>
-          )}
           {currentUser && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
               {!isOwned && (
@@ -294,6 +280,20 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
               )}
             </div>
           )}
+          {game.imageUrl ? (
+            <Image
+              src={game.imageUrl}
+              alt={`Boîte du jeu ${game.name}`}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
+              data-ai-hint="board game box"
+            />
+          ) : (
+             <div className="flex items-center justify-center h-full">
+              <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+            </div>
+          )}
         </div>
 
         <div>
@@ -303,8 +303,9 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
           {game.tags && game.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {game.tags.map(tagObj => (
-                <Badge 
-                  key={tagObj.name} 
+                <Badge
+                  key={tagObj.name}
+                  variant="outline" 
                   className={cn("font-normal", getTagCategoryColorClass(tagObj.categoryKey))}
                 >
                   {tagObj.name}
