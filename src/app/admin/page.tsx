@@ -201,17 +201,17 @@ export default function AdminPage() {
                       <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={handleSelectColumns}>
+                      <Button variant="outline" onClick={handleSelectColumns} size="sm">
                         <Columns className="mr-2 h-4 w-4" />
-                        Sélectionner les colonnes
+                        Colonnes
                       </Button>
-                      <Button variant="outline" onClick={handleFilterData}>
+                      <Button variant="outline" onClick={handleFilterData} size="sm">
                         <Filter className="mr-2 h-4 w-4" />
-                        Filtrer les données
+                        Filtrer
                       </Button>
-                      <Button onClick={handleOpenAddGameDialog}>
+                      <Button onClick={handleOpenAddGameDialog} size="sm">
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Ajouter un jeu
+                        Ajouter
                       </Button>
                     </div>
                   </div>
@@ -333,7 +333,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
-
-    
