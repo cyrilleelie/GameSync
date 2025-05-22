@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableHeader,
@@ -31,18 +41,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
-import { getTagCategoryColorClass, getTranslatedTagCategory } from '@/lib/tag-categories';
+import { TAG_CATEGORY_DETAILS, getTagCategoryColorClass, getTranslatedTagCategory, type TagCategoryKey } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
 import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+const initialTagFilters = (): Record<TagCategoryKey, string[]> => {
+  const filters: Partial<Record<TagCategoryKey, string[]>> = {};
+  (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
+    filters[key] = [];
+  });
+  return filters as Record<TagCategoryKey, string[]>;
+};
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -61,7 +80,10 @@ export default function AdminPage() {
     description: true,
   });
 
+  // Filters state
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<TagCategoryKey, string[]>>(initialTagFilters());
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,6 +98,99 @@ export default function AdminPage() {
       }
     }
   }, [currentUser, authLoading, router, isMounted]);
+
+  const allCategorizedTags = useMemo(() => {
+    const categorized: Record<TagCategoryKey, Set<string>> = {} as Record<TagCategoryKey, Set<string>>;
+    (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
+      categorized[key] = new Set<string>();
+    });
+
+    adminGamesList.forEach(game => {
+      game.tags?.forEach(tag => {
+        if (tag.categoryKey in categorized) {
+          categorized[tag.categoryKey].add(tag.name);
+        }
+      });
+    });
+    
+    const result: Record<TagCategoryKey, string[]> = {} as Record<TagCategoryKey, string[]>;
+    (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
+      result[key] = Array.from(categorized[key]).sort((a,b) => a.localeCompare(b, 'fr'));
+    });
+    return result;
+  }, [adminGamesList]);
+
+  const activeTagFilterBadges = useMemo(() => {
+    return Object.entries(selectedTagFilters).flatMap(([categoryKey, tags]) => 
+      tags.map(tagName => ({
+        categoryKey: categoryKey as TagCategoryKey,
+        categoryName: getTranslatedTagCategory(categoryKey as TagCategoryKey),
+        tagName: tagName
+      }))
+    );
+  }, [selectedTagFilters]);
+  
+  const handleTagSelection = (categoryKey: TagCategoryKey, tagName: string, isChecked: boolean) => {
+    setSelectedTagFilters(prevFilters => {
+      const currentTagsForCategory = prevFilters[categoryKey] || [];
+      let newTagsForCategory;
+      if (isChecked) {
+        newTagsForCategory = [...currentTagsForCategory, tagName];
+      } else {
+        newTagsForCategory = currentTagsForCategory.filter(t => t !== tagName);
+      }
+      return {
+        ...prevFilters,
+        [categoryKey]: newTagsForCategory,
+      };
+    });
+  };
+
+  const removeTagFromFilterBadge = (categoryKey: TagCategoryKey, tagName: string) => {
+    handleTagSelection(categoryKey, tagName, false);
+  };
+
+  const resetAllFilters = () => {
+    setDescriptionFilter('all');
+    setSelectedTagFilters(initialTagFilters());
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (descriptionFilter !== 'all') count++;
+    if (activeTagFilterBadges.length > 0) count++; // Simplified: count as 1 if any tag filter is active
+    return count;
+  }, [descriptionFilter, activeTagFilterBadges]);
+
+
+  const displayedGames = useMemo(() => {
+    let games = adminGamesList.filter(game => {
+      if (descriptionFilter === 'with') {
+        return !!game.description && game.description.trim() !== '';
+      }
+      if (descriptionFilter === 'without') {
+        return !game.description || game.description.trim() === '';
+      }
+      return true; 
+    });
+
+    const anyTagFilterActive = Object.values(selectedTagFilters).some(tags => tags.length > 0);
+    if (!anyTagFilterActive) {
+      return games;
+    }
+
+    return games.filter(game => {
+      if (!game.tags || game.tags.length === 0) return false;
+      return (Object.keys(selectedTagFilters) as TagCategoryKey[]).every(categoryKey => {
+        const categorySelectedTags = selectedTagFilters[categoryKey];
+        if (categorySelectedTags.length === 0) return true; 
+        return game.tags.some(gameTag => 
+          gameTag.categoryKey === categoryKey && categorySelectedTags.includes(gameTag.name)
+        );
+      });
+    });
+  }, [adminGamesList, descriptionFilter, selectedTagFilters]);
+
 
   const handleOpenAddGameDialog = () => {
     setIsAddingGame(true);
@@ -129,19 +244,6 @@ export default function AdminPage() {
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
   };
-
-  const displayedGames = useMemo(() => {
-    return adminGamesList.filter(game => {
-      if (descriptionFilter === 'with') {
-        return !!game.description && game.description.trim() !== '';
-      }
-      if (descriptionFilter === 'without') {
-        return !game.description || game.description.trim() === '';
-      }
-      return true; // 'all'
-    });
-  }, [adminGamesList, descriptionFilter]);
-
 
   if (!isMounted || authLoading) {
     return (
@@ -244,23 +346,85 @@ export default function AdminPage() {
                             </DropdownMenuCheckboxItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Filter className="mr-2 h-4 w-4" />
-                              Filtrer
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Filtrer par description</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuRadioGroup value={descriptionFilter} onValueChange={(value) => setDescriptionFilter(value as 'all' | 'with' | 'without')}>
-                              <DropdownMenuRadioItem value="all">Tous</DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value="with">Avec description</DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value="without">Sans description</DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        
+                        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="relative">
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    Filtrer
+                                    {activeFilterCount > 0 && (
+                                        <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-1 text-xs">
+                                            {activeFilterCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent className="w-full sm:max-w-md flex flex-col">
+                                <SheetHeader>
+                                    <SheetTitle>Filtrer les Jeux</SheetTitle>
+                                    <SheetDescription>
+                                        Affinez votre recherche par description et par tags.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <ScrollArea className="flex-grow my-4 pr-6 -mr-6">
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h4 className="text-md font-semibold mb-2 text-primary">Filtrer par description</h4>
+                                            <RadioGroup value={descriptionFilter} onValueChange={(value) => setDescriptionFilter(value as 'all' | 'with' | 'without')}>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="all" id="desc-all" />
+                                                    <Label htmlFor="desc-all" className="font-normal">Tous</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="with" id="desc-with" />
+                                                    <Label htmlFor="desc-with" className="font-normal">Avec description</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="without" id="desc-without" />
+                                                    <Label htmlFor="desc-without" className="font-normal">Sans description</Label>
+                                                </div>
+                                            </RadioGroup>
+                                        </div>
+                                        <DropdownMenuSeparator/>
+                                        {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(categoryKey => {
+                                            const categoryName = getTranslatedTagCategory(categoryKey);
+                                            const tagsInCategory = allCategorizedTags[categoryKey];
+                                            if (!tagsInCategory || tagsInCategory.length === 0) return null;
+
+                                            return (
+                                                <div key={categoryKey}>
+                                                    <h4 className="text-md font-semibold mb-2 text-primary">{categoryName}</h4>
+                                                    <div className="space-y-2">
+                                                        {tagsInCategory.map(tagName => (
+                                                            <div key={tagName} className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`}
+                                                                    checked={selectedTagFilters[categoryKey]?.includes(tagName)}
+                                                                    onCheckedChange={(checked) => handleTagSelection(categoryKey, tagName, !!checked)}
+                                                                />
+                                                                <Label htmlFor={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`} className="font-normal text-sm">
+                                                                    {tagName}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </ScrollArea>
+                                <SheetFooter className="mt-auto pt-4 border-t">
+                                    <Button variant="outline" onClick={resetAllFilters} className="w-full sm:w-auto">
+                                        <X className="mr-2 h-4 w-4" />
+                                        Réinitialiser
+                                    </Button>
+                                    <SheetClose asChild>
+                                        <Button className="w-full sm:w-auto">Appliquer</Button>
+                                    </SheetClose>
+                                </SheetFooter>
+                            </SheetContent>
+                        </Sheet>
+
                         <Button onClick={handleOpenAddGameDialog} size="sm">
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Ajouter
@@ -269,6 +433,28 @@ export default function AdminPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
+                    {activeTagFilterBadges.length > 0 && (
+                      <div className="mb-4 flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium mr-2 self-center text-muted-foreground">Filtres de tags actifs:</p>
+                        {activeTagFilterBadges.map(({ categoryKey, tagName }) => (
+                          <Badge 
+                            key={`${categoryKey}-${tagName}`} 
+                            variant="customColor"
+                            className={cn("flex items-center gap-1 pr-1 font-normal text-xs", getTagCategoryColorClass(categoryKey))}
+                          >
+                            <span className="font-semibold opacity-80">{getTranslatedTagCategory(categoryKey)}:</span> {tagName}
+                            <button
+                              type="button"
+                              onClick={() => removeTagFromFilterBadge(categoryKey, tagName)}
+                              className="ml-1 rounded-full hover:bg-black/20 dark:hover:bg-white/20 p-0.5"
+                              aria-label={`Retirer ${tagName} de la catégorie ${getTranslatedTagCategory(categoryKey)}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -411,5 +597,3 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
-
-    
