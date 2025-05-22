@@ -85,13 +85,13 @@ export default function AdminPage() {
           <Tabs defaultValue="games" className="w-full">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
               <TabsTrigger value="games" className="text-base py-2 sm:text-sm">
-                <ListOrdered className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Gérer les Jeux
+                <ListOrdered className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Jeux
               </TabsTrigger>
               <TabsTrigger value="tags" className="text-base py-2 sm:text-sm">
-                <Tags className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Gérer les Tags
+                <Tags className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Tags
               </TabsTrigger>
               <TabsTrigger value="users" className="text-base py-2 sm:text-sm">
-                <Users className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Gérer les Utilisateurs
+                <Users className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Utilisateurs
               </TabsTrigger>
             </TabsList>
             <TabsContent value="games">
