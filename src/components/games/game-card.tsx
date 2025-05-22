@@ -1,7 +1,8 @@
 
 'use client';
 
-import type { BoardGame } from '@/lib/types';
+import React, { useState, useMemo } from 'react'; // Ensured React is imported
+import type { BoardGame, Player } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, XCircle, Gift, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +30,8 @@ interface GameCardProps {
   game: BoardGame;
 }
 
-export function GameCard({ game }: GameCardProps) {
+// Renamed original component
+function GameCardComponent({ game }: GameCardProps) {
   const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isProcessingOwned, setIsProcessingOwned] = useState(false);
@@ -133,7 +134,7 @@ export function GameCard({ game }: GameCardProps) {
         toast({
           title: "Déjà Possédé",
           description: `"${game.name}" est déjà dans votre collection et ne peut pas être ajouté à la wishlist.`,
-          variant: "default" // Or "info" if you add such a variant
+          variant: "default"
         });
         setIsProcessingWishlist(false);
         return;
@@ -315,4 +316,7 @@ export function GameCard({ game }: GameCardProps) {
     </Card>
   );
 }
+
+// Export memoized version
+export const GameCard = React.memo(GameCardComponent);
 
