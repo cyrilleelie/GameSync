@@ -20,13 +20,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
-import { useState }
-from 'react';
+import { useState, useMemo } from 'react';
 import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { mockBoardGames } from '@/lib/data'; // Import mockBoardGames to derive existing tags
 
 const gameFormSchema = z.object({
-  id: z.string().optional(), // Optional: not present for new games
+  id: z.string().optional(),
   name: z.string().min(1, { message: "Le nom du jeu est requis." }),
   imageUrl: z.string().url({ message: "Veuillez entrer une URL d'image valide." }).or(z.literal('')),
   description: z.string().optional(),
@@ -39,15 +39,17 @@ const gameFormSchema = z.object({
 export type GameFormValues = z.infer<typeof gameFormSchema>;
 
 interface GameFormProps {
-  gameToEdit?: BoardGame | null; // Optional: if null/undefined, it's "add" mode
+  gameToEdit?: BoardGame | null;
   onSave: (gameData: GameFormValues) => void;
   onCancel: () => void;
 }
 
 export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
-  const [newTagCategory, setNewTagCategory] = useState<TagCategoryKey | ''>('');
+  
+  const [addTagCategory, setAddTagCategory] = useState<TagCategoryKey | ''>('');
+  const [addTagExistingName, setAddTagExistingName] = useState<string>('');
+  const [addTagNewName, setAddTagNewName] = useState<string>('');
 
   const isEditMode = !!gameToEdit;
 
@@ -66,7 +68,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           imageUrl: '',
           description: '',
           tags: [],
-          // id is omitted for add mode
         },
   });
 
@@ -75,16 +76,57 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     name: "tags",
   });
 
+  const allSystemTagsByCategory = useMemo(() => {
+    const categorized: Record<string, Set<string>> = {};
+    (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
+      categorized[key] = new Set<string>();
+    });
+
+    mockBoardGames.forEach(game => {
+      game.tags?.forEach(tag => {
+        if (tag.categoryKey in categorized) {
+          categorized[tag.categoryKey].add(tag.name);
+        }
+      });
+    });
+    
+    const result: Record<string, string[]> = {};
+     (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
+      result[key] = Array.from(categorized[key]).sort((a,b) => a.localeCompare(b, 'fr'));
+    });
+    return result as Record<TagCategoryKey, string[]>;
+  }, []);
+
+  const availableExistingTagsForCategory = useMemo(() => {
+    if (!addTagCategory) return [];
+    const tagsInSystemForCategory = allSystemTagsByCategory[addTagCategory] || [];
+    const currentTagsInFormForCategory = tagFields
+      .filter(tf => tf.categoryKey === addTagCategory)
+      .map(tf => tf.name);
+    return tagsInSystemForCategory.filter(tagName => !currentTagsInFormForCategory.includes(tagName));
+  }, [addTagCategory, allSystemTagsByCategory, tagFields]);
+
+
   const handleAddTag = () => {
-    if (newTagName.trim() && newTagCategory) {
-      const existingTag = tagFields.find(tag => tag.name.toLowerCase() === newTagName.trim().toLowerCase() && tag.categoryKey === newTagCategory);
-      if (!existingTag) {
-        appendTag({ name: newTagName.trim(), categoryKey: newTagCategory });
-        setNewTagName('');
-        setNewTagCategory('');
-      } else {
-        console.warn("Tag already exists in this category");
-      }
+    if (!addTagCategory) return; // Category must be selected
+
+    let tagNameToAdd = '';
+    if (addTagExistingName) {
+      tagNameToAdd = addTagExistingName;
+    } else if (addTagNewName.trim()) {
+      tagNameToAdd = addTagNewName.trim();
+    }
+
+    if (!tagNameToAdd) return; // A tag name (either existing or new) must be present
+
+    const existingTagInForm = tagFields.find(tag => tag.name.toLowerCase() === tagNameToAdd.toLowerCase() && tag.categoryKey === addTagCategory);
+    if (!existingTagInForm) {
+      appendTag({ name: tagNameToAdd, categoryKey: addTagCategory });
+      setAddTagNewName('');
+      setAddTagExistingName('');
+      // Keep addTagCategory selected for potentially adding more tags to the same category
+    } else {
+      form.setError("tags", { type: "manual", message: "Ce tag existe déjà pour ce jeu dans cette catégorie." });
     }
   };
 
@@ -94,6 +136,12 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     onSave(values);
     setIsSubmitting(false);
   }
+  
+  const handleCategoryChange = (value: string) => {
+    setAddTagCategory(value as TagCategoryKey);
+    setAddTagExistingName(''); // Reset existing tag selection when category changes
+    setAddTagNewName(''); // Reset new tag name when category changes
+  };
 
   return (
     <Form {...form}>
@@ -141,12 +189,12 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
         />
 
         <FormItem>
-          <FormLabel>Tags</FormLabel>
-          {tagFields.length > 0 && (
+          <FormLabel>Tags Actuels du Jeu</FormLabel>
+          {tagFields.length > 0 ? (
             <div className="flex flex-wrap gap-2 mb-3 p-2 border rounded-md bg-muted/50">
               {tagFields.map((tag, index) => (
                 <Badge
-                  key={tag.id}
+                  key={tag.id} // Use field.id provided by useFieldArray
                   variant="customColor"
                   className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
                 >
@@ -155,37 +203,30 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
                     type="button"
                     onClick={() => removeTag(index)}
                     disabled={isSubmitting}
-                    className="ml-1.5 rounded-full hover:bg-destructive/20 p-0.5"
+                    className="ml-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 p-0.5"
                     aria-label={`Retirer le tag ${tag.name}`}
                   >
-                    <XCircle className="h-3 w-3 text-destructive hover:text-destructive/80" />
+                    <XCircle className="h-3 w-3" />
                   </button>
                 </Badge>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-3">Aucun tag pour ce jeu pour le moment.</p>
           )}
           
-          <div className="flex items-end gap-2">
-            <div className="flex-grow">
-              <FormLabel htmlFor="new-tag-name" className="text-xs text-muted-foreground">Nom du nouveau tag</FormLabel>
-              <Input
-                id="new-tag-name"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                placeholder="Nom du tag"
-                disabled={isSubmitting}
-                className="h-9"
-              />
-            </div>
-            <div className="w-2/5">
-              <FormLabel htmlFor="new-tag-category" className="text-xs text-muted-foreground">Catégorie</FormLabel>
+          <FormLabel className="mt-4 mb-2 block">Ajouter un Tag</FormLabel>
+          <div className="flex items-start gap-2">
+            {/* Category Select */}
+            <div className="w-1/3">
+              <FormLabel htmlFor="add-tag-category" className="text-xs text-muted-foreground">Catégorie</FormLabel>
               <Select
-                value={newTagCategory}
-                onValueChange={(value) => setNewTagCategory(value as TagCategoryKey)}
+                value={addTagCategory}
+                onValueChange={handleCategoryChange}
                 disabled={isSubmitting}
               >
-                <SelectTrigger id="new-tag-category" className="h-9">
-                  <SelectValue placeholder="Catégorie" />
+                <SelectTrigger id="add-tag-category" className="h-9">
+                  <SelectValue placeholder="Choisir Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(key => (
@@ -196,19 +237,63 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleAddTag}
-              disabled={isSubmitting || !newTagName.trim() || !newTagCategory}
-              className="h-9 w-9 shrink-0"
-              title="Ajouter le tag"
-            >
-              <PlusCircle className="h-4 w-4" />
-            </Button>
+
+            {/* Existing Tag Select OR New Tag Input */}
+            <div className="flex-grow space-y-2">
+              <div>
+                <FormLabel htmlFor="add-tag-existing-name" className="text-xs text-muted-foreground">Choisir un tag existant</FormLabel>
+                <Select
+                  value={addTagExistingName}
+                  onValueChange={(value) => { setAddTagExistingName(value); setAddTagNewName(''); }}
+                  disabled={isSubmitting || !addTagCategory || availableExistingTagsForCategory.length === 0}
+                >
+                  <SelectTrigger id="add-tag-existing-name" className="h-9">
+                    <SelectValue placeholder={availableExistingTagsForCategory.length === 0 ? "Aucun tag existant" : "Choisir un tag"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableExistingTagsForCategory.map(tagName => (
+                      <SelectItem key={tagName} value={tagName}>
+                        {tagName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="relative">
+                 <p className="text-xs text-center text-muted-foreground my-1">OU</p>
+                <FormLabel htmlFor="add-tag-new-name" className="text-xs text-muted-foreground">Créer un nouveau tag</FormLabel>
+                <Input
+                  id="add-tag-new-name"
+                  value={addTagNewName}
+                  onChange={(e) => { setAddTagNewName(e.target.value); setAddTagExistingName(''); }}
+                  placeholder="Nom du nouveau tag"
+                  disabled={isSubmitting || !addTagCategory}
+                  className="h-9"
+                />
+              </div>
+            </div>
+            
+            <div className="self-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddTag}
+                disabled={isSubmitting || !addTagCategory || (!addTagExistingName && !addTagNewName.trim())}
+                className="h-9 w-9 shrink-0"
+                title="Ajouter le tag"
+              >
+                <PlusCircle className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <FormMessage>{form.formState.errors.tags?.message}</FormMessage>
+          {form.formState.errors.tags && (
+            <FormMessage className="mt-2">
+              {/* Check if tags error is an array error or a general message */}
+              {typeof form.formState.errors.tags.message === 'string' ? form.formState.errors.tags.message : 'Erreur avec les tags.'}
+            </FormMessage>
+          )}
         </FormItem>
 
 
@@ -231,3 +316,5 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
+
+    
