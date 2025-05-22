@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
 import { useState, useMemo, useRef } from 'react';
-import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud, Building, CalendarYear } from 'lucide-react';
+import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud, Building, CalendarDays } from 'lucide-react'; // Changed CalendarYear to CalendarDays
 import { cn } from '@/lib/utils';
 import { mockBoardGames } from '@/lib/data';
 import NextImage from 'next/image';
@@ -44,7 +44,7 @@ const gameFormSchema = z.object({
     .max(new Date().getFullYear() + 5, { message: `L'année ne peut excéder ${new Date().getFullYear() + 5}.`})
     .optional()
     .or(z.literal(''))
-    .or(z.null()), // Permet null pour la réinitialisation correcte
+    .or(z.null()),
   tags: z.array(z.object({
     name: z.string().min(1),
     categoryKey: z.custom<TagCategoryKey>((val) => Object.keys(TAG_CATEGORY_DETAILS).includes(val as string)),
@@ -82,7 +82,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           imageUrl: gameToEdit.imageUrl || '',
           description: gameToEdit.description || '',
           publisher: gameToEdit.publisher || '',
-          publicationYear: gameToEdit.publicationYear || null, // Utiliser null pour les valeurs par défaut
+          publicationYear: gameToEdit.publicationYear === undefined ? null : gameToEdit.publicationYear, // Ensure null if undefined
           tags: gameToEdit.tags || [],
         }
       : {
@@ -90,7 +90,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           imageUrl: '',
           description: '',
           publisher: '',
-          publicationYear: null, // Utiliser null pour les valeurs par défaut
+          publicationYear: null,
           tags: [],
         },
   });
@@ -159,12 +159,14 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     setIsSubmitting(true);
     const submissionValues = {
       ...values,
-      imageUrl: values.imageUrl || '',
+      imageUrl: values.imageUrl || '', // Ensure imageUrl is a string, not undefined
       publisher: values.publisher || '',
+      description: values.description || '',
       publicationYear: values.publicationYear === '' ? undefined : values.publicationYear,
+      tags: values.tags || [],
     };
     await new Promise(resolve => setTimeout(resolve, 500));
-    onSave(submissionValues as GameFormValues); // Cast to ensure type compatibility
+    onSave(submissionValues as GameFormValues);
     setIsSubmitting(false);
   }
   
@@ -250,7 +252,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
                 <FormMessage>{form.formState.errors.imageUrl.message}</FormMessage>
             )}
             <FormDescription>
-              Chargez une image (max {MAX_IMAGE_SIZE_MB}Mo) ou laissez vide.
+              Chargez une image (max ${MAX_IMAGE_SIZE_MB}Mo) ou laissez vide. Un placeholder sera utilisé si le champ est vide.
             </FormDescription>
           </div>
         </FormItem>
@@ -288,7 +290,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           name="publicationYear"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2"><CalendarYear className="h-4 w-4 text-muted-foreground" />Année de publication (Optionnel)</FormLabel>
+              <FormLabel className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-muted-foreground" />Année de publication (Optionnel)</FormLabel> 
               <FormControl>
                 <Input 
                   type="number" 
@@ -445,3 +447,5 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
+
+    
