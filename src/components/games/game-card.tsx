@@ -7,10 +7,10 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, ArchivePlus, ArchiveX } from 'lucide-react'; // Ajout de ArchivePlus et ArchiveX
-import { useAuth } from '@/contexts/auth-context'; // Ajout de useAuth
-import { useToast } from '@/hooks/use-toast'; // Ajout de useToast
-import { useState, useMemo } from 'react'; // Ajout de useState et useMemo
+import { Gamepad2, Archive, ArchiveX } from 'lucide-react'; // Correction: ArchivePlus remplacé par Archive
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { useState, useMemo } from 'react';
 
 interface GameCardProps {
   game: BoardGame;
@@ -28,10 +28,10 @@ export function GameCard({ game }: GameCardProps) {
 
   const handleToggleOwnedGame = async () => {
     if (!currentUser) {
-      toast({ 
-        title: "Connexion Requise", 
-        description: "Veuillez vous connecter pour gérer votre collection.", 
-        variant: "destructive" 
+      toast({
+        title: "Connexion Requise",
+        description: "Veuillez vous connecter pour gérer votre collection.",
+        variant: "destructive"
       });
       return;
     }
@@ -112,11 +112,11 @@ export function GameCard({ game }: GameCardProps) {
             title={isOwned ? `Retirer ${game.name} de la collection` : `Ajouter ${game.name} à la collection`}
           >
             {isProcessing ? (
-              <Gamepad2 className="h-5 w-5 animate-spin" /> // Simple spinner pendant le traitement
+              <Gamepad2 className="h-5 w-5 animate-spin" />
             ) : isOwned ? (
               <ArchiveX className="h-5 w-5" />
             ) : (
-              <ArchivePlus className="h-5 w-5" />
+              <Archive className="h-5 w-5" /> // Utilisation de Archive pour ajouter
             )}
           </Button>
         </div>
