@@ -51,12 +51,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockBoardGames, mockPlayers } from '@/lib/data';
-import type { BoardGame, TagDefinition, Player } from '@/lib/types';
+import type { BoardGame, TagDefinition, Player, UserRole } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { TAG_CATEGORY_DETAILS, getTagCategoryColorClass, getTranslatedTagCategory, type TagCategoryKey } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
 import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
+import { EditUserForm, type UserFormValues } from '@/components/admin/edit-user-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger as SelectTriggerPrimitive, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -98,28 +99,27 @@ export default function AdminPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
+  // Game Management States
   const [adminGamesList, setAdminGamesList] = useState<BoardGame[]>(mockBoardGames);
   const [isGameFormDialogOpen, setIsGameFormDialogOpen] = useState(false);
   const [currentGameToEdit, setCurrentGameToEdit] = useState<BoardGame | null>(null);
   const [isAddingGame, setIsAddingGame] = useState(false);
-
   const [visibleColumns, setVisibleColumns] = useState({
     tags: true,
     description: true,
     publisher: true,
     publicationYear: true,
   });
-
   const [adminGameSearchQuery, setAdminGameSearchQuery] = useState('');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>(initialTagFilters());
 
+  // Tag Management States
   const [managedUniqueTags, setManagedUniqueTags] = useState<TagDefinition[]>([]);
   const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
   const [editedTagName, setEditedTagName] = useState('');
   const [editedTagCategory, setEditedTagCategory] = useState<TagCategoryKey | string>('');
-  
   const [isAddTagDialogOpen, setIsAddTagDialogOpen] = useState(false);
   const [newTagNameInput, setNewTagNameInput] = useState('');
   const [newTagCategoryInput, setNewTagCategoryInput] = useState<TagCategoryKey | string>('');
@@ -128,7 +128,11 @@ export default function AdminPage() {
   const [tagCategoryFilter, setTagCategoryFilter] = useState<string>('all');
   const [adminTagSearchQuery, setAdminTagSearchQuery] = useState('');
 
+  // User Management States
   const [adminUsersList, setAdminUsersList] = useState<Player[]>(mockPlayers);
+  const [isUserFormDialogOpen, setIsUserFormDialogOpen] = useState(false);
+  const [currentUserToEdit, setCurrentUserToEdit] = useState<Player | null>(null);
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
 
   useEffect(() => {
@@ -457,19 +461,60 @@ export default function AdminPage() {
     return filtered;
   }, [managedUniqueTags, tagCategoryFilter, adminTagSearchQuery]);
 
-  // --- User Management Simulated Actions ---
-  const handleAddUser = () => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: "L'ajout d'utilisateurs sera bientôt disponible.",
-    });
+  // --- User Management Actions ---
+  const handleOpenAddUserDialog = () => {
+    setIsAddingUser(true);
+    setCurrentUserToEdit(null);
+    setIsUserFormDialogOpen(true);
   };
 
-  const handleEditUser = (userName: string) => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: `La modification de l'utilisateur "${userName}" sera bientôt disponible.`,
-    });
+  const handleOpenEditUserDialog = (user: Player) => {
+    setIsAddingUser(false);
+    setCurrentUserToEdit(user);
+    setIsUserFormDialogOpen(true);
+  };
+  
+  const handleSaveUser = (userData: UserFormValues) => {
+    if (isAddingUser || !userData.id) {
+      const newUser: Player = {
+        id: 'usr' + Date.now().toString(),
+        name: userData.name,
+        email: userData.email,
+        avatarUrl: userData.avatarUrl || `https://placehold.co/100x100.png?text=${userData.name.substring(0,1).toUpperCase()}`,
+        role: userData.role as UserRole,
+        gamePreferences: [], // Default for new user
+        ownedGames: [],      // Default for new user
+        wishlist: [],        // Default for new user
+        availability: 'Non spécifiée', // Default for new user
+      };
+      setAdminUsersList(prevUsers => [newUser, ...prevUsers]);
+      toast({
+        title: "Utilisateur Ajouté",
+        description: `L'utilisateur "${newUser.name}" a été ajouté.`,
+      });
+    } else {
+      setAdminUsersList(prevUsers => 
+        prevUsers.map(u => u.id === userData.id ? { 
+            ...u, 
+            ...userData, 
+            role: userData.role as UserRole,
+            avatarUrl: userData.avatarUrl || u.avatarUrl || `https://placehold.co/100x100.png?text=${userData.name.substring(0,1).toUpperCase()}`,
+          } : u)
+      );
+      toast({
+        title: "Utilisateur Modifié",
+        description: `Les informations de "${userData.name}" ont été mises à jour.`,
+      });
+    }
+    setIsUserFormDialogOpen(false);
+    setCurrentUserToEdit(null);
+    setIsAddingUser(false);
+  };
+
+  const handleCloseUserFormDialog = () => {
+    setIsUserFormDialogOpen(false);
+    setCurrentUserToEdit(null);
+    setIsAddingUser(false);
   };
 
   const handleDeleteUser = (userName: string) => {
@@ -961,7 +1006,7 @@ export default function AdminPage() {
                              <CardDescription>Visualiser et gérer les utilisateurs enregistrés.</CardDescription>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-                            <Button onClick={handleAddUser} size="sm" className="w-full sm:w-auto">
+                            <Button onClick={handleOpenAddUserDialog} size="sm" className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Ajouter un utilisateur
                             </Button>
@@ -1000,7 +1045,7 @@ export default function AdminPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditUser(user.name)} title={`Modifier ${user.name}`}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditUserDialog(user)} title={`Modifier ${user.name}`}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteUser(user.name)} title={`Supprimer ${user.name}`}>
@@ -1034,6 +1079,21 @@ export default function AdminPage() {
               gameToEdit={isAddingGame ? null : currentGameToEdit}
               onSave={handleSaveGame}
               onCancel={handleCloseGameFormDialog}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isUserFormDialogOpen} onOpenChange={setIsUserFormDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {isAddingUser ? "Ajouter un nouvel utilisateur" : `Modifier l'utilisateur : ${currentUserToEdit?.name || ''}`}
+              </DialogTitle>
+            </DialogHeader>
+            <EditUserForm
+              userToEdit={isAddingUser ? null : currentUserToEdit}
+              onSave={handleSaveUser}
+              onCancel={handleCloseUserFormDialog}
             />
           </DialogContent>
         </Dialog>
@@ -1116,5 +1176,3 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
-
-    
