@@ -20,7 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added AlertDialogTrigger
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -73,6 +73,8 @@ export function GameCard({ game }: GameCardProps) {
       newOwnedGames = [...currentOwnedGames, game.name];
       toastTitle = "Jeu Ajouté";
       successMessage = `"${game.name}" a été ajouté à votre collection !`;
+       // If adding to owned, and it's in wishlist, offer to remove from wishlist?
+       // For now, let's keep it simple. User can manage wishlist separately.
     }
 
     const success = await updateUserProfile({ ownedGames: newOwnedGames });
@@ -90,7 +92,7 @@ export function GameCard({ game }: GameCardProps) {
       });
     }
     setIsProcessingOwned(false);
-    setIsConfirmDialogOpen(false); 
+    setIsConfirmDialogOpen(false);
   };
 
   const handleToggleWishlistGame = async () => {
@@ -119,7 +121,7 @@ export function GameCard({ game }: GameCardProps) {
       toastTitle = "Ajouté à la Wishlist";
       successMessage = `"${game.name}" a été ajouté à votre wishlist !`;
     }
-    
+
     const success = await updateUserProfile({ wishlist: newWishlist });
 
     if (success) {
@@ -137,12 +139,11 @@ export function GameCard({ game }: GameCardProps) {
     setIsProcessingWishlist(false);
   };
 
-
   const handleAttemptRemoveGame = () => {
     if (localStorage.getItem('gameSync_skipGameRemoveConfirmation') === 'true') {
       handleToggleOwnedGame('remove');
     } else {
-      setDontAskAgain(false); 
+      setDontAskAgain(false);
       setIsConfirmDialogOpen(true);
     }
   };
@@ -155,8 +156,9 @@ export function GameCard({ game }: GameCardProps) {
             <Image
               src={game.imageUrl}
               alt={`Boîte du jeu ${game.name}`}
-              layout="fill"
-              objectFit="cover"
+              fill // Changed from layout="fill" objectFit="cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
               data-ai-hint="board game box"
             />
           ) : (
@@ -166,7 +168,8 @@ export function GameCard({ game }: GameCardProps) {
           )}
           {currentUser && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
-               <Button
+              {!isOwned && ( // Conditionally render wishlist button
+                <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleToggleWishlistGame}
@@ -184,6 +187,7 @@ export function GameCard({ game }: GameCardProps) {
                     <Heart className={cn("h-5 w-5", isInWishlist && "fill-current")} />
                   )}
                 </Button>
+              )}
               {isOwned ? (
                 <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                    <AlertDialogTrigger asChild>
@@ -192,10 +196,11 @@ export function GameCard({ game }: GameCardProps) {
                       size="icon"
                       disabled={authLoading || isProcessingOwned}
                       className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                      onClick={handleAttemptRemoveGame} // Using specific handler for remove attempt
                       aria-label={`Retirer ${game.name} de la collection`}
                       title={`Retirer ${game.name} de la collection`}
                     >
-                      {isProcessingOwned && !isConfirmDialogOpen ? ( 
+                      {isProcessingOwned && !isConfirmDialogOpen ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <ArchiveX className="h-5 w-5" />
@@ -221,19 +226,19 @@ export function GameCard({ game }: GameCardProps) {
                       </Label>
                     </div>
                     <AlertDialogFooter>
-                      <AlertDialogCancel 
-                        onClick={() => setIsConfirmDialogOpen(false)} 
+                      <AlertDialogCancel
+                        onClick={() => setIsConfirmDialogOpen(false)}
                         disabled={isProcessingOwned}
                       >
                         Annuler
                       </AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         onClick={() => {
                           if (dontAskAgain) {
                             localStorage.setItem('gameSync_skipGameRemoveConfirmation', 'true');
                           }
                           handleToggleOwnedGame('remove');
-                        }} 
+                        }}
                         disabled={isProcessingOwned}
                         className="bg-destructive hover:bg-destructive/90"
                       >
@@ -267,7 +272,7 @@ export function GameCard({ game }: GameCardProps) {
             </div>
           )}
         </div>
-        
+
         <div>
           <CardTitle className="text-xl flex items-center gap-2">
             {game.name}
