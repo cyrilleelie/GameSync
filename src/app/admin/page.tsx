@@ -24,6 +24,14 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +39,8 @@ import { Badge } from '@/components/ui/badge';
 import { getTagCategoryColorClass, getTranslatedTagCategory } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
 import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -43,6 +53,11 @@ export default function AdminPage() {
   const [isGameFormDialogOpen, setIsGameFormDialogOpen] = useState(false);
   const [currentGameToEdit, setCurrentGameToEdit] = useState<BoardGame | null>(null);
   const [isAddingGame, setIsAddingGame] = useState(false);
+
+  const [visibleColumns, setVisibleColumns] = useState({
+    tags: true,
+    description: true,
+  });
 
 
   useEffect(() => {
@@ -61,7 +76,7 @@ export default function AdminPage() {
 
   const handleOpenAddGameDialog = () => {
     setIsAddingGame(true);
-    setCurrentGameToEdit(null); // Clear any game being edited
+    setCurrentGameToEdit(null); 
     setIsGameFormDialogOpen(true);
   };
 
@@ -72,23 +87,22 @@ export default function AdminPage() {
   };
 
   const handleSaveGame = (gameData: GameFormValues) => {
-    if (isAddingGame || !gameData.id) { // Adding new game
+    if (isAddingGame || !gameData.id) { 
       const newGame: BoardGame = {
-        ...gameData,
-        id: 'bg' + Date.now().toString(), // Generate new ID
+        id: 'bg' + Date.now().toString(), 
         name: gameData.name,
         imageUrl: gameData.imageUrl || `https://placehold.co/300x200.png?text=${encodeURIComponent(gameData.name)}`,
         tags: gameData.tags || [],
-        description: gameData.description,
+        description: gameData.description || '',
       };
       setAdminGamesList(prevGames => [newGame, ...prevGames]);
       toast({
         title: "Jeu Ajouté",
         description: `Le jeu "${newGame.name}" a été ajouté à la liste.`,
       });
-    } else { // Editing existing game
+    } else { 
       setAdminGamesList(prevGames =>
-        prevGames.map(g => (g.id === gameData.id ? { ...g, ...gameData } as BoardGame : g))
+        prevGames.map(g => (g.id === gameData.id ? { ...g, ...gameData, description: gameData.description || g.description || '' } as BoardGame : g))
       );
       toast({
         title: "Jeu Modifié",
@@ -111,13 +125,6 @@ export default function AdminPage() {
     toast({
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
-    });
-  };
-
-  const handleSelectColumns = () => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: `La sélection des colonnes sera bientôt disponible.`,
     });
   };
 
@@ -168,168 +175,215 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            Panneau d'Administration
-          </CardTitle>
-          <CardDescription>
-            Gérez les données de l'application GameSync.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="games" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
-              <TabsTrigger value="games" className="text-base py-2 sm:text-sm">
-                <ListOrdered className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Jeux
-              </TabsTrigger>
-              <TabsTrigger value="tags" className="text-base py-2 sm:text-sm">
-                <Tags className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Tags
-              </TabsTrigger>
-              <TabsTrigger value="users" className="text-base py-2 sm:text-sm">
-                <Users className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Utilisateurs
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="games">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <CardTitle>Gestion des Jeux</CardTitle>
-                      <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
+    <TooltipProvider>
+      <div className="container mx-auto py-8">
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold flex items-center gap-2">
+              <ShieldCheck className="h-8 w-8 text-primary" />
+              Panneau d'Administration
+            </CardTitle>
+            <CardDescription>
+              Gérez les données de l'application GameSync.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="games" className="w-full">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
+                <TabsTrigger value="games" className="text-base py-2 sm:text-sm">
+                  <ListOrdered className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Jeux
+                </TabsTrigger>
+                <TabsTrigger value="tags" className="text-base py-2 sm:text-sm">
+                  <Tags className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Tags
+                </TabsTrigger>
+                <TabsTrigger value="users" className="text-base py-2 sm:text-sm">
+                  <Users className="mr-2 h-5 w-5 sm:h-4 sm:w-4" /> Utilisateurs
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="games">
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <CardTitle>Gestion des Jeux</CardTitle>
+                        <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Columns className="mr-2 h-4 w-4" />
+                              Colonnes
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Colonnes Visibles</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuCheckboxItem
+                              checked={visibleColumns.tags}
+                              onCheckedChange={(checked) =>
+                                setVisibleColumns((prev) => ({ ...prev, tags: !!checked }))
+                              }
+                            >
+                              Tags
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                              checked={visibleColumns.description}
+                              onCheckedChange={(checked) =>
+                                setVisibleColumns((prev) => ({ ...prev, description: !!checked }))
+                              }
+                            >
+                              Description
+                            </DropdownMenuCheckboxItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button variant="outline" onClick={handleFilterData} size="sm">
+                          <Filter className="mr-2 h-4 w-4" />
+                          Filtrer
+                        </Button>
+                        <Button onClick={handleOpenAddGameDialog} size="sm">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Ajouter
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={handleSelectColumns} size="sm">
-                        <Columns className="mr-2 h-4 w-4" />
-                        Colonnes
-                      </Button>
-                      <Button variant="outline" onClick={handleFilterData} size="sm">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filtrer
-                      </Button>
-                      <Button onClick={handleOpenAddGameDialog} size="sm">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Ajouter
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[80px]">Image</TableHead>
-                        <TableHead className="min-w-[200px]">Nom</TableHead>
-                        <TableHead>Tags</TableHead>
-                        <TableHead className="w-[150px] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {adminGamesList.map((game) => (
-                        <TableRow key={game.id}>
-                          <TableCell>
-                            <div className="relative h-12 w-12 rounded overflow-hidden bg-muted">
-                              {game.imageUrl ? (
-                                <Image
-                                  src={game.imageUrl}
-                                  alt={`Image de ${game.name}`}
-                                  fill
-                                  sizes="50px"
-                                  className="object-cover"
-                                  data-ai-hint="board game box"
-                                />
-                              ) : (
-                                <div className="flex items-center justify-center h-full w-full">
-                                  <Gamepad2 className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{game.name}</TableCell>
-                          <TableCell>
-                            {game.tags && game.tags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {game.tags.slice(0, 3).map(tag => ( 
-                                  <Badge
-                                    key={`${tag.categoryKey}-${tag.name}`}
-                                    variant="customColor"
-                                    className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
-                                    title={`${getTranslatedTagCategory(tag.categoryKey)}: ${tag.name}`}
-                                  >
-                                    {tag.name}
-                                  </Badge>
-                                ))}
-                                {game.tags.length > 3 && (
-                                  <Badge variant="outline" className="text-xs px-1.5 py-0.5">+{game.tags.length - 3}</Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px] py-3">Image</TableHead>
+                          <TableHead className="min-w-[200px] py-3">Nom</TableHead>
+                          {visibleColumns.tags && <TableHead className="py-3">Tags</TableHead>}
+                          {visibleColumns.description && <TableHead className="min-w-[250px] max-w-[350px] py-3">Description</TableHead>}
+                          <TableHead className="w-[150px] text-right py-3">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {adminGamesList.map((game) => (
+                          <TableRow key={game.id}>
+                            <TableCell>
+                              <div className="relative h-12 w-12 rounded overflow-hidden bg-muted">
+                                {game.imageUrl ? (
+                                  <Image
+                                    src={game.imageUrl}
+                                    alt={`Image de ${game.name}`}
+                                    fill
+                                    sizes="50px"
+                                    className="object-cover"
+                                    data-ai-hint="board game box"
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center h-full w-full">
+                                    <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">Aucun tag</span>
+                            </TableCell>
+                            <TableCell className="font-medium">{game.name}</TableCell>
+                            {visibleColumns.tags && (
+                              <TableCell>
+                                {game.tags && game.tags.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {game.tags.slice(0, 3).map(tag => ( 
+                                      <Badge
+                                        key={`${tag.categoryKey}-${tag.name}`}
+                                        variant="customColor"
+                                        className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
+                                        title={`${getTranslatedTagCategory(tag.categoryKey)}: ${tag.name}`}
+                                      >
+                                        {tag.name}
+                                      </Badge>
+                                    ))}
+                                    {game.tags.length > 3 && (
+                                      <Badge variant="outline" className="text-xs px-1.5 py-0.5">+{game.tags.length - 3}</Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">Aucun tag</span>
+                                )}
+                              </TableCell>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditGameDialog(game)} title={`Modifier ${game.name}`}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteGame(game.name)} title={`Supprimer ${game.name}`}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {adminGamesList.length === 0 && (
-                    <p className="text-muted-foreground text-center py-4">Aucun jeu dans la base de données pour le moment.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="tags">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestion des Tags</CardTitle>
-                  <CardDescription>CRUD pour les tags et leurs catégories.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-muted-foreground">Fonctionnalité à venir...</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="users">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestion des Utilisateurs</CardTitle>
-                  <CardDescription>Visualiser et gérer les utilisateurs.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-muted-foreground">Fonctionnalité à venir...</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                            {visibleColumns.description && (
+                              <TableCell>
+                                {game.description ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <p className="text-xs text-muted-foreground line-clamp-2 cursor-default">
+                                        {game.description}
+                                      </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" align="start" className="max-w-xs break-words">
+                                      <p className="text-xs">{game.description}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs italic">N/A</span>
+                                )}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenEditGameDialog(game)} title={`Modifier ${game.name}`}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteGame(game.name)} title={`Supprimer ${game.name}`}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {adminGamesList.length === 0 && (
+                      <p className="text-muted-foreground text-center py-4">Aucun jeu dans la base de données pour le moment.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="tags">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gestion des Tags</CardTitle>
+                    <CardDescription>CRUD pour les tags et leurs catégories.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-muted-foreground">Fonctionnalité à venir...</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="users">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gestion des Utilisateurs</CardTitle>
+                    <CardDescription>Visualiser et gérer les utilisateurs.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-muted-foreground">Fonctionnalité à venir...</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
 
-      <Dialog open={isGameFormDialogOpen} onOpenChange={setIsGameFormDialogOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              {isAddingGame ? "Ajouter un nouveau jeu" : `Modifier le jeu : ${currentGameToEdit?.name || ''}`}
-            </DialogTitle>
-            <DialogDescription>
-              {isAddingGame ? "Remplissez les informations du nouveau jeu ci-dessous." : "Modifiez les informations du jeu ci-dessous."}
-            </DialogDescription>
-          </DialogHeader>
-          <EditGameForm
-            gameToEdit={isAddingGame ? null : currentGameToEdit}
-            onSave={handleSaveGame}
-            onCancel={handleCloseGameFormDialog}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog open={isGameFormDialogOpen} onOpenChange={setIsGameFormDialogOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>
+                {isAddingGame ? "Ajouter un nouveau jeu" : `Modifier le jeu : ${currentGameToEdit?.name || ''}`}
+              </DialogTitle>
+              <DialogDescription>
+                {isAddingGame ? "Remplissez les informations du nouveau jeu ci-dessous." : "Modifiez les informations du jeu ci-dessous."}
+              </DialogDescription>
+            </DialogHeader>
+            <EditGameForm
+              gameToEdit={isAddingGame ? null : currentGameToEdit}
+              onSave={handleSaveGame}
+              onCancel={handleCloseGameFormDialog}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
