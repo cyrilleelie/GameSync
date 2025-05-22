@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
 import { useState, useMemo, useRef } from 'react';
-import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud } from 'lucide-react';
+import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud, Building, CalendarYear } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockBoardGames } from '@/lib/data';
 import NextImage from 'next/image';
@@ -35,6 +35,16 @@ const gameFormSchema = z.object({
     { message: "L'URL de l'image doit être une URL web valide ou une image chargée." }
   ).optional().or(z.literal('')),
   description: z.string().optional(),
+  publisher: z.string().optional(),
+  publicationYear: z.coerce
+    .number({ invalid_type_error: "Veuillez entrer une année valide." })
+    .int()
+    .positive({ message: "L'année doit être positive." })
+    .min(1800, { message: "L'année doit être après 1800." })
+    .max(new Date().getFullYear() + 5, { message: `L'année ne peut excéder ${new Date().getFullYear() + 5}.`})
+    .optional()
+    .or(z.literal(''))
+    .or(z.null()), // Permet null pour la réinitialisation correcte
   tags: z.array(z.object({
     name: z.string().min(1),
     categoryKey: z.custom<TagCategoryKey>((val) => Object.keys(TAG_CATEGORY_DETAILS).includes(val as string)),
@@ -71,12 +81,16 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           name: gameToEdit.name || '',
           imageUrl: gameToEdit.imageUrl || '',
           description: gameToEdit.description || '',
+          publisher: gameToEdit.publisher || '',
+          publicationYear: gameToEdit.publicationYear || null, // Utiliser null pour les valeurs par défaut
           tags: gameToEdit.tags || [],
         }
       : {
           name: '',
           imageUrl: '',
           description: '',
+          publisher: '',
+          publicationYear: null, // Utiliser null pour les valeurs par défaut
           tags: [],
         },
   });
@@ -143,13 +157,14 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
   async function onSubmit(values: GameFormValues) {
     setIsSubmitting(true);
-    // Ensure imageUrl is an empty string if not provided or invalid, instead of null/undefined
     const submissionValues = {
       ...values,
       imageUrl: values.imageUrl || '',
+      publisher: values.publisher || '',
+      publicationYear: values.publicationYear === '' ? undefined : values.publicationYear,
     };
     await new Promise(resolve => setTimeout(resolve, 500));
-    onSave(submissionValues);
+    onSave(submissionValues as GameFormValues); // Cast to ensure type compatibility
     setIsSubmitting(false);
   }
   
@@ -201,25 +216,22 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
         <FormItem>
           <FormLabel>Image du jeu</FormLabel>
           <div className="mt-2 space-y-3 flex flex-col items-center">
-            <div className="w-full max-w-xs"> {/* Constrains width */}
-              <div className="relative w-full bg-muted rounded-md overflow-hidden"> {/* Aspect ratio handled by NextImage or fallback has fixed height */}
+            <div className="w-full max-w-xs"> 
+              <div className="relative w-full h-40 bg-muted rounded-md overflow-hidden flex items-center justify-center"> 
                 {currentImageUrl ? (
                   <NextImage
                     src={currentImageUrl}
                     alt="Aperçu du jeu"
-                    width={300} // Placeholder for aspect ratio, actual size controlled by CSS
-                    height={200} // Placeholder for aspect ratio
-                    className="w-full h-auto object-contain" // Responsive styling
+                    width={300} 
+                    height={200} 
+                    className="w-full h-auto object-contain" 
                     data-ai-hint="board game box"
                     onError={(e) => {
                        console.error("Image load error in EditGameForm:", e.currentTarget.src);
-                       // Optionally: form.setValue('imageUrl', ''); to clear broken link
                     }}
                   />
                 ) : (
-                  <div className="w-full h-40 flex items-center justify-center bg-muted rounded-md"> {/* Fallback container with fixed height */}
-                    <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-                  </div>
+                  <Gamepad2 className="h-16 w-16 text-muted-foreground" />
                 )}
               </div>
             </div>
@@ -234,7 +246,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               accept="image/*"
               className="hidden"
             />
-            {/* FormField for imageUrl is implicit; error message will appear if validation fails on submit */}
             {form.formState.errors.imageUrl && (
                 <FormMessage>{form.formState.errors.imageUrl.message}</FormMessage>
             )}
@@ -252,6 +263,41 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               <FormLabel>Nom du jeu</FormLabel>
               <FormControl>
                 <Input placeholder="Nom du jeu" {...field} disabled={isSubmitting} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="publisher"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><Building className="h-4 w-4 text-muted-foreground" />Éditeur (Optionnel)</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex : Asmodee, Days of Wonder" {...field} disabled={isSubmitting} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="publicationYear"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><CalendarYear className="h-4 w-4 text-muted-foreground" />Année de publication (Optionnel)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  placeholder={`Ex : ${new Date().getFullYear()}`} 
+                  {...field} 
+                  onChange={event => field.onChange(event.target.value === '' ? null : Number(event.target.value))}
+                  value={field.value === null ? '' : field.value ?? ''}
+                  disabled={isSubmitting} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -399,5 +445,3 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
-
-    

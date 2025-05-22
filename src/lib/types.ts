@@ -32,6 +32,9 @@ export interface BoardGame {
   id: string;
   name: string;
   imageUrl: string;
-  tags?: TagDefinition[]; // Modifié de string[] à TagDefinition[]
+  tags?: TagDefinition[];
   description?: string;
+  publisher?: string;
+  publicationYear?: number;
 }
+

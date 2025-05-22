@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarYear } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,6 +42,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,6 +81,8 @@ export default function AdminPage() {
   const [visibleColumns, setVisibleColumns] = useState({
     tags: true,
     description: true,
+    publisher: true,
+    publicationYear: true,
   });
 
   // Filters state
@@ -162,7 +166,7 @@ export default function AdminPage() {
     let count = 0;
     if (adminGameSearchQuery) count++;
     if (descriptionFilter !== 'all') count++;
-    if (activeTagFilterBadges.length > 0) count++; // Simplified: count as 1 if any tag filter is active
+    if (activeTagFilterBadges.length > 0) count++; 
     return count;
   }, [adminGameSearchQuery, descriptionFilter, activeTagFilterBadges]);
 
@@ -187,20 +191,19 @@ export default function AdminPage() {
     });
 
     const anyTagFilterActive = Object.values(selectedTagFilters).some(tags => tags.length > 0);
-    if (!anyTagFilterActive) {
-      return games;
-    }
-
-    return games.filter(game => {
-      if (!game.tags || game.tags.length === 0) return false;
-      return (Object.keys(selectedTagFilters) as TagCategoryKey[]).every(categoryKey => {
-        const categorySelectedTags = selectedTagFilters[categoryKey];
-        if (categorySelectedTags.length === 0) return true; 
-        return game.tags.some(gameTag => 
-          gameTag.categoryKey === categoryKey && categorySelectedTags.includes(gameTag.name)
-        );
+    if (anyTagFilterActive) {
+      games = games.filter(game => {
+        if (!game.tags || game.tags.length === 0) return false;
+        return (Object.keys(selectedTagFilters) as TagCategoryKey[]).every(categoryKey => {
+          const categorySelectedTags = selectedTagFilters[categoryKey];
+          if (categorySelectedTags.length === 0) return true; 
+          return game.tags.some(gameTag => 
+            gameTag.categoryKey === categoryKey && categorySelectedTags.includes(gameTag.name)
+          );
+        });
       });
-    });
+    }
+    return games;
   }, [adminGamesList, adminGameSearchQuery, descriptionFilter, selectedTagFilters]);
 
 
@@ -224,6 +227,8 @@ export default function AdminPage() {
         imageUrl: gameData.imageUrl || `https://placehold.co/300x200.png?text=${encodeURIComponent(gameData.name)}`,
         tags: gameData.tags || [],
         description: gameData.description || '',
+        publisher: gameData.publisher || '',
+        publicationYear: gameData.publicationYear || undefined,
       };
       setAdminGamesList(prevGames => [newGame, ...prevGames]);
       toast({
@@ -232,7 +237,13 @@ export default function AdminPage() {
       });
     } else { 
       setAdminGamesList(prevGames =>
-        prevGames.map(g => (g.id === gameData.id ? { ...g, ...gameData, description: gameData.description || g.description || '' } as BoardGame : g))
+        prevGames.map(g => (g.id === gameData.id ? { 
+          ...g, 
+          ...gameData, 
+          description: gameData.description || g.description || '',
+          publisher: gameData.publisher || g.publisher || '',
+          publicationYear: gameData.publicationYear || g.publicationYear,
+        } as BoardGame : g))
       );
       toast({
         title: "Jeu Modifié",
@@ -304,7 +315,6 @@ export default function AdminPage() {
               <ShieldCheck className="h-8 w-8 text-primary" />
               Panneau d'Administration
             </CardTitle>
-            
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="games" className="w-full">
@@ -325,7 +335,6 @@ export default function AdminPage() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="flex-grow">
                         <CardTitle>Gestion des Jeux</CardTitle>
-                        
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                         <div className="relative w-full sm:w-64">
@@ -364,6 +373,22 @@ export default function AdminPage() {
                                 }
                               >
                                 Description
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={visibleColumns.publisher}
+                                onCheckedChange={(checked) =>
+                                  setVisibleColumns((prev) => ({ ...prev, publisher: !!checked }))
+                                }
+                              >
+                                Éditeur
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={visibleColumns.publicationYear}
+                                onCheckedChange={(checked) =>
+                                  setVisibleColumns((prev) => ({ ...prev, publicationYear: !!checked }))
+                                }
+                              >
+                                Année
                               </DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -481,10 +506,12 @@ export default function AdminPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[80px] py-3 font-semibold">Image</TableHead>
-                          <TableHead className="min-w-[200px] py-3 font-semibold">Nom</TableHead>
+                          <TableHead className="min-w-[150px] py-3 font-semibold">Nom</TableHead>
+                          {visibleColumns.publisher && <TableHead className="min-w-[120px] py-3 font-semibold">Éditeur</TableHead>}
+                          {visibleColumns.publicationYear && <TableHead className="w-[80px] text-center py-3 font-semibold">Année</TableHead>}
                           {visibleColumns.tags && <TableHead className="py-3 font-semibold">Tags</TableHead>}
-                          {visibleColumns.description && <TableHead className="min-w-[250px] max-w-[350px] py-3 font-semibold">Description</TableHead>}
-                          <TableHead className="w-[150px] text-right py-3 font-semibold">Actions</TableHead>
+                          {visibleColumns.description && <TableHead className="min-w-[200px] max-w-[300px] py-3 font-semibold">Description</TableHead>}
+                          <TableHead className="w-[100px] text-right py-3 font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -509,6 +536,16 @@ export default function AdminPage() {
                               </div>
                             </TableCell>
                             <TableCell className="font-medium">{game.name}</TableCell>
+                            {visibleColumns.publisher && (
+                              <TableCell className="text-xs text-muted-foreground">
+                                {game.publisher || <span className="italic">N/A</span>}
+                              </TableCell>
+                            )}
+                            {visibleColumns.publicationYear && (
+                              <TableCell className="text-xs text-muted-foreground text-center">
+                                {game.publicationYear || <span className="italic">N/A</span>}
+                              </TableCell>
+                            )}
                             {visibleColumns.tags && (
                               <TableCell>
                                 {game.tags && game.tags.length > 0 ? (
@@ -619,4 +656,3 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
-
