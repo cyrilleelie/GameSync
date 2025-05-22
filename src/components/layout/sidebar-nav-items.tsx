@@ -4,11 +4,10 @@ import {
   Users,
   Gamepad2,
   PlusCircle,
-  // Map, // Supprimé
   LogIn,
   ClipboardList,
   LibraryBig,
-  LayoutList, // Ajout pour "Toutes les Sessions"
+  LayoutList, // Déjà présent, utilisé pour "Toutes les Sessions"
   type LucideIcon,
 } from 'lucide-react';
 
@@ -17,11 +16,11 @@ export interface NavItem {
   title: string;
   href?: string; // Optionnel pour les parents
   icon: LucideIcon;
-  label?: string; // Utilisé pour les tooltips en mode icône, moins pertinent pour les sous-menus
+  label?: string; 
   disabled?: boolean;
   requiresAuth?: boolean;
   requiresGuest?: boolean;
-  children?: NavItem[]; // Pour les sous-menus
+  children?: NavItem[]; 
 }
 
 export const navItems: NavItem[] = [
@@ -41,33 +40,42 @@ export const navItems: NavItem[] = [
         id: 'all-sessions',
         title: 'Toutes les Sessions',
         href: '/sessions',
-        icon: LayoutList, // Icône pour le sous-menu
+        icon: LayoutList, 
         requiresAuth: true,
       },
       {
         id: 'my-sessions',
         title: 'Mes Sessions',
         href: '/my-sessions',
-        icon: ClipboardList, // Icône pour le sous-menu
+        icon: ClipboardList, 
         requiresAuth: true,
       },
       {
         id: 'create-session',
         title: 'Nouvelle Session',
         href: '/sessions/create',
-        icon: PlusCircle, // Icône pour le sous-menu
+        icon: PlusCircle, 
         requiresAuth: true,
       },
     ],
   },
   {
-    id: 'games',
-    title: 'Jeux', // Renommé depuis "Bibliothèque de Jeux"
-    href: '/games',
-    icon: LibraryBig,
+    id: 'games-accordion', // Nouvel ID pour l'accordéon
+    title: 'Jeux', // Titre de la catégorie parente
+    icon: LibraryBig, // Icône pour la catégorie parente
     requiresAuth: true,
+    children: [
+      {
+        id: 'all-games', // ID pour le sous-menu
+        title: 'Tous les Jeux', // Nouveau libellé
+        href: '/games', // Pointe vers la page existante
+        icon: LayoutList, // Ou LibraryBig si vous préférez pour le sous-menu
+        requiresAuth: true,
+      },
+      // Vous pourriez ajouter d'autres sous-menus liés aux jeux ici à l'avenir
+      // par exemple: "Mes Jeux Préférés", "Demander un Jeu" (si vous voulez une page dédiée)
+    ],
   },
-  // "Vue Carte" a été supprimé
   {
     id: 'profile',
     title: 'Profil',
