@@ -49,7 +49,7 @@ body {
     /* Tag Category Colors */
     --color-1: #f1a8a2; /* type */
     --color-2: #f1c5a7; /* theme */
-    --color-3: #f1e1a7; /* mechanics */
+    --color-3: #a7d3f1; /* mechanics - Changed from #f1e1a7 */
     --color-4: #a7d3f1; /* interaction */
     /* --color-5: #a8a2f1; */ /* Unused for now */
   }
