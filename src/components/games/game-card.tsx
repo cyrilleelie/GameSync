@@ -84,7 +84,7 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
       if (currentWishlist.includes(game.name)) {
         const newWishlist = currentWishlist.filter(gName => gName !== game.name);
         updatedProfileData.wishlist = newWishlist;
-        toastTitle = "Jeu Ajouté & Retiré de la Wishlist";
+        // toastTitle = "Jeu Ajouté & Retiré de la Wishlist"; // Already handled by successMessage update below
         successMessage = `"${game.name}" a été ajouté à votre collection et retiré de votre wishlist.`;
       }
     }
@@ -305,7 +305,7 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
               {game.tags.map(tagObj => (
                 <Badge
                   key={tagObj.name}
-                  variant="outline" 
+                  variant="customColor" 
                   className={cn("font-normal", getTagCategoryColorClass(tagObj.categoryKey))}
                 >
                   {tagObj.name}

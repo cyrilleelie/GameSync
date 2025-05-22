@@ -30,9 +30,9 @@ import {
 import { RequestGameForm } from '@/components/games/request-game-form';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { TAG_CATEGORY_DETAILS, getTranslatedTagCategory, getTagCategoryColorClass, type TagCategoryKey } from '@/lib/tag-categories'; // Updated import
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { TAG_CATEGORY_DETAILS, getTranslatedTagCategory, getTagCategoryColorClass, type TagCategoryKey } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
 
 
@@ -242,6 +242,7 @@ export default function GamesPage() {
           {activeSelectedTags.map(({ categoryKey, categoryName, tagName }) => (
             <Badge 
               key={`${categoryKey}-${tagName}`} 
+              variant="customColor"
               className={cn("flex items-center gap-1 pr-1 font-normal", getTagCategoryColorClass(categoryKey))}
             >
               <span className="font-semibold opacity-80">{getTranslatedTagCategory(categoryKey)}:</span> {tagName}
