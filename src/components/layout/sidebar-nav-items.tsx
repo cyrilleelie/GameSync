@@ -9,7 +9,8 @@ import {
   LibraryBig,
   LayoutList, 
   Archive,
-  Gift, // Ajout de l'icône Gift
+  Gift,
+  ShieldCheck, // Ajout de l'icône pour l'admin
   type LucideIcon,
 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export interface NavItem {
   disabled?: boolean;
   requiresAuth?: boolean;
   requiresGuest?: boolean;
+  requiresAdmin?: boolean; // Ajout d'une propriété pour les liens admin
   children?: NavItem[]; 
 }
 
@@ -67,11 +69,11 @@ export const navItems: NavItem[] = [
     icon: LibraryBig, 
     requiresAuth: true,
     children: [
-      {
+       {
         id: 'all-games', 
         title: 'Tous les Jeux', 
         href: '/games', 
-        icon: LayoutList, 
+        icon: LayoutList, // Changed from LibraryBig for variety, can be reverted
         requiresAuth: true,
       },
       {
@@ -98,6 +100,14 @@ export const navItems: NavItem[] = [
     requiresAuth: true,
   },
   {
+    id: 'admin',
+    title: 'Administration',
+    href: '/admin',
+    icon: ShieldCheck,
+    requiresAuth: true,
+    requiresAdmin: true, // Ce lien ne sera visible que pour les administrateurs
+  },
+  {
     id: 'login',
     title: 'Connexion',
     href: '/login',
@@ -105,4 +115,3 @@ export const navItems: NavItem[] = [
     requiresGuest: true,
   },
 ];
-

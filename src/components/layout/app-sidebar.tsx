@@ -42,6 +42,7 @@ export function AppSidebar() {
       .filter(item => {
         if (item.requiresAuth && !currentUser) return false;
         if (item.requiresGuest && currentUser) return false;
+        if (item.requiresAdmin && (!currentUser || currentUser.role !== 'Administrateur')) return false;
         return true;
       })
       .map(item => {
@@ -49,16 +50,17 @@ export function AppSidebar() {
           const visibleChildren = item.children.filter(child => {
             if (child.requiresAuth && !currentUser) return false;
             if (child.requiresGuest && currentUser) return false;
+            if (child.requiresAdmin && (!currentUser || currentUser.role !== 'Administrateur')) return false;
             return true;
           });
-          if (visibleChildren.length > 0 || item.href) {
+          if (visibleChildren.length > 0 || item.href) { // Keep parent if it's a direct link OR has visible children
             return { ...item, children: visibleChildren.length > 0 ? visibleChildren : undefined };
           }
-          return null;
+          return null; // Remove parent if it's not a direct link and has no visible children
         }
         return item;
       }).filter(Boolean) as NavItem[];
-  }, [isMounted, authLoading, currentUser, pathname]); // pathname was in original navItems dep, keeping it for displayedNavItems logic
+  }, [isMounted, authLoading, currentUser, pathname]);
 
   useEffect(() => {
     const activeParent = displayedNavItems.find(item => 
@@ -67,14 +69,16 @@ export function AppSidebar() {
     if (activeParent && activeParent.id) {
       setActiveAccordionValue(activeParent.id);
     } else {
-       // If no parent is active and the current path isn't a direct link within another open accordion,
-       // collapse all accordions.
-       const isDirectLinkActive = displayedNavItems.some(item => item.href === pathname && !item.children);
-       if (!isDirectLinkActive) {
+       const isDirectLinkActiveInAnotherAccordion = displayedNavItems.some(item => 
+        item.id !== activeAccordionValue && item.children?.some(child => child.href === pathname)
+      );
+      const isNonAccordionLinkActive = displayedNavItems.some(item => !item.children && item.href === pathname);
+
+      if (!isDirectLinkActiveInAnotherAccordion && !isNonAccordionLinkActive && !activeParent) {
          setActiveAccordionValue(undefined);
-       }
+      }
     }
-  }, [pathname, displayedNavItems]); // Removed activeAccordionValue from dependencies
+  }, [pathname, displayedNavItems]);
 
 
   const handleLogout = async () => {
@@ -85,9 +89,9 @@ export function AppSidebar() {
     // This function is called when isMounted is true AND authLoading is false
     return (
       <Link href="/" className="flex items-center gap-2 group" prefetch>
-        <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" />
+        <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" /> 
         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
-          <h1 className="text-xl font-semibold">GameSync</h1>
+           <h1 className="text-xl font-semibold">GameSync</h1>
         </span>
       </Link>
     );
@@ -97,6 +101,7 @@ export function AppSidebar() {
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
+          {/* Simplified header for SSR and initial client render */}
           <div className="flex items-center gap-2 text-sidebar-primary">
             <Boxes className="h-8 w-8" />
             <h1 className="text-xl font-semibold">GameSync</h1>
