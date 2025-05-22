@@ -148,7 +148,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
   const handleChangeImage = () => {
     const newUrl = prompt("Entrez la nouvelle URL de l'image :", currentImageUrl || '');
-    if (newUrl !== null) { // User clicked OK
+    if (newUrl !== null) { 
       form.setValue('imageUrl', newUrl.trim(), { shouldValidate: true });
     }
   };
@@ -160,25 +160,24 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
         <FormItem>
           <FormLabel>Image du jeu</FormLabel>
           <div className="mt-2 space-y-3 flex flex-col items-center">
-            <div className="h-40 w-auto max-w-xs bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
-              {currentImageUrl ? (
-                <NextImage
-                  src={currentImageUrl}
-                  alt="Aperçu du jeu"
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-contain"
-                  data-ai-hint="board game box"
-                  onError={(e) => {
-                     // Optional: if image fails to load, you could clear the URL
-                     // or set a flag to show Gamepad2 icon more explicitly
-                     // console.error("Image failed to load:", e.currentTarget.src);
-                     // form.setValue('imageUrl', ''); // Example: clear if load fails
-                  }}
-                />
-              ) : (
-                <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-              )}
+            <div className="w-full max-w-xs"> {/* Wrapper to control max width */}
+              <div className="relative h-40 w-full bg-muted rounded-md overflow-hidden flex items-center justify-center"> {/* Explicit width, relative positioning */}
+                {currentImageUrl ? (
+                  <NextImage
+                    src={currentImageUrl}
+                    alt="Aperçu du jeu"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-contain"
+                    data-ai-hint="board game box"
+                    onError={(e) => {
+                       console.error("Image load error in EditGameForm:", e.currentTarget.src);
+                    }}
+                  />
+                ) : (
+                  <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+                )}
+              </div>
             </div>
             <Button type="button" variant="outline" onClick={handleChangeImage} disabled={isSubmitting} className="sm:w-auto">
               <UploadCloud className="mr-2 h-4 w-4" />
@@ -348,5 +347,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
+    
 
     
