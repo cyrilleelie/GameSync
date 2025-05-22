@@ -293,7 +293,7 @@ export default function AdminPage() {
       </Card>
 
       <Dialog open={isGameFormDialogOpen} onOpenChange={setIsGameFormDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {isAddingGame ? "Ajouter un nouveau jeu" : `Modifier le jeu : ${currentGameToEdit?.name || ''}`}
@@ -312,3 +312,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
