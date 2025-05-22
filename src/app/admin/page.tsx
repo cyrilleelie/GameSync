@@ -126,6 +126,7 @@ export default function AdminPage() {
   const [newTagCategoryInput, setNewTagCategoryInput] = useState<TagCategoryKey | string>('');
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
+  const [tagCategoryFilter, setTagCategoryFilter] = useState<string>('all');
 
 
   useEffect(() => {
@@ -442,6 +443,13 @@ export default function AdminPage() {
       description: `Le tag "${tagToDelete.name}" a été supprimé de cette liste. Note : Cette suppression est visuelle et n'affecte pas les jeux existants.`,
     });
   };
+
+  const displayedManagedTags = useMemo(() => {
+    if (tagCategoryFilter === 'all') {
+      return managedUniqueTags;
+    }
+    return managedUniqueTags.filter(tag => tag.categoryKey === tagCategoryFilter);
+  }, [managedUniqueTags, tagCategoryFilter]);
 
 
   if (!isMounted || authLoading) {
@@ -789,16 +797,35 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader>
                     <div className="flex justify-between items-center">
-                      <CardTitle>Gestion des Tags</CardTitle>
-                      <Button onClick={handleOpenAddTagDialog} size="sm">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Ajouter un Tag
-                      </Button>
+                        <div className="flex-grow">
+                             <CardTitle>Gestion des Tags</CardTitle>
+                             <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-48"> {/* Adjust width as needed */}
+                                <Select value={tagCategoryFilter} onValueChange={setTagCategoryFilter}>
+                                    <SelectTriggerPrimitive className="h-9 text-sm">
+                                        <SelectValue placeholder="Filtrer par catégorie" />
+                                    </SelectTriggerPrimitive>
+                                    <SelectContent>
+                                        <SelectItem value="all">Toutes les catégories</SelectItem>
+                                        {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(catKey => (
+                                        <SelectItem key={catKey} value={catKey}>
+                                            {getTranslatedTagCategory(catKey)}
+                                        </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button onClick={handleOpenAddTagDialog} size="sm">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Ajouter un Tag
+                            </Button>
+                        </div>
                     </div>
-                    <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {managedUniqueTags.length > 0 ? (
+                    {displayedManagedTags.length > 0 ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -808,7 +835,7 @@ export default function AdminPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {managedUniqueTags.map((tag) => {
+                          {displayedManagedTags.map((tag) => {
                             const currentTagKey = `${tag.categoryKey}::${tag.name}`;
                             const isEditing = editingTagKey === currentTagKey;
                             return (
@@ -877,7 +904,11 @@ export default function AdminPage() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <p className="text-muted-foreground text-center py-4">Aucun tag utilisé dans les jeux pour le moment.</p>
+                      <p className="text-muted-foreground text-center py-4">
+                        {tagCategoryFilter === 'all' && managedUniqueTags.length === 0 
+                          ? "Aucun tag utilisé dans les jeux pour le moment."
+                          : `Aucun tag ne correspond à la catégorie "${getTranslatedTagCategory(tagCategoryFilter)}".`}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
