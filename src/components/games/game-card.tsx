@@ -64,20 +64,31 @@ export function GameCard({ game }: GameCardProps) {
     let newOwnedGames: string[];
     let successMessage: string;
     let toastTitle: string;
+    
+    const updatedProfileData: Partial<Player> = {};
 
     if (action === 'remove') {
       newOwnedGames = currentOwnedGames.filter(g => g !== game.name);
+      updatedProfileData.ownedGames = newOwnedGames;
       toastTitle = "Jeu Retiré";
       successMessage = `"${game.name}" a été retiré de votre collection.`;
     } else { // action === 'add'
       newOwnedGames = [...currentOwnedGames, game.name];
+      updatedProfileData.ownedGames = newOwnedGames;
       toastTitle = "Jeu Ajouté";
       successMessage = `"${game.name}" a été ajouté à votre collection !`;
-       // If adding to owned, and it's in wishlist, offer to remove from wishlist?
-       // For now, let's keep it simple. User can manage wishlist separately.
+
+      // Check if game was in wishlist and remove it
+      const currentWishlist = currentUser.wishlist || [];
+      if (currentWishlist.includes(game.name)) {
+        const newWishlist = currentWishlist.filter(gName => gName !== game.name);
+        updatedProfileData.wishlist = newWishlist;
+        toastTitle = "Jeu Ajouté & Retiré de la Wishlist";
+        successMessage = `"${game.name}" a été ajouté à votre collection et retiré de votre wishlist.`;
+      }
     }
 
-    const success = await updateUserProfile({ ownedGames: newOwnedGames });
+    const success = await updateUserProfile(updatedProfileData);
 
     if (success) {
       toast({
@@ -87,7 +98,7 @@ export function GameCard({ game }: GameCardProps) {
     } else {
       toast({
         title: "Erreur",
-        description: "Impossible de mettre à jour votre collection. Veuillez réessayer.",
+        description: "Impossible de mettre à jour votre profil. Veuillez réessayer.",
         variant: "destructive",
       });
     }
@@ -117,6 +128,16 @@ export function GameCard({ game }: GameCardProps) {
       toastTitle = "Retiré de la Wishlist";
       successMessage = `"${game.name}" a été retiré de votre wishlist.`;
     } else {
+      // Cannot add to wishlist if already owned
+      if (isOwned) {
+        toast({
+          title: "Déjà Possédé",
+          description: `"${game.name}" est déjà dans votre collection et ne peut pas être ajouté à la wishlist.`,
+          variant: "default" // Or "info" if you add such a variant
+        });
+        setIsProcessingWishlist(false);
+        return;
+      }
       newWishlist = [...currentWishlist, game.name];
       toastTitle = "Ajouté à la Wishlist";
       successMessage = `"${game.name}" a été ajouté à votre wishlist !`;
@@ -156,7 +177,7 @@ export function GameCard({ game }: GameCardProps) {
             <Image
               src={game.imageUrl}
               alt={`Boîte du jeu ${game.name}`}
-              fill // Changed from layout="fill" objectFit="cover"
+              fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover"
               data-ai-hint="board game box"
@@ -168,7 +189,7 @@ export function GameCard({ game }: GameCardProps) {
           )}
           {currentUser && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
-              {!isOwned && ( // Conditionally render wishlist button
+              {!isOwned && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -196,7 +217,7 @@ export function GameCard({ game }: GameCardProps) {
                       size="icon"
                       disabled={authLoading || isProcessingOwned}
                       className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                      onClick={handleAttemptRemoveGame} // Using specific handler for remove attempt
+                      onClick={handleAttemptRemoveGame}
                       aria-label={`Retirer ${game.name} de la collection`}
                       title={`Retirer ${game.name} de la collection`}
                     >
@@ -294,3 +315,4 @@ export function GameCard({ game }: GameCardProps) {
     </Card>
   );
 }
+
