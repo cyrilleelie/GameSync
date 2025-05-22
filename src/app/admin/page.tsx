@@ -127,6 +127,7 @@ export default function AdminPage() {
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
   const [tagCategoryFilter, setTagCategoryFilter] = useState<string>('all');
+  const [adminTagSearchQuery, setAdminTagSearchQuery] = useState('');
 
 
   useEffect(() => {
@@ -445,11 +446,17 @@ export default function AdminPage() {
   };
 
   const displayedManagedTags = useMemo(() => {
-    if (tagCategoryFilter === 'all') {
-      return managedUniqueTags;
+    let filtered = managedUniqueTags;
+    if (adminTagSearchQuery) {
+      filtered = filtered.filter(tag => 
+        tag.name.toLowerCase().includes(adminTagSearchQuery.toLowerCase())
+      );
     }
-    return managedUniqueTags.filter(tag => tag.categoryKey === tagCategoryFilter);
-  }, [managedUniqueTags, tagCategoryFilter]);
+    if (tagCategoryFilter !== 'all') {
+      filtered = filtered.filter(tag => tag.categoryKey === tagCategoryFilter);
+    }
+    return filtered;
+  }, [managedUniqueTags, tagCategoryFilter, adminTagSearchQuery]);
 
 
   if (!isMounted || authLoading) {
@@ -796,15 +803,25 @@ export default function AdminPage() {
               <TabsContent value="tags">
                 <Card>
                   <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-grow">
                              <CardTitle>Gestion des Tags</CardTitle>
                              <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-48"> {/* Adjust width as needed */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-48">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="search"
+                                placeholder="Rechercher un tag..."
+                                className="pl-8 w-full h-9 text-sm"
+                                value={adminTagSearchQuery}
+                                onChange={(e) => setAdminTagSearchQuery(e.target.value)}
+                              />
+                            </div>
+                            <div className="w-full sm:w-48"> 
                                 <Select value={tagCategoryFilter} onValueChange={setTagCategoryFilter}>
-                                    <SelectTriggerPrimitive className="h-9 text-sm">
+                                    <SelectTriggerPrimitive className="h-9 text-sm w-full">
                                         <SelectValue placeholder="Filtrer par catégorie" />
                                     </SelectTriggerPrimitive>
                                     <SelectContent>
@@ -817,7 +834,7 @@ export default function AdminPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Button onClick={handleOpenAddTagDialog} size="sm">
+                            <Button onClick={handleOpenAddTagDialog} size="sm" className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Ajouter un Tag
                             </Button>
@@ -905,9 +922,11 @@ export default function AdminPage() {
                       </Table>
                     ) : (
                       <p className="text-muted-foreground text-center py-4">
-                        {tagCategoryFilter === 'all' && managedUniqueTags.length === 0 
-                          ? "Aucun tag utilisé dans les jeux pour le moment."
-                          : `Aucun tag ne correspond à la catégorie "${getTranslatedTagCategory(tagCategoryFilter)}".`}
+                        {(adminTagSearchQuery && managedUniqueTags.length > 0) 
+                          ? `Aucun tag ne correspond à votre recherche "${adminTagSearchQuery}".`
+                          : (tagCategoryFilter === 'all' && managedUniqueTags.length === 0 
+                            ? "Aucun tag utilisé dans les jeux pour le moment."
+                            : `Aucun tag ne correspond à la catégorie "${getTranslatedTagCategory(tagCategoryFilter)}".`)}
                       </p>
                     )}
                   </CardContent>
