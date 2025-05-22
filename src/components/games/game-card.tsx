@@ -4,7 +4,7 @@
 import type { BoardGame } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, XCircle } from 'lucide-react';
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { cn } from '@/lib/utils';
+// Removed cn as it's not used
 
 interface GameCardProps {
   game: BoardGame;
@@ -114,7 +114,7 @@ export function GameCard({ game }: GameCardProps) {
           </div>
         )}
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-grow">
             <CardTitle className="text-xl flex items-center gap-2">
               {game.name}
             </CardTitle>
@@ -127,81 +127,88 @@ export function GameCard({ game }: GameCardProps) {
             )}
           </div>
           
-          {currentUser && ( // Only show add/remove button if user is logged in
-            isOwned ? (
-              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          {currentUser && (
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+              {isOwned ? (
+                <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={authLoading || isProcessing}
+                    className="text-destructive hover:text-destructive/80"
+                    aria-label={`Retirer ${game.name} de la collection`}
+                    title={`Retirer ${game.name} de la collection`}
+                    onClick={handleAttemptRemoveGame}
+                  >
+                    {isProcessing && !isConfirmDialogOpen ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <ArchiveX className="h-5 w-5" />
+                    )}
+                  </Button>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Êtes-vous sûr de vouloir retirer "{game.name}" de votre collection ?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex items-center space-x-2 py-3">
+                      <Checkbox
+                        id={`dont-ask-again-${game.id}`}
+                        checked={dontAskAgain}
+                        onCheckedChange={(checked) => setDontAskAgain(Boolean(checked))}
+                        disabled={isProcessing}
+                      />
+                      <Label htmlFor={`dont-ask-again-${game.id}`} className="text-sm font-normal text-muted-foreground">
+                        Ne plus me demander (pour cette session)
+                      </Label>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel 
+                        onClick={() => setIsConfirmDialogOpen(false)} 
+                        disabled={isProcessing}
+                      >
+                        Annuler
+                      </AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          if (dontAskAgain) {
+                            localStorage.setItem('gameSync_skipGameRemoveConfirmation', 'true');
+                          }
+                          handleToggleOwnedGame('remove');
+                        }} 
+                        disabled={isProcessing}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => handleToggleOwnedGame('add')}
                   disabled={authLoading || isProcessing}
-                  className="shrink-0 text-destructive hover:text-destructive/80"
-                  aria-label={`Retirer ${game.name} de la collection`}
-                  title={`Retirer ${game.name} de la collection`}
-                  onClick={handleAttemptRemoveGame}
+                  className="text-primary hover:text-primary/80"
+                  aria-label={`Ajouter ${game.name} à la collection`}
+                  title={`Ajouter ${game.name} à la collection`}
                 >
-                  {isProcessing && !isConfirmDialogOpen ? (
+                  {isProcessing ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ArchiveX className="h-5 w-5" />
+                    <Archive className="h-5 w-5" />
                   )}
                 </Button>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir retirer "{game.name}" de votre collection ?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="flex items-center space-x-2 py-3">
-                    <Checkbox
-                      id={`dont-ask-again-${game.id}`}
-                      checked={dontAskAgain}
-                      onCheckedChange={(checked) => setDontAskAgain(Boolean(checked))}
-                      disabled={isProcessing}
-                    />
-                    <Label htmlFor={`dont-ask-again-${game.id}`} className="text-sm font-normal text-muted-foreground">
-                      Ne plus me demander (pour cette session)
-                    </Label>
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel 
-                      onClick={() => setIsConfirmDialogOpen(false)} 
-                      disabled={isProcessing}
-                    >
-                      Annuler
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => {
-                        if (dontAskAgain) {
-                          localStorage.setItem('gameSync_skipGameRemoveConfirmation', 'true');
-                        }
-                        handleToggleOwnedGame('remove');
-                      }} 
-                      disabled={isProcessing}
-                      className="bg-destructive hover:bg-destructive/90"
-                    >
-                      {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleToggleOwnedGame('add')}
-                disabled={authLoading || isProcessing}
-                className="text-primary hover:text-primary/80 shrink-0"
-                aria-label={`Ajouter ${game.name} à la collection`}
-                title={`Ajouter ${game.name} à la collection`}
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Archive className="h-5 w-5" />
-                )}
+              )}
+              <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
+                <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
+                  <CalendarPlus className="h-5 w-5" />
+                </Link>
               </Button>
-            )
+            </div>
           )}
         </div>
       </CardHeader>
@@ -210,14 +217,7 @@ export function GameCard({ game }: GameCardProps) {
             <p className="text-sm text-foreground line-clamp-3">{game.description}</p>
         )}
       </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full" variant="outline" size="sm">
-          <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
-            <CalendarPlus className="mr-2 h-4 w-4" />
-            Créer une session
-          </Link>
-        </Button>
-      </CardFooter>
+      {/* CardFooter removed */}
     </Card>
   );
 }
