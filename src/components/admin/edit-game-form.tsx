@@ -24,7 +24,7 @@ import { useState, useMemo } from 'react';
 import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockBoardGames } from '@/lib/data';
-import NextImage from 'next/image'; // Renamed to avoid conflict with a potential local Image variable
+import NextImage from 'next/image';
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
@@ -52,7 +52,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const [addTagExistingName, setAddTagExistingName] = useState<string>('');
   const [addTagNewName, setAddTagNewName] = useState<string>('');
 
-  const isEditMode = !!gameToEdit;
+  const isEditMode = !!gameToEdit && !!gameToEdit.id;
 
   const form = useForm<GameFormValues>({
     resolver: zodResolver(gameFormSchema),
@@ -134,6 +134,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
   async function onSubmit(values: GameFormValues) {
     setIsSubmitting(true);
+    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     onSave(values);
     setIsSubmitting(false);
@@ -148,13 +149,49 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const handleChangeImage = () => {
     const newUrl = prompt("Entrez la nouvelle URL de l'image :", currentImageUrl || '');
     if (newUrl !== null) { // User clicked OK
-      form.setValue('imageUrl', newUrl.trim());
+      form.setValue('imageUrl', newUrl.trim(), { shouldValidate: true });
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
+        
+        <FormItem>
+          <FormLabel>Image du jeu</FormLabel>
+          <div className="mt-2 space-y-3 flex flex-col items-center">
+            <div className="h-40 w-auto max-w-xs bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
+              {currentImageUrl ? (
+                <NextImage
+                  src={currentImageUrl}
+                  alt="Aperçu du jeu"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-contain"
+                  data-ai-hint="board game box"
+                  onError={(e) => {
+                     // Optional: if image fails to load, you could clear the URL
+                     // or set a flag to show Gamepad2 icon more explicitly
+                     // console.error("Image failed to load:", e.currentTarget.src);
+                     // form.setValue('imageUrl', ''); // Example: clear if load fails
+                  }}
+                />
+              ) : (
+                <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+              )}
+            </div>
+            <Button type="button" variant="outline" onClick={handleChangeImage} disabled={isSubmitting} className="sm:w-auto">
+              <UploadCloud className="mr-2 h-4 w-4" />
+              Changer l'image (URL)
+            </Button>
+             <FormField
+                control={form.control}
+                name="imageUrl"
+                render={() => <FormMessage />} 
+              />
+          </div>
+        </FormItem>
+
         <FormField
           control={form.control}
           name="name"
@@ -168,41 +205,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
             </FormItem>
           )}
         />
-
-        <FormItem>
-          <FormLabel>Image du jeu</FormLabel>
-          <div className="mt-2 space-y-3">
-            <div className="w-full h-40 bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
-              {currentImageUrl ? (
-                <NextImage
-                  src={currentImageUrl}
-                  alt="Aperçu du jeu"
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-contain"
-                  data-ai-hint="board game box"
-                  onError={() => {
-                    // Optional: handle image load error, e.g., by clearing the URL or showing a specific error placeholder
-                    // For now, if it errors, it might show a broken image icon or nothing based on browser.
-                    // A more robust solution would set a local state to show the Gamepad2 icon.
-                  }}
-                />
-              ) : (
-                <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-              )}
-            </div>
-            <Button type="button" variant="outline" onClick={handleChangeImage} disabled={isSubmitting} className="w-full sm:w-auto">
-              <UploadCloud className="mr-2 h-4 w-4" />
-              Changer l'image (URL)
-            </Button>
-             <FormField
-                control={form.control}
-                name="imageUrl"
-                render={() => <FormMessage />} // Only for displaying Zod error message
-              />
-          </div>
-        </FormItem>
-
 
         <FormField
           control={form.control}
@@ -246,8 +248,8 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           )}
           
           <FormLabel className="mt-4 mb-2 block">Ajouter un Tag</FormLabel>
-          <div className="flex items-start gap-2">
-            <div className="w-1/3">
+          <div className="flex flex-col sm:flex-row items-start gap-2">
+            <div className="w-full sm:w-1/3">
               <FormLabel htmlFor="add-tag-category" className="text-xs text-muted-foreground">Catégorie</FormLabel>
               <Select
                 value={addTagCategory}
@@ -267,7 +269,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               </Select>
             </div>
 
-            <div className="flex-grow space-y-2">
+            <div className="flex-grow space-y-2 w-full sm:w-auto">
               <div>
                 <FormLabel htmlFor="add-tag-existing-name" className="text-xs text-muted-foreground">Choisir un tag existant</FormLabel>
                 <Select
@@ -302,7 +304,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               </div>
             </div>
             
-            <div className="self-end">
+            <div className="self-end mt-2 sm:mt-0">
               <Button
                 type="button"
                 variant="outline"
@@ -346,3 +348,5 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
+
+    
