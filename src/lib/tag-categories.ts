@@ -22,15 +22,22 @@ export type TagCategoryKey = keyof typeof TAG_CATEGORY_DETAILS;
 
 export interface TagDefinition {
   name: string;
-  categoryKey: TagCategoryKey;
+  categoryKey: TagCategoryKey | string; // Allow string for ad-hoc categories
 }
 
 // Helper pour obtenir le nom traduit d'une catégorie de tag
-export function getTranslatedTagCategory(categoryKey: TagCategoryKey): string {
-  return TAG_CATEGORY_DETAILS[categoryKey]?.name || categoryKey;
+export function getTranslatedTagCategory(categoryKey: TagCategoryKey | string): string {
+  if (categoryKey in TAG_CATEGORY_DETAILS) {
+    return TAG_CATEGORY_DETAILS[categoryKey as TagCategoryKey]?.name || String(categoryKey);
+  }
+  return String(categoryKey); // Return the key itself if not found
 }
 
 // Helper pour obtenir les classes de couleur d'une catégorie de tag
-export function getTagCategoryColorClass(categoryKey: TagCategoryKey): string {
-  return TAG_CATEGORY_DETAILS[categoryKey]?.colorClass || 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-500'; // Fallback
+export function getTagCategoryColorClass(categoryKey: TagCategoryKey | string): string {
+  if (categoryKey in TAG_CATEGORY_DETAILS) {
+    return TAG_CATEGORY_DETAILS[categoryKey as TagCategoryKey]?.colorClass || 'bg-gray-200 text-gray-800 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500'; // Fallback for known keys with missing colorClass
+  }
+  // Default color for ad-hoc/unknown categories
+  return 'bg-muted text-muted-foreground border-border dark:bg-muted/50 dark:text-muted-foreground/70 dark:border-border';
 }

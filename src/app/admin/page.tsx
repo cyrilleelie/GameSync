@@ -82,11 +82,13 @@ const calculateUniqueTags = (games: BoardGame[]): TagDefinition[] => {
     });
   });
   return uniqueTags.sort((a, b) => {
-    const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+    const categoryComparison = String(a.categoryKey).localeCompare(String(b.categoryKey));
     if (categoryComparison !== 0) return categoryComparison;
     return a.name.localeCompare(b.name);
   });
 };
+
+const CREATE_NEW_CATEGORY_VALUE = "--create-new-category--";
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -111,16 +113,19 @@ export default function AdminPage() {
   const [adminGameSearchQuery, setAdminGameSearchQuery] = useState('');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
-  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<TagCategoryKey, string[]>>(initialTagFilters());
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>(initialTagFilters());
 
   // Tag Management State
   const [managedUniqueTags, setManagedUniqueTags] = useState<TagDefinition[]>([]);
   const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
   const [editedTagName, setEditedTagName] = useState('');
-  const [editedTagCategory, setEditedTagCategory] = useState<TagCategoryKey | ''>('');
+  const [editedTagCategory, setEditedTagCategory] = useState<TagCategoryKey | string>('');
+  
   const [isAddTagDialogOpen, setIsAddTagDialogOpen] = useState(false);
   const [newTagNameInput, setNewTagNameInput] = useState('');
-  const [newTagCategoryInput, setNewTagCategoryInput] = useState<TagCategoryKey | ''>('');
+  const [newTagCategoryInput, setNewTagCategoryInput] = useState<TagCategoryKey | string>('');
+  const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
+  const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
 
 
   useEffect(() => {
@@ -139,7 +144,7 @@ export default function AdminPage() {
   }, [currentUser, authLoading, router, isMounted]);
 
   const allCategorizedTagsForGames = useMemo(() => {
-    const categorized: Record<TagCategoryKey, Set<string>> = {} as Record<TagCategoryKey, Set<string>>;
+    const categorized: Record<string, Set<string>> = {};
     (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
       categorized[key] = new Set<string>();
     });
@@ -152,7 +157,7 @@ export default function AdminPage() {
       });
     });
     
-    const result: Record<TagCategoryKey, string[]> = {} as Record<TagCategoryKey, string[]>;
+    const result: Record<string, string[]> = {};
     (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
       result[key] = Array.from(categorized[key]).sort((a,b) => a.localeCompare(b, 'fr'));
     });
@@ -162,14 +167,14 @@ export default function AdminPage() {
   const activeTagFilterBadges = useMemo(() => {
     return Object.entries(selectedTagFilters).flatMap(([categoryKey, tags]) => 
       tags.map(tagName => ({
-        categoryKey: categoryKey as TagCategoryKey,
-        categoryName: getTranslatedTagCategory(categoryKey as TagCategoryKey),
+        categoryKey: categoryKey as TagCategoryKey, // Cast for display purposes
+        categoryName: getTranslatedTagCategory(categoryKey),
         tagName: tagName
       }))
     );
   }, [selectedTagFilters]);
   
-  const handleTagSelection = (categoryKey: TagCategoryKey, tagName: string, isChecked: boolean) => {
+  const handleTagSelection = (categoryKey: string, tagName: string, isChecked: boolean) => {
     setSelectedTagFilters(prevFilters => {
       const currentTagsForCategory = prevFilters[categoryKey] || [];
       let newTagsForCategory;
@@ -185,14 +190,14 @@ export default function AdminPage() {
     });
   };
 
-  const removeTagFromFilterBadge = (categoryKey: TagCategoryKey, tagName: string) => {
+  const removeTagFromFilterBadge = (categoryKey: string, tagName: string) => {
     handleTagSelection(categoryKey, tagName, false);
   };
 
   const resetAllFilters = () => {
     setAdminGameSearchQuery('');
     setDescriptionFilter('all');
-    setSelectedTagFilters(initialTagFilters());
+    setSelectedTagFilters(initialTagFilters() as Record<string, string[]>);
   };
 
   const activeFilterCount = useMemo(() => {
@@ -227,10 +232,10 @@ export default function AdminPage() {
     if (anyTagFilterActive) {
       games = games.filter(game => {
         if (!game.tags || game.tags.length === 0) return false;
-        return (Object.keys(selectedTagFilters) as TagCategoryKey[]).every(categoryKey => {
+        return (Object.keys(selectedTagFilters) as string[]).every(categoryKey => {
           const categorySelectedTags = selectedTagFilters[categoryKey];
           if (categorySelectedTags.length === 0) return true; 
-          return game.tags.some(gameTag => 
+          return game.tags!.some(gameTag => 
             gameTag.categoryKey === categoryKey && categorySelectedTags.includes(gameTag.name)
           );
         });
@@ -261,7 +266,7 @@ export default function AdminPage() {
         tags: gameData.tags || [],
         description: gameData.description || '',
         publisher: gameData.publisher || '',
-        publicationYear: gameData.publicationYear || undefined,
+        publicationYear: gameData.publicationYear === undefined ? undefined : Number(gameData.publicationYear),
       };
       setAdminGamesList(prevGames => {
         const updatedGames = [newGame, ...prevGames];
@@ -279,7 +284,7 @@ export default function AdminPage() {
           ...gameData, 
           description: gameData.description || g.description || '',
           publisher: gameData.publisher || g.publisher || '',
-          publicationYear: gameData.publicationYear || g.publicationYear,
+          publicationYear: gameData.publicationYear === undefined ? g.publicationYear : Number(gameData.publicationYear),
         } as BoardGame : g));
         setManagedUniqueTags(calculateUniqueTags(updatedGames));
         return updatedGames;
@@ -310,6 +315,8 @@ export default function AdminPage() {
   const handleOpenAddTagDialog = () => {
     setNewTagNameInput('');
     setNewTagCategoryInput('');
+    setNewCategoryNameInput('');
+    setIsCreatingNewCategory(false);
     setIsAddTagDialogOpen(true);
   };
 
@@ -318,34 +325,45 @@ export default function AdminPage() {
       toast({ title: "Nom du Tag Requis", description: "Veuillez entrer un nom pour le nouveau tag.", variant: "destructive" });
       return;
     }
-    if (!newTagCategoryInput) {
-      toast({ title: "Catégorie Requise", description: "Veuillez sélectionner une catégorie pour le nouveau tag.", variant: "destructive" });
+
+    let finalCategoryKey = newTagCategoryInput;
+    let finalCategoryName = newTagCategoryInput;
+
+    if (newTagCategoryInput === CREATE_NEW_CATEGORY_VALUE) {
+      if (!newCategoryNameInput.trim()) {
+        toast({ title: "Nom de Catégorie Requis", description: "Veuillez entrer un nom pour la nouvelle catégorie.", variant: "destructive" });
+        return;
+      }
+      finalCategoryKey = newCategoryNameInput.trim().toLowerCase().replace(/\s+/g, '-'); // Simple slugification
+      finalCategoryName = newCategoryNameInput.trim();
+    } else if (!newTagCategoryInput) {
+       toast({ title: "Catégorie Requise", description: "Veuillez sélectionner ou créer une catégorie pour le nouveau tag.", variant: "destructive" });
       return;
     }
 
     const existingTag = managedUniqueTags.find(
-      tag => tag.name.toLowerCase() === newTagNameInput.trim().toLowerCase() && tag.categoryKey === newTagCategoryInput
+      tag => tag.name.toLowerCase() === newTagNameInput.trim().toLowerCase() && tag.categoryKey === finalCategoryKey
     );
 
     if (existingTag) {
       toast({
         title: "Tag Existant",
-        description: `Un tag nommé "${newTagNameInput.trim()}" dans la catégorie "${getTranslatedTagCategory(newTagCategoryInput)}" existe déjà.`,
+        description: `Un tag nommé "${newTagNameInput.trim()}" dans la catégorie "${getTranslatedTagCategory(finalCategoryKey)}" existe déjà.`,
         variant: "destructive",
       });
       return;
     }
 
-    const newTag: TagDefinition = { name: newTagNameInput.trim(), categoryKey: newTagCategoryInput };
+    const newTag: TagDefinition = { name: newTagNameInput.trim(), categoryKey: finalCategoryKey };
     setManagedUniqueTags(prevTags => [...prevTags, newTag].sort((a, b) => {
-      const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+      const categoryComparison = String(a.categoryKey).localeCompare(String(b.categoryKey));
       if (categoryComparison !== 0) return categoryComparison;
       return a.name.localeCompare(b.name);
     }));
     
     toast({
       title: "Tag Ajouté (Simulation)",
-      description: `Le tag "${newTag.name}" a été ajouté à la liste. N'oubliez pas que cela ne l'ajoute pas aux jeux existants.`,
+      description: `Le tag "${newTag.name}" (cat: ${getTranslatedTagCategory(finalCategoryKey)}) a été ajouté à cette liste. Note: Cela n'affecte pas les jeux existants et les nouvelles catégories sont temporaires.`,
     });
     setIsAddTagDialogOpen(false);
   };
@@ -373,6 +391,17 @@ export default function AdminPage() {
 
     const [originalCategory, originalName] = originalTagKey.split('::');
 
+    // Cannot change category to a new, non-predefined one during edit in this simplified version
+    if (!Object.keys(TAG_CATEGORY_DETAILS).includes(editedTagCategory as TagCategoryKey) && editedTagCategory !== originalCategory) {
+         toast({
+            title: "Modification de catégorie limitée",
+            description: "La modification vers une catégorie entièrement nouvelle n'est pas prise en charge ici. Veuillez utiliser les catégories existantes ou annuler.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+
     const conflict = managedUniqueTags.find(
       (t) => t.name === editedTagName && t.categoryKey === editedTagCategory && 
              (t.name !== originalName || t.categoryKey !== originalCategory)
@@ -393,7 +422,7 @@ export default function AdminPage() {
         ? { name: editedTagName, categoryKey: editedTagCategory } 
         : t
       ).sort((a, b) => {
-        const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+        const categoryComparison = String(a.categoryKey).localeCompare(String(b.categoryKey));
         if (categoryComparison !== 0) return categoryComparison;
         return a.name.localeCompare(b.name);
       })
@@ -592,7 +621,7 @@ export default function AdminPage() {
                                                               <div key={tagName} className="flex items-center space-x-2">
                                                                   <Checkbox
                                                                       id={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`}
-                                                                      checked={selectedTagFilters[categoryKey]?.includes(tagName)}
+                                                                      checked={(selectedTagFilters[categoryKey] || []).includes(tagName)}
                                                                       onCheckedChange={(checked) => handleTagSelection(categoryKey, tagName, !!checked)}
                                                                   />
                                                                   <Label htmlFor={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`} className="font-normal text-sm">
@@ -799,7 +828,7 @@ export default function AdminPage() {
                                   {isEditing ? (
                                     <Select 
                                       value={editedTagCategory} 
-                                      onValueChange={(value) => setEditedTagCategory(value as TagCategoryKey)}
+                                      onValueChange={(value) => setEditedTagCategory(value as TagCategoryKey | string)}
                                     >
                                       <SelectTriggerPrimitive className="h-8 text-sm">
                                         <SelectValue placeholder="Choisir catégorie" />
@@ -891,13 +920,13 @@ export default function AdminPage() {
             <DialogHeader>
               <DialogTitle>Ajouter un Nouveau Tag</DialogTitle>
               <DialogDescription>
-                Entrez le nom et sélectionnez la catégorie pour le nouveau tag.
+                Entrez le nom et sélectionnez ou créez la catégorie pour le nouveau tag.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="new-tag-name" className="text-right">
-                  Nom
+                  Nom du Tag
                 </Label>
                 <Input
                   id="new-tag-name"
@@ -908,11 +937,20 @@ export default function AdminPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-tag-category" className="text-right">
+                <Label htmlFor="new-tag-category-select" className="text-right">
                   Catégorie
                 </Label>
-                <Select value={newTagCategoryInput} onValueChange={(value) => setNewTagCategoryInput(value as TagCategoryKey)}>
-                  <SelectTriggerPrimitive id="new-tag-category" className="col-span-3 h-9">
+                <Select 
+                    value={newTagCategoryInput} 
+                    onValueChange={(value) => {
+                        setNewTagCategoryInput(value);
+                        setIsCreatingNewCategory(value === CREATE_NEW_CATEGORY_VALUE);
+                        if (value !== CREATE_NEW_CATEGORY_VALUE) {
+                            setNewCategoryNameInput('');
+                        }
+                    }}
+                >
+                  <SelectTriggerPrimitive id="new-tag-category-select" className="col-span-3 h-9">
                     <SelectValue placeholder="Choisir Catégorie" />
                   </SelectTriggerPrimitive>
                   <SelectContent>
@@ -921,9 +959,24 @@ export default function AdminPage() {
                         {getTranslatedTagCategory(key)}
                       </SelectItem>
                     ))}
+                    <SelectItem value={CREATE_NEW_CATEGORY_VALUE}>-- Créer une nouvelle catégorie --</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              {isCreatingNewCategory && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-category-name-input" className="text-right">
+                        Nom Nv. Cat.
+                    </Label>
+                    <Input
+                        id="new-category-name-input"
+                        value={newCategoryNameInput}
+                        onChange={(e) => setNewCategoryNameInput(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Nom de la nouvelle catégorie"
+                    />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsAddTagDialogOpen(false)}>
@@ -940,4 +993,3 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
-
