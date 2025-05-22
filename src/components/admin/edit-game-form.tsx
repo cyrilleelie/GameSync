@@ -20,12 +20,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
-import { useState, useMemo, useRef } from 'react'; // Added useRef
+import { useState, useMemo, useRef } from 'react';
 import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockBoardGames } from '@/lib/data';
 import NextImage from 'next/image';
-import { useToast } from "@/hooks/use-toast"; // Added useToast
+import { useToast } from "@/hooks/use-toast";
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
@@ -33,7 +33,7 @@ const gameFormSchema = z.object({
   imageUrl: z.string().refine(
     (val) => val === '' || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
     { message: "L'URL de l'image doit être une URL web valide ou une image chargée." }
-  ),
+  ).optional().or(z.literal('')),
   description: z.string().optional(),
   tags: z.array(z.object({
     name: z.string().min(1),
@@ -54,8 +54,8 @@ const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast(); // Added toast
-  const fileInputRef = useRef<HTMLInputElement>(null); // Added ref for file input
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [addTagCategory, setAddTagCategory] = useState<TagCategoryKey | ''>('');
   const [addTagExistingName, setAddTagExistingName] = useState<string>('');
@@ -143,8 +143,13 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
   async function onSubmit(values: GameFormValues) {
     setIsSubmitting(true);
+    // Ensure imageUrl is an empty string if not provided or invalid, instead of null/undefined
+    const submissionValues = {
+      ...values,
+      imageUrl: values.imageUrl || '',
+    };
     await new Promise(resolve => setTimeout(resolve, 500));
-    onSave(values);
+    onSave(submissionValues);
     setIsSubmitting(false);
   }
   
@@ -184,7 +189,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
       }
       reader.readAsDataURL(file);
     }
-    // Reset file input to allow selecting the same file again if needed
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
     }
@@ -197,22 +201,25 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
         <FormItem>
           <FormLabel>Image du jeu</FormLabel>
           <div className="mt-2 space-y-3 flex flex-col items-center">
-            <div className="w-full max-w-xs">
-              <div className="relative h-40 w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
+            <div className="w-full max-w-xs"> {/* Constrains width */}
+              <div className="relative w-full bg-muted rounded-md overflow-hidden"> {/* Aspect ratio handled by NextImage or fallback has fixed height */}
                 {currentImageUrl ? (
                   <NextImage
                     src={currentImageUrl}
                     alt="Aperçu du jeu"
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain"
+                    width={300} // Placeholder for aspect ratio, actual size controlled by CSS
+                    height={200} // Placeholder for aspect ratio
+                    className="w-full h-auto object-contain" // Responsive styling
                     data-ai-hint="board game box"
                     onError={(e) => {
                        console.error("Image load error in EditGameForm:", e.currentTarget.src);
+                       // Optionally: form.setValue('imageUrl', ''); to clear broken link
                     }}
                   />
                 ) : (
-                  <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+                  <div className="w-full h-40 flex items-center justify-center bg-muted rounded-md"> {/* Fallback container with fixed height */}
+                    <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+                  </div>
                 )}
               </div>
             </div>
@@ -227,13 +234,12 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               accept="image/*"
               className="hidden"
             />
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={() => <FormMessage />} 
-            />
+            {/* FormField for imageUrl is implicit; error message will appear if validation fails on submit */}
+            {form.formState.errors.imageUrl && (
+                <FormMessage>{form.formState.errors.imageUrl.message}</FormMessage>
+            )}
             <FormDescription>
-              Chargez une image depuis votre ordinateur. Max {MAX_IMAGE_SIZE_MB}Mo.
+              Chargez une image (max {MAX_IMAGE_SIZE_MB}Mo) ou laissez vide.
             </FormDescription>
           </div>
         </FormItem>
