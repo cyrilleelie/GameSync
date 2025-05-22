@@ -304,9 +304,7 @@ export default function AdminPage() {
               <ShieldCheck className="h-8 w-8 text-primary" />
               Panneau d'Administration
             </CardTitle>
-            <CardDescription>
-              Gérez les données de l'application GameSync.
-            </CardDescription>
+            
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="games" className="w-full">
