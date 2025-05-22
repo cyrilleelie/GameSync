@@ -75,17 +75,17 @@ export const navItems: NavItem[] = [
         requiresAuth: true,
       },
       {
-        id: 'my-owned-games', 
-        title: 'Mes Jeux', 
-        href: '/my-games', 
-        icon: Archive, 
-        requiresAuth: true,
-      },
-      {
         id: 'my-wishlist',
         title: 'Ma Wishlist',
         href: '/my-wishlist',
         icon: Gift,
+        requiresAuth: true,
+      },
+      {
+        id: 'my-owned-games', 
+        title: 'Mes Jeux', 
+        href: '/my-games', 
+        icon: Archive, 
         requiresAuth: true,
       },
     ],
@@ -105,3 +105,4 @@ export const navItems: NavItem[] = [
     requiresGuest: true,
   },
 ];
+
