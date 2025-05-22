@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarYear } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -50,7 +50,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockBoardGames } from '@/lib/data';
-import type { BoardGame } from '@/lib/types';
+import type { BoardGame, TagDefinition } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { TAG_CATEGORY_DETAILS, getTagCategoryColorClass, getTranslatedTagCategory, type TagCategoryKey } from '@/lib/tag-categories';
@@ -105,7 +105,7 @@ export default function AdminPage() {
     }
   }, [currentUser, authLoading, router, isMounted]);
 
-  const allCategorizedTags = useMemo(() => {
+  const allCategorizedTagsForGames = useMemo(() => {
     const categorized: Record<TagCategoryKey, Set<string>> = {} as Record<TagCategoryKey, Set<string>>;
     (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
       categorized[key] = new Set<string>();
@@ -267,6 +267,38 @@ export default function AdminPage() {
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
   };
+
+  const allUniqueTags: TagDefinition[] = useMemo(() => {
+    const tagSet = new Set<string>();
+    const uniqueTags: TagDefinition[] = [];
+    adminGamesList.forEach(game => {
+      game.tags?.forEach(tag => {
+        const tagKey = `${tag.categoryKey}::${tag.name}`;
+        if (!tagSet.has(tagKey)) {
+          tagSet.add(tagKey);
+          uniqueTags.push(tag);
+        }
+      });
+    });
+    return uniqueTags.sort((a, b) => {
+      const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+      if (categoryComparison !== 0) return categoryComparison;
+      return a.name.localeCompare(b.name);
+    });
+  }, [adminGamesList]);
+
+  const handleAddTag = () => {
+    toast({ title: "Fonctionnalité à venir", description: "L'ajout de tags sera bientôt disponible." });
+  };
+
+  const handleEditTag = (tag: TagDefinition) => {
+    toast({ title: "Fonctionnalité à venir", description: `La modification du tag "${tag.name}" sera bientôt disponible.` });
+  };
+
+  const handleDeleteTag = (tag: TagDefinition) => {
+    toast({ title: "Fonctionnalité à venir", description: `La suppression du tag "${tag.name}" sera bientôt disponible.` });
+  };
+
 
   if (!isMounted || authLoading) {
     return (
@@ -434,7 +466,7 @@ export default function AdminPage() {
                                           <DropdownMenuSeparator/>
                                           {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(categoryKey => {
                                               const categoryName = getTranslatedTagCategory(categoryKey);
-                                              const tagsInCategory = allCategorizedTags[categoryKey];
+                                              const tagsInCategory = allCategorizedTagsForGames[categoryKey];
                                               if (!tagsInCategory || tagsInCategory.length === 0) return null;
 
                                               return (
@@ -612,11 +644,52 @@ export default function AdminPage() {
               <TabsContent value="tags">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Gestion des Tags</CardTitle>
-                    <CardDescription>CRUD pour les tags et leurs catégories.</CardDescription>
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Gestion des Tags</CardTitle>
+                      <Button onClick={handleAddTag} size="sm">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Ajouter un Tag
+                      </Button>
+                    </div>
+                    <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <p className="text-muted-foreground">Fonctionnalité à venir...</p>
+                    {allUniqueTags.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="font-semibold">Nom du Tag</TableHead>
+                            <TableHead className="font-semibold">Catégorie</TableHead>
+                            <TableHead className="text-right font-semibold">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allUniqueTags.map((tag) => (
+                            <TableRow key={`${tag.categoryKey}-${tag.name}`}>
+                              <TableCell>{tag.name}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="customColor"
+                                  className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
+                                >
+                                  {getTranslatedTagCategory(tag.categoryKey)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => handleEditTag(tag)} title={`Modifier le tag ${tag.name}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteTag(tag)} title={`Supprimer le tag ${tag.name}`}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">Aucun tag utilisé dans les jeux pour le moment.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
