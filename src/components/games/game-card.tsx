@@ -3,14 +3,25 @@
 
 import type { BoardGame } from '@/lib/types';
 import Image from 'next/image';
-// Link n'est plus utilisé ici directement pour le bouton modifié
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Archive, ArchiveX } from 'lucide-react'; // Correction: ArchivePlus remplacé par Archive
+import { Gamepad2, Archive, ArchiveX, Loader2 } from 'lucide-react'; // Correction: ArchivePlus remplacé par Archive, Ajout de Loader2
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 interface GameCardProps {
   game: BoardGame;
@@ -20,13 +31,14 @@ export function GameCard({ game }: GameCardProps) {
   const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const isOwned = useMemo(() => {
     if (!currentUser || !currentUser.ownedGames) return false;
     return currentUser.ownedGames.includes(game.name);
   }, [currentUser, game.name]);
 
-  const handleToggleOwnedGame = async () => {
+  const handleToggleOwnedGame = async (action: 'add' | 'remove') => {
     if (!currentUser) {
       toast({
         title: "Connexion Requise",
@@ -43,11 +55,11 @@ export function GameCard({ game }: GameCardProps) {
     let successMessage: string;
     let toastTitle: string;
 
-    if (isOwned) {
+    if (action === 'remove') {
       newOwnedGames = currentOwnedGames.filter(g => g !== game.name);
       toastTitle = "Jeu Retiré";
       successMessage = `"${game.name}" a été retiré de votre collection.`;
-    } else {
+    } else { // action === 'add'
       newOwnedGames = [...currentOwnedGames, game.name];
       toastTitle = "Jeu Ajouté";
       successMessage = `"${game.name}" a été ajouté à votre collection !`;
@@ -68,6 +80,7 @@ export function GameCard({ game }: GameCardProps) {
       });
     }
     setIsProcessing(false);
+    setIsConfirmDialogOpen(false); // Close dialog after action
   };
 
   return (
@@ -101,24 +114,61 @@ export function GameCard({ game }: GameCardProps) {
               </div>
             )}
           </div>
-          {/* Bouton pour Ajouter/Retirer de la collection */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleToggleOwnedGame}
-            disabled={authLoading || isProcessing}
-            className="text-primary hover:text-primary/80 shrink-0"
-            aria-label={isOwned ? `Retirer ${game.name} de la collection` : `Ajouter ${game.name} à la collection`}
-            title={isOwned ? `Retirer ${game.name} de la collection` : `Ajouter ${game.name} à la collection`}
-          >
-            {isProcessing ? (
-              <Gamepad2 className="h-5 w-5 animate-spin" />
-            ) : isOwned ? (
-              <ArchiveX className="h-5 w-5" />
-            ) : (
-              <Archive className="h-5 w-5" /> // Utilisation de Archive pour ajouter
-            )}
-          </Button>
+          
+          {isOwned ? (
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={authLoading || isProcessing}
+                  className="shrink-0"
+                  aria-label={`Retirer ${game.name} de la collection`}
+                  title={`Retirer ${game.name} de la collection`}
+                >
+                  {isProcessing && !isConfirmDialogOpen ? ( // Show loader on button only if not opening dialog
+                    <Gamepad2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ArchiveX className="h-5 w-5 text-destructive" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir retirer "{game.name}" de votre collection ?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => handleToggleOwnedGame('remove')} 
+                    disabled={isProcessing}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleToggleOwnedGame('add')}
+              disabled={authLoading || isProcessing}
+              className="text-primary hover:text-primary/80 shrink-0"
+              aria-label={`Ajouter ${game.name} à la collection`}
+              title={`Ajouter ${game.name} à la collection`}
+            >
+              {isProcessing ? (
+                <Gamepad2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Archive className="h-5 w-5" />
+              )}
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
