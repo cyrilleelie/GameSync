@@ -8,7 +8,8 @@ import {
   ClipboardList,
   LibraryBig,
   LayoutList, 
-  Archive, // Ajout de l'icône Archive
+  Archive,
+  Gift, // Ajout de l'icône Gift
   type LucideIcon,
 } from 'lucide-react';
 
@@ -74,10 +75,17 @@ export const navItems: NavItem[] = [
         requiresAuth: true,
       },
       {
-        id: 'my-owned-games', // Nouvel ID pour le sous-menu
-        title: 'Mes Jeux', // Nouveau libellé
-        href: '/my-games', // Nouveau chemin
-        icon: Archive, // Nouvelle icône
+        id: 'my-owned-games', 
+        title: 'Mes Jeux', 
+        href: '/my-games', 
+        icon: Archive, 
+        requiresAuth: true,
+      },
+      {
+        id: 'my-wishlist',
+        title: 'Ma Wishlist',
+        href: '/my-wishlist',
+        icon: Gift,
         requiresAuth: true,
       },
     ],

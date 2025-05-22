@@ -8,6 +8,7 @@ export interface Player {
   avatarUrl?: string;
   gamePreferences: string[]; // list of game names
   ownedGames?: string[]; // list of game names owned by the player
+  wishlist?: string[]; // list of game names the player wishes to acquire
   availability: string; // textual description
   role: UserRole; // Ajout du champ role
 }
@@ -29,6 +30,6 @@ export interface BoardGame {
   id: string;
   name: string;
   imageUrl: string;
-  tags?: string[]; // Remplacé category par tags
+  tags?: string[];
   description?: string;
 }

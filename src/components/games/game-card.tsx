@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, XCircle } from 'lucide-react';
+import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, XCircle, Gift, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { cn } from '@/lib/utils';
 
 interface GameCardProps {
   game: BoardGame;
@@ -31,13 +32,19 @@ interface GameCardProps {
 export function GameCard({ game }: GameCardProps) {
   const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessingOwned, setIsProcessingOwned] = useState(false);
+  const [isProcessingWishlist, setIsProcessingWishlist] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [dontAskAgain, setDontAskAgain] = useState(false);
 
   const isOwned = useMemo(() => {
     if (!currentUser || !currentUser.ownedGames) return false;
     return currentUser.ownedGames.includes(game.name);
+  }, [currentUser, game.name]);
+
+  const isInWishlist = useMemo(() => {
+    if (!currentUser || !currentUser.wishlist) return false;
+    return currentUser.wishlist.includes(game.name);
   }, [currentUser, game.name]);
 
   const handleToggleOwnedGame = async (action: 'add' | 'remove') => {
@@ -49,9 +56,9 @@ export function GameCard({ game }: GameCardProps) {
       });
       return;
     }
-    if (authLoading || isProcessing) return;
+    if (authLoading || isProcessingOwned) return;
 
-    setIsProcessing(true);
+    setIsProcessingOwned(true);
     const currentOwnedGames = currentUser.ownedGames || [];
     let newOwnedGames: string[];
     let successMessage: string;
@@ -81,15 +88,60 @@ export function GameCard({ game }: GameCardProps) {
         variant: "destructive",
       });
     }
-    setIsProcessing(false);
-    setIsConfirmDialogOpen(false); // Ensure dialog is closed after action
+    setIsProcessingOwned(false);
+    setIsConfirmDialogOpen(false); 
   };
+
+  const handleToggleWishlistGame = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Connexion Requise",
+        description: "Veuillez vous connecter pour gérer votre wishlist.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (authLoading || isProcessingWishlist) return;
+
+    setIsProcessingWishlist(true);
+    const currentWishlist = currentUser.wishlist || [];
+    let newWishlist: string[];
+    let successMessage: string;
+    let toastTitle: string;
+
+    if (isInWishlist) {
+      newWishlist = currentWishlist.filter(gName => gName !== game.name);
+      toastTitle = "Retiré de la Wishlist";
+      successMessage = `"${game.name}" a été retiré de votre wishlist.`;
+    } else {
+      newWishlist = [...currentWishlist, game.name];
+      toastTitle = "Ajouté à la Wishlist";
+      successMessage = `"${game.name}" a été ajouté à votre wishlist !`;
+    }
+    
+    const success = await updateUserProfile({ wishlist: newWishlist });
+
+    if (success) {
+      toast({
+        title: toastTitle,
+        description: successMessage,
+      });
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour votre wishlist. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+    setIsProcessingWishlist(false);
+  };
+
 
   const handleAttemptRemoveGame = () => {
     if (localStorage.getItem('gameSync_skipGameRemoveConfirmation') === 'true') {
       handleToggleOwnedGame('remove');
     } else {
-      setDontAskAgain(false); // Reset checkbox state each time dialog is about to open
+      setDontAskAgain(false); 
       setIsConfirmDialogOpen(true);
     }
   };
@@ -113,23 +165,42 @@ export function GameCard({ game }: GameCardProps) {
           )}
           {currentUser && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleToggleWishlistGame}
+                  disabled={authLoading || isProcessingWishlist}
+                  className={cn(
+                    "hover:bg-pink-500/20",
+                    isInWishlist ? "text-pink-500 hover:text-pink-600" : "text-muted-foreground hover:text-pink-500"
+                  )}
+                  aria-label={isInWishlist ? `Retirer ${game.name} de la wishlist` : `Ajouter ${game.name} à la wishlist`}
+                  title={isInWishlist ? `Retirer ${game.name} de la wishlist` : `Ajouter ${game.name} à la wishlist`}
+                >
+                  {isProcessingWishlist ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Heart className={cn("h-5 w-5", isInWishlist && "fill-current")} />
+                  )}
+                </Button>
               {isOwned ? (
                 <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={authLoading || isProcessing}
-                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                    aria-label={`Retirer ${game.name} de la collection`}
-                    title={`Retirer ${game.name} de la collection`}
-                    onClick={handleAttemptRemoveGame}
-                  >
-                    {isProcessing && !isConfirmDialogOpen ? ( // Show loader only if action is direct, not opening dialog
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <ArchiveX className="h-5 w-5" />
-                    )}
-                  </Button>
+                   <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={authLoading || isProcessingOwned}
+                      className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                      aria-label={`Retirer ${game.name} de la collection`}
+                      title={`Retirer ${game.name} de la collection`}
+                    >
+                      {isProcessingOwned && !isConfirmDialogOpen ? ( 
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <ArchiveX className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
@@ -142,7 +213,7 @@ export function GameCard({ game }: GameCardProps) {
                         id={`dont-ask-again-${game.id}`}
                         checked={dontAskAgain}
                         onCheckedChange={(checked) => setDontAskAgain(Boolean(checked))}
-                        disabled={isProcessing}
+                        disabled={isProcessingOwned}
                       />
                       <Label htmlFor={`dont-ask-again-${game.id}`} className="text-sm font-normal text-muted-foreground">
                         Ne plus me demander (pour cette session)
@@ -151,7 +222,7 @@ export function GameCard({ game }: GameCardProps) {
                     <AlertDialogFooter>
                       <AlertDialogCancel 
                         onClick={() => setIsConfirmDialogOpen(false)} 
-                        disabled={isProcessing}
+                        disabled={isProcessingOwned}
                       >
                         Annuler
                       </AlertDialogCancel>
@@ -162,10 +233,10 @@ export function GameCard({ game }: GameCardProps) {
                           }
                           handleToggleOwnedGame('remove');
                         }} 
-                        disabled={isProcessing}
+                        disabled={isProcessingOwned}
                         className="bg-destructive hover:bg-destructive/90"
                       >
-                        {isProcessing && isConfirmDialogOpen ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
+                        {isProcessingOwned && isConfirmDialogOpen ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -175,12 +246,12 @@ export function GameCard({ game }: GameCardProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleToggleOwnedGame('add')}
-                  disabled={authLoading || isProcessing}
+                  disabled={authLoading || isProcessingOwned}
                   className="text-primary hover:text-primary/80 hover:bg-primary/10"
                   aria-label={`Ajouter ${game.name} à la collection`}
                   title={`Ajouter ${game.name} à la collection`}
                 >
-                  {isProcessing ? (
+                  {isProcessingOwned ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <Archive className="h-5 w-5" />

@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, CalendarDays, Gamepad2, Edit3, ShieldCheck, Archive } from 'lucide-react'; 
+import { User, CalendarDays, Gamepad2, Edit3, ShieldCheck, Archive, Gift } from 'lucide-react'; 
 import Link from 'next/link'; 
 
 interface UserProfileDisplayProps {
@@ -78,6 +78,26 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
           </div>
         ) : (
           <p className="text-muted-foreground">Aucun jeu ajouté à votre collection.</p>
+        )}
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+          <Gift className="h-5 w-5 text-primary" />
+          Ma Wishlist
+        </h3>
+        {user.wishlist && user.wishlist.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {user.wishlist.map((game) => (
+              <Badge key={game} variant="outline" className="text-sm px-3 py-1 bg-accent/10 border-accent text-accent-foreground hover:bg-accent/20">
+                {game}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Aucun jeu dans votre wishlist.</p>
         )}
       </div>
 

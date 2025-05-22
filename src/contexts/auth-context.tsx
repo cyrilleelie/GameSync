@@ -36,9 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!parsedUser.role) {
           parsedUser.role = 'Joueur';
         }
-        // Ensure ownedGames is initialized if missing
+        // Ensure ownedGames and wishlist are initialized if missing
         if (!parsedUser.ownedGames) {
           parsedUser.ownedGames = [];
+        }
+        if (!parsedUser.wishlist) {
+          parsedUser.wishlist = [];
         }
         setCurrentUser(parsedUser);
       }
@@ -59,7 +62,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ...user, 
         role: user.role || 'Joueur',
         ownedGames: user.ownedGames || [],
-      };
+        wishlist: user.wishlist || [],
+       };
       setCurrentUser(userToLogin);
       localStorage.setItem('currentUser', JSON.stringify(userToLogin));
       setLoading(false);
@@ -84,7 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       avatarUrl: `https://placehold.co/100x100.png?text=${name.substring(0,1).toUpperCase()}`,
       gamePreferences: [],
-      ownedGames: [], // Initialize ownedGames for new users
+      ownedGames: [], 
+      wishlist: [], // Initialize wishlist for new users
       availability: 'Non spécifiée',
       role: 'Joueur', // Default role for new users
     };
@@ -107,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ...user, 
         role: user.role || defaultRole,
         ownedGames: user.ownedGames || [],
+        wishlist: user.wishlist || [],
        };
       setCurrentUser(userToLogin);
       localStorage.setItem('currentUser', JSON.stringify(userToLogin));
@@ -119,7 +125,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: userEmail,
         avatarUrl: `https://placehold.co/100x100.png?text=${nameFromEmail.substring(0,1).toUpperCase()}`,
         gamePreferences: [],
-        ownedGames: [], // Initialize for new provider users
+        ownedGames: [],
+        wishlist: [], // Initialize for new provider users
         availability: 'Non spécifiée',
         role: defaultRole,
       };
@@ -145,13 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Ensure role is not accidentally removed or changed by updatedData unless explicitly included
-    // Ensure ownedGames is an array if present, or keep existing
     const updatedUser: Player = { 
       ...currentUser, 
       ...updatedData,
-      role: updatedData.role || currentUser.role, // Preserve existing role if not in updatedData
+      role: updatedData.role || currentUser.role, 
       ownedGames: updatedData.ownedGames ? [...updatedData.ownedGames] : [...(currentUser.ownedGames || [])],
+      wishlist: updatedData.wishlist ? [...updatedData.wishlist] : [...(currentUser.wishlist || [])],
     };
     setCurrentUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));

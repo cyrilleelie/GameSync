@@ -24,13 +24,14 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import type { Player } from '@/lib/types';
 import { mockBoardGames } from '@/lib/data';
-import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, XCircle, Archive } from 'lucide-react';
+import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, XCircle, Archive, Gift } from 'lucide-react';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit comporter au moins 2 caractères.' }),
   avatarUrl: z.string().url({ message: 'Veuillez entrer une URL valide pour l\'avatar ou laissez vide pour utiliser une image par défaut.' }).optional().or(z.literal('')),
   gamePreferences: z.array(z.string()).optional(), 
   ownedGames: z.array(z.string()).optional(),
+  wishlist: z.array(z.string()).optional(),
   availability: z.string().optional(),
 });
 
@@ -47,6 +48,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedGameToAdd, setSelectedGameToAdd] = useState<string>('');
   const [selectedOwnedGameToAdd, setSelectedOwnedGameToAdd] = useState<string>('');
+  const [selectedWishlistGameToAdd, setSelectedWishlistGameToAdd] = useState<string>('');
 
 
   const form = useForm<ProfileFormValues>({
@@ -56,12 +58,14 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       avatarUrl: user.avatarUrl || '',
       gamePreferences: user.gamePreferences || [],
       ownedGames: user.ownedGames || [],
+      wishlist: user.wishlist || [],
       availability: user.availability || '',
     },
   });
 
   const currentFavoriteGames = form.watch('gamePreferences') || [];
   const currentOwnedGames = form.watch('ownedGames') || [];
+  const currentWishlistGames = form.watch('wishlist') || [];
 
   const handleAddFavoriteGame = () => {
     if (selectedGameToAdd && !currentFavoriteGames.includes(selectedGameToAdd)) {
@@ -97,6 +101,23 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     form.setValue('ownedGames', currentOwnedGames.filter(game => game !== gameToRemove), { shouldValidate: true });
   };
 
+  const handleAddWishlistGame = () => {
+    if (selectedWishlistGameToAdd && !currentWishlistGames.includes(selectedWishlistGameToAdd)) {
+      form.setValue('wishlist', [...currentWishlistGames, selectedWishlistGameToAdd], { shouldValidate: true });
+      setSelectedWishlistGameToAdd('');
+    } else if (currentWishlistGames.includes(selectedWishlistGameToAdd)) {
+        toast({
+            title: "Jeu déjà ajouté",
+            description: `${selectedWishlistGameToAdd} est déjà dans votre wishlist.`,
+            variant: "default",
+        });
+    }
+  };
+
+  const handleRemoveWishlistGame = (gameToRemove: string) => {
+    form.setValue('wishlist', currentWishlistGames.filter(game => game !== gameToRemove), { shouldValidate: true });
+  };
+
 
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
@@ -128,11 +149,15 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
 
   const availableGamesForPrefs = mockBoardGames.filter(
     (bg) => !currentFavoriteGames.includes(bg.name)
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const availableGamesForOwned = mockBoardGames.filter(
     (bg) => !currentOwnedGames.includes(bg.name)
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const availableGamesForWishlist = mockBoardGames.filter(
+    (bg) => !currentWishlistGames.includes(bg.name)
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
 
   return (
@@ -289,6 +314,65 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
           </div>
         </FormItem>
 
+        <FormItem>
+          <FormLabel className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" />Ma Wishlist</FormLabel>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Select value={selectedWishlistGameToAdd} onValueChange={setSelectedWishlistGameToAdd}>
+                <SelectTrigger disabled={isSubmitting || authLoading || availableGamesForWishlist.length === 0}>
+                  <SelectValue placeholder={availableGamesForWishlist.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableGamesForWishlist.map((game) => (
+                    <SelectItem key={game.id} value={game.name}>
+                      {game.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddWishlistGame}
+                disabled={isSubmitting || authLoading || !selectedWishlistGameToAdd}
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span className="sr-only">Ajouter le jeu à ma wishlist</span>
+              </Button>
+            </div>
+            <FormDescription>
+              Ajoutez les jeux de société que vous aimeriez acquérir.
+            </FormDescription>
+            <FormField
+              control={form.control}
+              name="wishlist"
+              render={({ field }) => (
+                <>
+                  {field.value && field.value.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {field.value.map((gameName) => (
+                        <Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">
+                          {gameName}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWishlistGame(gameName)}
+                            disabled={isSubmitting || authLoading}
+                            className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none"
+                            aria-label={`Retirer ${gameName} de la wishlist`}
+                          >
+                            <XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <FormMessage />
+                </>
+              )}
+            />
+          </div>
+        </FormItem>
 
         <FormField
           control={form.control}
