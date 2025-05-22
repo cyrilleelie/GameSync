@@ -7,6 +7,7 @@ export interface Player {
   email?: string; // Ajout de l'email
   avatarUrl?: string;
   gamePreferences: string[]; // list of game names
+  ownedGames?: string[]; // list of game names owned by the player
   availability: string; // textual description
   role: UserRole; // Ajout du champ role
 }

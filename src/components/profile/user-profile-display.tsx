@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, CalendarDays, Gamepad2, Edit3, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import { User, CalendarDays, Gamepad2, Edit3, ShieldCheck, Archive } from 'lucide-react'; 
 import Link from 'next/link'; 
 
 interface UserProfileDisplayProps {
@@ -46,7 +46,7 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
       <div>
         <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
           <Gamepad2 className="h-5 w-5 text-primary" />
-          Préférences de Jeu
+          Jeux Favoris
         </h3>
         {user.gamePreferences && user.gamePreferences.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -58,6 +58,26 @@ export function UserProfileDisplay({ user }: UserProfileDisplayProps) {
           </div>
         ) : (
           <p className="text-muted-foreground">Aucune préférence de jeu définie.</p>
+        )}
+      </div>
+
+      <Separator />
+
+       <div>
+        <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+          <Archive className="h-5 w-5 text-primary" />
+          Ma Collection de Jeux
+        </h3>
+        {user.ownedGames && user.ownedGames.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {user.ownedGames.map((game) => (
+              <Badge key={game} variant="outline" className="text-sm px-3 py-1">
+                {game}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Aucun jeu ajouté à votre collection.</p>
         )}
       </div>
 

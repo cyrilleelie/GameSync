@@ -24,12 +24,13 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import type { Player } from '@/lib/types';
 import { mockBoardGames } from '@/lib/data';
-import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, XCircle } from 'lucide-react';
+import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, XCircle, Archive } from 'lucide-react';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit comporter au moins 2 caractères.' }),
   avatarUrl: z.string().url({ message: 'Veuillez entrer une URL valide pour l\'avatar ou laissez vide pour utiliser une image par défaut.' }).optional().or(z.literal('')),
-  gamePreferences: z.array(z.string()).optional(), // Changé en array de strings
+  gamePreferences: z.array(z.string()).optional(), 
+  ownedGames: z.array(z.string()).optional(),
   availability: z.string().optional(),
 });
 
@@ -45,6 +46,8 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
   const { updateUserProfile, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedGameToAdd, setSelectedGameToAdd] = useState<string>('');
+  const [selectedOwnedGameToAdd, setSelectedOwnedGameToAdd] = useState<string>('');
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -52,16 +55,18 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       name: user.name || '',
       avatarUrl: user.avatarUrl || '',
       gamePreferences: user.gamePreferences || [],
+      ownedGames: user.ownedGames || [],
       availability: user.availability || '',
     },
   });
 
   const currentFavoriteGames = form.watch('gamePreferences') || [];
+  const currentOwnedGames = form.watch('ownedGames') || [];
 
   const handleAddFavoriteGame = () => {
     if (selectedGameToAdd && !currentFavoriteGames.includes(selectedGameToAdd)) {
       form.setValue('gamePreferences', [...currentFavoriteGames, selectedGameToAdd], { shouldValidate: true });
-      setSelectedGameToAdd(''); // Reset selection
+      setSelectedGameToAdd(''); 
     } else if (currentFavoriteGames.includes(selectedGameToAdd)) {
         toast({
             title: "Jeu déjà ajouté",
@@ -75,6 +80,24 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     form.setValue('gamePreferences', currentFavoriteGames.filter(game => game !== gameToRemove), { shouldValidate: true });
   };
 
+  const handleAddOwnedGame = () => {
+    if (selectedOwnedGameToAdd && !currentOwnedGames.includes(selectedOwnedGameToAdd)) {
+      form.setValue('ownedGames', [...currentOwnedGames, selectedOwnedGameToAdd], { shouldValidate: true });
+      setSelectedOwnedGameToAdd('');
+    } else if (currentOwnedGames.includes(selectedOwnedGameToAdd)) {
+        toast({
+            title: "Jeu déjà ajouté",
+            description: `${selectedOwnedGameToAdd} est déjà dans votre collection.`,
+            variant: "default",
+        });
+    }
+  };
+
+  const handleRemoveOwnedGame = (gameToRemove: string) => {
+    form.setValue('ownedGames', currentOwnedGames.filter(game => game !== gameToRemove), { shouldValidate: true });
+  };
+
+
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
     
@@ -83,7 +106,6 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     const success = await updateUserProfile({
       ...values,
       avatarUrl: avatarUrlOrDefault,
-      // gamePreferences est déjà un tableau de chaînes
     });
 
     setIsSubmitting(false);
@@ -104,9 +126,14 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     }
   }
 
-  const availableGamesToAdd = mockBoardGames.filter(
+  const availableGamesForPrefs = mockBoardGames.filter(
     (bg) => !currentFavoriteGames.includes(bg.name)
   );
+
+  const availableGamesForOwned = mockBoardGames.filter(
+    (bg) => !currentOwnedGames.includes(bg.name)
+  );
+
 
   return (
     <Form {...form}>
@@ -147,11 +174,11 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Select value={selectedGameToAdd} onValueChange={setSelectedGameToAdd}>
-                <SelectTrigger disabled={isSubmitting || authLoading || availableGamesToAdd.length === 0}>
-                  <SelectValue placeholder={availableGamesToAdd.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} />
+                <SelectTrigger disabled={isSubmitting || authLoading || availableGamesForPrefs.length === 0}>
+                  <SelectValue placeholder={availableGamesForPrefs.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableGamesToAdd.map((game) => (
+                  {availableGamesForPrefs.map((game) => (
                     <SelectItem key={game.id} value={game.name}>
                       {game.name}
                     </SelectItem>
@@ -166,7 +193,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
                 disabled={isSubmitting || authLoading || !selectedGameToAdd}
               >
                 <PlusCircle className="h-5 w-5" />
-                <span className="sr-only">Ajouter le jeu</span>
+                <span className="sr-only">Ajouter le jeu aux favoris</span>
               </Button>
             </div>
             <FormDescription>
@@ -187,7 +214,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
                             onClick={() => handleRemoveFavoriteGame(gameName)}
                             disabled={isSubmitting || authLoading}
                             className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none"
-                            aria-label={`Retirer ${gameName}`}
+                            aria-label={`Retirer ${gameName} des favoris`}
                           >
                             <XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" />
                           </button>
@@ -201,6 +228,67 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             />
           </div>
         </FormItem>
+
+        <FormItem>
+          <FormLabel className="flex items-center gap-2"><Archive className="h-5 w-5 text-primary" />Mes Jeux Possédés</FormLabel>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Select value={selectedOwnedGameToAdd} onValueChange={setSelectedOwnedGameToAdd}>
+                <SelectTrigger disabled={isSubmitting || authLoading || availableGamesForOwned.length === 0}>
+                  <SelectValue placeholder={availableGamesForOwned.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableGamesForOwned.map((game) => (
+                    <SelectItem key={game.id} value={game.name}>
+                      {game.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddOwnedGame}
+                disabled={isSubmitting || authLoading || !selectedOwnedGameToAdd}
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span className="sr-only">Ajouter le jeu à ma collection</span>
+              </Button>
+            </div>
+            <FormDescription>
+              Ajoutez les jeux de société que vous possédez à votre collection.
+            </FormDescription>
+            <FormField
+              control={form.control}
+              name="ownedGames"
+              render={({ field }) => (
+                <>
+                  {field.value && field.value.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {field.value.map((gameName) => (
+                        <Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">
+                          {gameName}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOwnedGame(gameName)}
+                            disabled={isSubmitting || authLoading}
+                            className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none"
+                            aria-label={`Retirer ${gameName} de la collection`}
+                          >
+                            <XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <FormMessage />
+                </>
+              )}
+            />
+          </div>
+        </FormItem>
+
 
         <FormField
           control={form.control}

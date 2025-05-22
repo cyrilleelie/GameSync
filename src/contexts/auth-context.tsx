@@ -36,6 +36,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!parsedUser.role) {
           parsedUser.role = 'Joueur';
         }
+        // Ensure ownedGames is initialized if missing
+        if (!parsedUser.ownedGames) {
+          parsedUser.ownedGames = [];
+        }
         setCurrentUser(parsedUser);
       }
     } catch (error) {
@@ -51,9 +55,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const user = mockPlayers.find(p => p.email === email);
     if (user) {
       // Ensure role is present from mockPlayers, default if somehow missing
-      const userWithRole: Player = { ...user, role: user.role || 'Joueur' };
-      setCurrentUser(userWithRole);
-      localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+      const userToLogin: Player = { 
+        ...user, 
+        role: user.role || 'Joueur',
+        ownedGames: user.ownedGames || [],
+      };
+      setCurrentUser(userToLogin);
+      localStorage.setItem('currentUser', JSON.stringify(userToLogin));
       setLoading(false);
       router.push('/');
       return true;
@@ -76,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       avatarUrl: `https://placehold.co/100x100.png?text=${name.substring(0,1).toUpperCase()}`,
       gamePreferences: [],
+      ownedGames: [], // Initialize ownedGames for new users
       availability: 'Non spécifiée',
       role: 'Joueur', // Default role for new users
     };
@@ -94,9 +103,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let user = mockPlayers.find(p => p.email === userEmail);
     
     if (user) {
-      const userWithRole: Player = { ...user, role: user.role || defaultRole };
-      setCurrentUser(userWithRole);
-      localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+      const userToLogin: Player = { 
+        ...user, 
+        role: user.role || defaultRole,
+        ownedGames: user.ownedGames || [],
+       };
+      setCurrentUser(userToLogin);
+      localStorage.setItem('currentUser', JSON.stringify(userToLogin));
     } else {
       // If user not in mock, create a new one for simulation
       const nameFromEmail = userEmail.split('@')[0];
@@ -106,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: userEmail,
         avatarUrl: `https://placehold.co/100x100.png?text=${nameFromEmail.substring(0,1).toUpperCase()}`,
         gamePreferences: [],
+        ownedGames: [], // Initialize for new provider users
         availability: 'Non spécifiée',
         role: defaultRole,
       };
@@ -132,10 +146,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // Ensure role is not accidentally removed or changed by updatedData unless explicitly included
+    // Ensure ownedGames is an array if present, or keep existing
     const updatedUser: Player = { 
       ...currentUser, 
       ...updatedData,
       role: updatedData.role || currentUser.role, // Preserve existing role if not in updatedData
+      ownedGames: updatedData.ownedGames ? [...updatedData.ownedGames] : [...(currentUser.ownedGames || [])],
     };
     setCurrentUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));

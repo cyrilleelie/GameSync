@@ -7,7 +7,8 @@ import {
   LogIn,
   ClipboardList,
   LibraryBig,
-  LayoutList, // Déjà présent, utilisé pour "Toutes les Sessions"
+  LayoutList, 
+  Archive, // Ajout de l'icône Archive
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,20 +61,25 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    id: 'games-accordion', // Nouvel ID pour l'accordéon
-    title: 'Jeux', // Titre de la catégorie parente
-    icon: LibraryBig, // Icône pour la catégorie parente
+    id: 'games-accordion', 
+    title: 'Jeux', 
+    icon: LibraryBig, 
     requiresAuth: true,
     children: [
       {
-        id: 'all-games', // ID pour le sous-menu
-        title: 'Tous les Jeux', // Nouveau libellé
-        href: '/games', // Pointe vers la page existante
-        icon: LayoutList, // Ou LibraryBig si vous préférez pour le sous-menu
+        id: 'all-games', 
+        title: 'Tous les Jeux', 
+        href: '/games', 
+        icon: LayoutList, 
         requiresAuth: true,
       },
-      // Vous pourriez ajouter d'autres sous-menus liés aux jeux ici à l'avenir
-      // par exemple: "Mes Jeux Préférés", "Demander un Jeu" (si vous voulez une page dédiée)
+      {
+        id: 'my-owned-games', // Nouvel ID pour le sous-menu
+        title: 'Mes Jeux', // Nouveau libellé
+        href: '/my-games', // Nouveau chemin
+        icon: Archive, // Nouvelle icône
+        requiresAuth: true,
+      },
     ],
   },
   {
