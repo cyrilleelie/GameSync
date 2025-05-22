@@ -806,7 +806,6 @@ export default function AdminPage() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-grow">
                              <CardTitle>Gestion des Tags</CardTitle>
-                             <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                             <div className="relative w-full sm:w-48">
