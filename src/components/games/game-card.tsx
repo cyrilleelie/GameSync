@@ -97,43 +97,15 @@ export function GameCard({ game }: GameCardProps) {
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-4 relative">
-        {game.imageUrl ? (
-          <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
-            <Image
-              src={game.imageUrl}
-              alt={`Boîte du jeu ${game.name}`}
-              layout="fill"
-              objectFit="cover"
-              data-ai-hint="board game box"
-            />
-          </div>
-        ) : (
-           <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted flex items-center justify-center">
-            <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-          </div>
-        )}
-        <div>
-          <CardTitle className="text-xl flex items-center gap-2">
-            {game.name}
-          </CardTitle>
-          {game.tags && game.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {game.tags.map(tag => (
-                <Badge key={tag} variant="outline">{tag}</Badge>
-              ))}
-            </div>
-          )}
-        </div>
-          
         {currentUser && (
-          <div className="flex items-center gap-1 mt-2 justify-end">
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/70 p-1 rounded-md">
             {isOwned ? (
               <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <Button
                   variant="ghost"
                   size="icon"
                   disabled={authLoading || isProcessing}
-                  className="text-destructive hover:text-destructive/80"
+                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                   aria-label={`Retirer ${game.name} de la collection`}
                   title={`Retirer ${game.name} de la collection`}
                   onClick={handleAttemptRemoveGame}
@@ -190,7 +162,7 @@ export function GameCard({ game }: GameCardProps) {
                 size="icon"
                 onClick={() => handleToggleOwnedGame('add')}
                 disabled={authLoading || isProcessing}
-                className="text-primary hover:text-primary/80"
+                className="text-primary hover:text-primary/80 hover:bg-primary/10"
                 aria-label={`Ajouter ${game.name} à la collection`}
                 title={`Ajouter ${game.name} à la collection`}
               >
@@ -201,13 +173,40 @@ export function GameCard({ game }: GameCardProps) {
                 )}
               </Button>
             )}
-            <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
+            <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80 hover:bg-primary/10" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
               <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
                 <CalendarPlus className="h-5 w-5" />
               </Link>
             </Button>
           </div>
         )}
+        {game.imageUrl ? (
+          <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
+            <Image
+              src={game.imageUrl}
+              alt={`Boîte du jeu ${game.name}`}
+              layout="fill"
+              objectFit="cover"
+              data-ai-hint="board game box"
+            />
+          </div>
+        ) : (
+           <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted flex items-center justify-center">
+            <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+          </div>
+        )}
+        <div>
+          <CardTitle className="text-xl flex items-center gap-2">
+            {game.name}
+          </CardTitle>
+          {game.tags && game.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {game.tags.map(tag => (
+                <Badge key={tag} variant="outline">{tag}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
         {game.description && (
