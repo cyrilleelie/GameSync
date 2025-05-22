@@ -6,7 +6,7 @@ import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2, X, PlusCircle, ChevronsUpDown, Check } from 'lucide-react';
+import { LibraryBig, ListFilter, Loader2, X, PlusCircle, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import {
@@ -32,13 +32,15 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { TAG_CATEGORIES, getTranslatedTagCategory, type TagCategoryKey, type TagDefinition } from '@/lib/tag-categories';
+import { TAG_CATEGORY_DETAILS, getTranslatedTagCategory, getTagCategoryColorClass, type TagCategoryKey } from '@/lib/tag-categories'; // Updated import
+import { cn } from '@/lib/utils';
+
 
 type SelectedFilters = Record<TagCategoryKey, string[]>;
 
 const initialFilters = (): SelectedFilters => {
   const filters: Partial<SelectedFilters> = {};
-  (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+  (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
     filters[key] = [];
   });
   return filters as SelectedFilters;
@@ -65,7 +67,7 @@ export default function GamesPage() {
 
   const allCategorizedTags = useMemo(() => {
     const categorized: Record<TagCategoryKey, Set<string>> = {} as Record<TagCategoryKey, Set<string>>;
-    (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+    (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
       categorized[key] = new Set<string>();
     });
 
@@ -78,7 +80,7 @@ export default function GamesPage() {
     });
     
     const result: Record<TagCategoryKey, string[]> = {} as Record<TagCategoryKey, string[]>;
-    (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+    (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
       result[key] = Array.from(categorized[key]).sort((a,b) => a.localeCompare(b, 'fr'));
     });
     return result;
@@ -102,7 +104,12 @@ export default function GamesPage() {
     }
     return mockBoardGames.filter(game => {
       if (!game.tags || game.tags.length === 0) return false;
-      return game.tags.some(gameTag => allSelectedTagNames.includes(gameTag.name));
+      // Check if the game has at least one tag from EACH category that has active filters
+      return (Object.keys(selectedFilters) as TagCategoryKey[]).every(categoryKey => {
+        const categorySelectedTags = selectedFilters[categoryKey];
+        if (categorySelectedTags.length === 0) return true; // No filter for this category, so it passes
+        return game.tags.some(gameTag => gameTag.categoryKey === categoryKey && categorySelectedTags.includes(gameTag.name));
+      });
     });
   }, [selectedFilters]);
 
@@ -169,9 +176,9 @@ export default function GamesPage() {
                             Affinez votre recherche par catégories de tags.
                         </SheetDescription>
                     </SheetHeader>
-                    <ScrollArea className="flex-grow my-4 pr-6 -mr-6"> {/* Added pr-6 and -mr-6 for scrollbar */}
+                    <ScrollArea className="flex-grow my-4 pr-6 -mr-6">
                         <div className="space-y-6">
-                            {(Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).map(categoryKey => {
+                            {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(categoryKey => {
                                 const categoryName = getTranslatedTagCategory(categoryKey);
                                 const tagsInCategory = allCategorizedTags[categoryKey];
                                 if (!tagsInCategory || tagsInCategory.length === 0) return null;
@@ -233,15 +240,18 @@ export default function GamesPage() {
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <p className="text-sm font-medium mr-2 self-center">Filtres actifs:</p>
           {activeSelectedTags.map(({ categoryKey, categoryName, tagName }) => (
-            <Badge key={`${categoryKey}-${tagName}`} variant="secondary" className="flex items-center gap-1 pr-1">
-              <span className="font-normal text-muted-foreground">{categoryName}:</span> {tagName}
+            <Badge 
+              key={`${categoryKey}-${tagName}`} 
+              className={cn("flex items-center gap-1 pr-1 font-normal", getTagCategoryColorClass(categoryKey))}
+            >
+              <span className="font-semibold opacity-80">{getTranslatedTagCategory(categoryKey)}:</span> {tagName}
               <button
                 type="button"
                 onClick={() => removeTagFromFilter(categoryKey, tagName)}
-                className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                className="ml-1 rounded-full hover:bg-black/20 dark:hover:bg-white/20 p-0.5"
                 aria-label={`Retirer ${tagName} de la catégorie ${categoryName}`}
               >
-                <X className="h-3 w-3 text-destructive hover:text-destructive/80" />
+                <X className="h-3 w-3" />
               </button>
             </Badge>
           ))}

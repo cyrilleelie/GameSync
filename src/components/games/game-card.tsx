@@ -25,6 +25,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from '@/lib/utils';
+import { getTagCategoryColorClass } from '@/lib/tag-categories'; // Import the new helper
 
 interface GameCardProps {
   game: BoardGame;
@@ -170,7 +171,7 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
 
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="pb-4 relative">
+      <CardHeader className="pb-4">
         <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
           {game.imageUrl ? (
             <Image
@@ -302,7 +303,12 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
           {game.tags && game.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {game.tags.map(tagObj => (
-                <Badge key={tagObj.name} variant="outline">{tagObj.name}</Badge>
+                <Badge 
+                  key={tagObj.name} 
+                  className={cn("font-normal", getTagCategoryColorClass(tagObj.categoryKey))}
+                >
+                  {tagObj.name}
+                </Badge>
               ))}
             </div>
           )}
