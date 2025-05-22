@@ -15,7 +15,7 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        customColor: "border-transparent text-foreground bg-transparent", // Assure une base neutre pour la couleur de bordure, le texte et le fond
+        customColor: "", // Make this variant truly minimal, only base styles from cva() will apply
       },
     },
     defaultVariants: {
