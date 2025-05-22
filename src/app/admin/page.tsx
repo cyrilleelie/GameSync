@@ -16,13 +16,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
+  SheetHeader as SheetHeaderPrimitive, // Renamed to avoid conflict if CardHeader has a SheetHeader
+  SheetTitle as SheetTitlePrimitive,
+  SheetDescription as SheetDescriptionPrimitive,
   SheetTrigger,
   SheetFooter,
   SheetClose,
@@ -595,12 +596,12 @@ export default function AdminPage() {
                                   </Button>
                               </SheetTrigger>
                               <SheetContent className="w-full sm:max-w-md flex flex-col">
-                                  <SheetHeader>
-                                      <SheetTitle>Filtrer les Jeux</SheetTitle>
-                                      <SheetDescription>
+                                  <SheetHeaderPrimitive>
+                                      <SheetTitlePrimitive>Filtrer les Jeux</SheetTitlePrimitive>
+                                      <SheetDescriptionPrimitive>
                                           Affinez votre recherche par description et par tags.
-                                      </SheetDescription>
-                                  </SheetHeader>
+                                      </SheetDescriptionPrimitive>
+                                  </SheetHeaderPrimitive>
                                   <ScrollArea className="flex-grow my-4 pr-6 -mr-6">
                                       <div className="space-y-6">
                                           <div>
@@ -676,7 +677,7 @@ export default function AdminPage() {
                           <Badge 
                             key={`${categoryKey}-${tagName}`} 
                             variant="customColor"
-                            className={cn("flex items-center gap-1 pr-1 font-normal text-xs", getTagCategoryColorClass(categoryKey))}
+                            className={cn("flex items-center gap-1 pr-1 font-normal text-xs", getTagCategoryColorClass(categoryKey as TagCategoryKey))}
                           >
                             <span className="font-semibold opacity-80">{getTranslatedTagCategory(categoryKey)}:</span> {tagName}
                             <button
@@ -743,7 +744,7 @@ export default function AdminPage() {
                                       <Badge
                                         key={`${tag.categoryKey}-${tag.name}`}
                                         variant="customColor"
-                                        className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
+                                        className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey as TagCategoryKey))}
                                         title={`${getTranslatedTagCategory(tag.categoryKey)}: ${tag.name}`}
                                       >
                                         {tag.name}
@@ -885,7 +886,7 @@ export default function AdminPage() {
                                   ) : (
                                     <Badge
                                       variant="customColor"
-                                      className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
+                                      className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey as TagCategoryKey))}
                                     >
                                       {getTranslatedTagCategory(tag.categoryKey)}
                                     </Badge>
@@ -923,7 +924,7 @@ export default function AdminPage() {
                           ? `Aucun tag ne correspond à votre recherche "${adminTagSearchQuery}".`
                           : (tagCategoryFilter === 'all' && managedUniqueTags.length === 0 
                             ? "Aucun tag utilisé dans les jeux pour le moment."
-                            : `Aucun tag ne correspond à la catégorie "${getTranslatedTagCategory(tagCategoryFilter)}".`)}
+                            : `Aucun tag ne correspond à la catégorie "${getTranslatedTagCategory(tagCategoryFilter as TagCategoryKey)}".`)}
                       </p>
                     )}
                   </CardContent>
@@ -1037,6 +1038,3 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
-
-
-    
