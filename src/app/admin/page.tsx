@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -952,9 +951,6 @@ export default function AdminPage() {
               <DialogTitle>
                 {isAddingGame ? "Ajouter un nouveau jeu" : `Modifier le jeu : ${currentGameToEdit?.name || ''}`}
               </DialogTitle>
-              <DialogDescription>
-                {isAddingGame ? "Remplissez les informations du nouveau jeu ci-dessous." : "Modifiez les informations du jeu ci-dessous."}
-              </DialogDescription>
             </DialogHeader>
             <EditGameForm
               gameToEdit={isAddingGame ? null : currentGameToEdit}
@@ -1042,3 +1038,4 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
+
