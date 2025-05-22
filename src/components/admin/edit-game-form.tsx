@@ -20,16 +20,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react'; // Added useRef
 import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockBoardGames } from '@/lib/data';
 import NextImage from 'next/image';
+import { useToast } from "@/hooks/use-toast"; // Added useToast
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: "Le nom du jeu est requis." }),
-  imageUrl: z.string().url({ message: "Veuillez entrer une URL d'image valide." }).or(z.literal('')),
+  imageUrl: z.string().refine(
+    (val) => val === '' || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+    { message: "L'URL de l'image doit être une URL web valide ou une image chargée." }
+  ),
   description: z.string().optional(),
   tags: z.array(z.object({
     name: z.string().min(1),
@@ -45,9 +49,14 @@ interface GameFormProps {
   onCancel: () => void;
 }
 
+const MAX_IMAGE_SIZE_MB = 2;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
 export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const { toast } = useToast(); // Added toast
+  const fileInputRef = useRef<HTMLInputElement>(null); // Added ref for file input
+
   const [addTagCategory, setAddTagCategory] = useState<TagCategoryKey | ''>('');
   const [addTagExistingName, setAddTagExistingName] = useState<string>('');
   const [addTagNewName, setAddTagNewName] = useState<string>('');
@@ -134,7 +143,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
   async function onSubmit(values: GameFormValues) {
     setIsSubmitting(true);
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     onSave(values);
     setIsSubmitting(false);
@@ -146,10 +154,39 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     setAddTagNewName(''); 
   };
 
-  const handleChangeImage = () => {
-    const newUrl = prompt("Entrez la nouvelle URL de l'image :", currentImageUrl || '');
-    if (newUrl !== null) { 
-      form.setValue('imageUrl', newUrl.trim(), { shouldValidate: true });
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        toast({
+          title: "Image trop volumineuse",
+          description: `La taille de l'image ne doit pas dépasser ${MAX_IMAGE_SIZE_MB}Mo.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Erreur de lecture du fichier",
+          description: "Impossible de lire l'image sélectionnée.",
+          variant: "destructive",
+        });
+      }
+      reader.readAsDataURL(file);
+    }
+    // Reset file input to allow selecting the same file again if needed
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
     }
   };
 
@@ -160,8 +197,8 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
         <FormItem>
           <FormLabel>Image du jeu</FormLabel>
           <div className="mt-2 space-y-3 flex flex-col items-center">
-            <div className="w-full max-w-xs"> {/* Wrapper to control max width */}
-              <div className="relative h-40 w-full bg-muted rounded-md overflow-hidden flex items-center justify-center"> {/* Explicit width, relative positioning */}
+            <div className="w-full max-w-xs">
+              <div className="relative h-40 w-full bg-muted rounded-md overflow-hidden flex items-center justify-center">
                 {currentImageUrl ? (
                   <NextImage
                     src={currentImageUrl}
@@ -179,15 +216,25 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
                 )}
               </div>
             </div>
-            <Button type="button" variant="outline" onClick={handleChangeImage} disabled={isSubmitting} className="sm:w-auto">
+            <Button type="button" variant="outline" onClick={handleImageUploadClick} disabled={isSubmitting} className="sm:w-auto">
               <UploadCloud className="mr-2 h-4 w-4" />
-              Changer l'image (URL)
+              Charger une image
             </Button>
-             <FormField
-                control={form.control}
-                name="imageUrl"
-                render={() => <FormMessage />} 
-              />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelected}
+              accept="image/*"
+              className="hidden"
+            />
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => <FormMessage />} 
+            />
+            <FormDescription>
+              Chargez une image depuis votre ordinateur. Max {MAX_IMAGE_SIZE_MB}Mo.
+            </FormDescription>
           </div>
         </FormItem>
 
@@ -327,7 +374,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           )}
         </FormItem>
 
-
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Annuler
@@ -347,6 +393,5 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
-    
 
     
