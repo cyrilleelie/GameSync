@@ -16,6 +16,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -117,12 +118,15 @@ export default function AdminPage() {
   const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
   const [editedTagName, setEditedTagName] = useState('');
   const [editedTagCategory, setEditedTagCategory] = useState<TagCategoryKey | ''>('');
+  const [isAddTagDialogOpen, setIsAddTagDialogOpen] = useState(false);
+  const [newTagNameInput, setNewTagNameInput] = useState('');
+  const [newTagCategoryInput, setNewTagCategoryInput] = useState<TagCategoryKey | ''>('');
 
 
   useEffect(() => {
     setIsMounted(true);
     setManagedUniqueTags(calculateUniqueTags(adminGamesList));
-  }, [adminGamesList]); // Recalculate if adminGamesList changes (e.g. after adding/editing a game)
+  }, [adminGamesList]); 
 
   useEffect(() => {
     if (isMounted && !authLoading) {
@@ -261,7 +265,7 @@ export default function AdminPage() {
       };
       setAdminGamesList(prevGames => {
         const updatedGames = [newGame, ...prevGames];
-        setManagedUniqueTags(calculateUniqueTags(updatedGames)); // Update unique tags list
+        setManagedUniqueTags(calculateUniqueTags(updatedGames));
         return updatedGames;
       });
       toast({
@@ -277,7 +281,7 @@ export default function AdminPage() {
           publisher: gameData.publisher || g.publisher || '',
           publicationYear: gameData.publicationYear || g.publicationYear,
         } as BoardGame : g));
-        setManagedUniqueTags(calculateUniqueTags(updatedGames)); // Update unique tags list
+        setManagedUniqueTags(calculateUniqueTags(updatedGames));
         return updatedGames;
       });
       toast({
@@ -301,11 +305,49 @@ export default function AdminPage() {
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
-    // Actual deletion logic would involve updating adminGamesList and managedUniqueTags
   };
 
-  const handleAddTagAdmin = () => {
-    toast({ title: "Fonctionnalité à venir", description: "L'ajout de tags sera bientôt disponible." });
+  const handleOpenAddTagDialog = () => {
+    setNewTagNameInput('');
+    setNewTagCategoryInput('');
+    setIsAddTagDialogOpen(true);
+  };
+
+  const handleConfirmAddTag = () => {
+    if (!newTagNameInput.trim()) {
+      toast({ title: "Nom du Tag Requis", description: "Veuillez entrer un nom pour le nouveau tag.", variant: "destructive" });
+      return;
+    }
+    if (!newTagCategoryInput) {
+      toast({ title: "Catégorie Requise", description: "Veuillez sélectionner une catégorie pour le nouveau tag.", variant: "destructive" });
+      return;
+    }
+
+    const existingTag = managedUniqueTags.find(
+      tag => tag.name.toLowerCase() === newTagNameInput.trim().toLowerCase() && tag.categoryKey === newTagCategoryInput
+    );
+
+    if (existingTag) {
+      toast({
+        title: "Tag Existant",
+        description: `Un tag nommé "${newTagNameInput.trim()}" dans la catégorie "${getTranslatedTagCategory(newTagCategoryInput)}" existe déjà.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newTag: TagDefinition = { name: newTagNameInput.trim(), categoryKey: newTagCategoryInput };
+    setManagedUniqueTags(prevTags => [...prevTags, newTag].sort((a, b) => {
+      const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+      if (categoryComparison !== 0) return categoryComparison;
+      return a.name.localeCompare(b.name);
+    }));
+    
+    toast({
+      title: "Tag Ajouté (Simulation)",
+      description: `Le tag "${newTag.name}" a été ajouté à la liste. N'oubliez pas que cela ne l'ajoute pas aux jeux existants.`,
+    });
+    setIsAddTagDialogOpen(false);
   };
   
   const handleStartEditTag = (tag: TagDefinition) => {
@@ -331,7 +373,6 @@ export default function AdminPage() {
 
     const [originalCategory, originalName] = originalTagKey.split('::');
 
-    // Check for conflicts (if new name/category combo already exists as a *different* tag)
     const conflict = managedUniqueTags.find(
       (t) => t.name === editedTagName && t.categoryKey === editedTagCategory && 
              (t.name !== originalName || t.categoryKey !== originalCategory)
@@ -346,13 +387,16 @@ export default function AdminPage() {
       return;
     }
     
-    // Simulate update in managedUniqueTags
     setManagedUniqueTags(prevTags => 
       prevTags.map(t => 
         (t.name === originalName && t.categoryKey === originalCategory) 
         ? { name: editedTagName, categoryKey: editedTagCategory } 
         : t
-      )
+      ).sort((a, b) => {
+        const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+        if (categoryComparison !== 0) return categoryComparison;
+        return a.name.localeCompare(b.name);
+      })
     );
 
     toast({
@@ -363,7 +407,6 @@ export default function AdminPage() {
   };
 
   const handleDeleteTag = (tagToDelete: TagDefinition) => {
-     // Simulate deletion from managedUniqueTags
     setManagedUniqueTags(prevTags => prevTags.filter(t => !(t.name === tagToDelete.name && t.categoryKey === tagToDelete.categoryKey)));
     toast({
       title: "Tag Supprimé (Simulation)",
@@ -718,7 +761,7 @@ export default function AdminPage() {
                   <CardHeader>
                     <div className="flex justify-between items-center">
                       <CardTitle>Gestion des Tags</CardTitle>
-                      <Button onClick={handleAddTagAdmin} size="sm">
+                      <Button onClick={handleOpenAddTagDialog} size="sm">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Ajouter un Tag
                       </Button>
@@ -842,6 +885,57 @@ export default function AdminPage() {
             />
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isAddTagDialogOpen} onOpenChange={setIsAddTagDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter un Nouveau Tag</DialogTitle>
+              <DialogDescription>
+                Entrez le nom et sélectionnez la catégorie pour le nouveau tag.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-tag-name" className="text-right">
+                  Nom
+                </Label>
+                <Input
+                  id="new-tag-name"
+                  value={newTagNameInput}
+                  onChange={(e) => setNewTagNameInput(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Nom du tag"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-tag-category" className="text-right">
+                  Catégorie
+                </Label>
+                <Select value={newTagCategoryInput} onValueChange={(value) => setNewTagCategoryInput(value as TagCategoryKey)}>
+                  <SelectTriggerPrimitive id="new-tag-category" className="col-span-3 h-9">
+                    <SelectValue placeholder="Choisir Catégorie" />
+                  </SelectTriggerPrimitive>
+                  <SelectContent>
+                    {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(key => (
+                      <SelectItem key={key} value={key}>
+                        {getTranslatedTagCategory(key)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddTagDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="button" onClick={handleConfirmAddTag}>
+                Confirmer l'Ajout
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </TooltipProvider>
   );
