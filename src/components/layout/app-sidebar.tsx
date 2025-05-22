@@ -36,7 +36,7 @@ export function AppSidebar() {
   }, []);
 
   const displayedNavItems = useMemo(() => {
-    if (!isMounted) return [];
+    if (!isMounted || authLoading) return []; // Wait for mount and auth to resolve before filtering
     
     return navItems
       .filter(item => {
@@ -51,11 +51,15 @@ export function AppSidebar() {
             if (child.requiresGuest && currentUser) return false;
             return true;
           });
-          return { ...item, children: visibleChildren };
+          // Return parent only if it still has visible children or is a link itself
+          if (visibleChildren.length > 0 || item.href) {
+            return { ...item, children: visibleChildren.length > 0 ? visibleChildren : undefined };
+          }
+          return null; // Filter out parent if no visible children and not a link itself
         }
         return item;
-      });
-  }, [isMounted, authLoading, currentUser]);
+      }).filter(Boolean) as NavItem[]; // Filter out null items and assert type
+  }, [isMounted, authLoading, currentUser, navItems, pathname]);
 
   useEffect(() => {
     const activeParent = displayedNavItems.find(item => 
@@ -63,44 +67,50 @@ export function AppSidebar() {
     );
     if (activeParent && activeParent.id) {
       setActiveAccordionValue(activeParent.id);
+    } else if (!activeParent && activeAccordionValue) {
+      // If no parent is active, consider collapsing, unless an item without parent is active
+      const directActiveItem = displayedNavItems.find(item => item.href === pathname && !item.children);
+      if (!directActiveItem) {
+         // setActiveAccordionValue(undefined); // Optional: collapse if no child is active
+      }
     }
-  }, [pathname, displayedNavItems]);
+  }, [pathname, displayedNavItems, activeAccordionValue]);
 
 
   const handleLogout = async () => {
     await logout();
   };
-
-  // This function defines how the header (logo + title) is rendered based on mount and auth state
+  
   const renderHeaderContent = () => {
+    // SSR and initial client render / auth loading (authLoading is true OR !isMounted)
     if (!isMounted || authLoading) {
-      // SSR and initial client render / auth loading: Simple div, no Link to avoid hydration mismatch
       return (
-        <div className="flex items-center gap-2">
-          <Boxes className="h-8 w-8 text-sidebar-primary" /> {/* Icon with a solid color */}
-          <h1 className="text-xl font-semibold text-sidebar-primary">GameSync</h1>
+        <div className="flex items-center gap-2 text-sidebar-primary"> {/* text-sidebar-primary for loading placeholder */}
+          <Boxes className="h-8 w-8" />
+          <h1 className="text-xl font-semibold">GameSync</h1>
         </div>
       );
     }
-    // Mounted and auth is complete: render the Link with gradient
+    // Mounted and auth is complete (!authLoading and isMounted is true)
     return (
       <Link href="/" className="flex items-center gap-2 group" prefetch>
+        <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" />
         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
-          <Boxes className="h-8 w-8 inline-block align-middle" /> {/* Icon will attempt to use text gradient */}
-          <h1 className="text-xl font-semibold inline-block align-middle">GameSync</h1>
+          <h1 className="text-xl font-semibold">GameSync</h1>
         </span>
       </Link>
     );
   };
 
+
   if (!isMounted) {
+    // Simplified SSR/initial render to avoid hydration issues with complex conditional logic
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {/* Render the div version, consistent with renderHeaderContent's logic for !isMounted */}
-          <div className="flex items-center gap-2">
-            <Boxes className="h-8 w-8 text-sidebar-primary" />
-            <h1 className="text-xl font-semibold text-sidebar-primary">GameSync</h1>
+          <div className="flex items-center gap-2 text-sidebar-primary">
+            <Boxes className="h-8 w-8" />
+            <h1 className="text-xl font-semibold">GameSync</h1>
           </div>
         </SidebarHeader>
         <SidebarContent className="flex items-center justify-center flex-grow">
@@ -116,7 +126,7 @@ export function AppSidebar() {
         {renderHeaderContent()}
       </SidebarHeader>
       <SidebarContent>
-        {authLoading && isMounted ? ( // Show loader only if mounted and auth is still loading
+        {authLoading ? (
           <div className="flex items-center justify-center flex-grow">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -137,6 +147,8 @@ export function AppSidebar() {
                       <AccordionTrigger 
                         className={cn(
                           "flex items-center w-full justify-between rounded-md px-2 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                          // Check if any child is active for parent highlighting (optional)
+                          item.children.some(child => child.href === pathname) && "bg-sidebar-accent text-sidebar-accent-foreground"
                         )}
                       >
                         <div className="flex items-center gap-3">

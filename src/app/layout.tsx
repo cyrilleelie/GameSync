@@ -40,9 +40,9 @@ export default function RootLayout({
               <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2 md:hidden">
                 <SidebarTrigger className="md:hidden" />
                 <Link href="/" className="flex items-center gap-2 group" prefetch>
+                  <Boxes className="h-7 w-7 text-primary group-hover:text-primary/90 transition-colors" /> 
                   <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
-                    <Boxes className="h-7 w-7 inline-block align-middle" /> 
-                    <h1 className="text-lg font-semibold inline-block align-middle">GameSync</h1>
+                    <h1 className="text-lg font-semibold">GameSync</h1>
                   </span>
                 </Link>
               </header>
