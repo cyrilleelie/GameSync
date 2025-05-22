@@ -21,9 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import type { BoardGame, TagDefinition } from '@/lib/types';
 import { TAG_CATEGORY_DETAILS, type TagCategoryKey, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
 import { useState, useMemo } from 'react';
-import { Loader2, PlusCircle, XCircle } from 'lucide-react';
+import { Loader2, PlusCircle, XCircle, Gamepad2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockBoardGames } from '@/lib/data'; // Import mockBoardGames to derive existing tags
+import { mockBoardGames } from '@/lib/data';
+import NextImage from 'next/image'; // Renamed to avoid conflict with a potential local Image variable
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
@@ -76,6 +77,8 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     name: "tags",
   });
 
+  const currentImageUrl = form.watch('imageUrl');
+
   const allSystemTagsByCategory = useMemo(() => {
     const categorized: Record<string, Set<string>> = {};
     (Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).forEach(key => {
@@ -108,7 +111,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
 
 
   const handleAddTag = () => {
-    if (!addTagCategory) return; // Category must be selected
+    if (!addTagCategory) return; 
 
     let tagNameToAdd = '';
     if (addTagExistingName) {
@@ -117,14 +120,13 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
       tagNameToAdd = addTagNewName.trim();
     }
 
-    if (!tagNameToAdd) return; // A tag name (either existing or new) must be present
+    if (!tagNameToAdd) return; 
 
     const existingTagInForm = tagFields.find(tag => tag.name.toLowerCase() === tagNameToAdd.toLowerCase() && tag.categoryKey === addTagCategory);
     if (!existingTagInForm) {
       appendTag({ name: tagNameToAdd, categoryKey: addTagCategory });
       setAddTagNewName('');
       setAddTagExistingName('');
-      // Keep addTagCategory selected for potentially adding more tags to the same category
     } else {
       form.setError("tags", { type: "manual", message: "Ce tag existe déjà pour ce jeu dans cette catégorie." });
     }
@@ -139,8 +141,15 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
   
   const handleCategoryChange = (value: string) => {
     setAddTagCategory(value as TagCategoryKey);
-    setAddTagExistingName(''); // Reset existing tag selection when category changes
-    setAddTagNewName(''); // Reset new tag name when category changes
+    setAddTagExistingName(''); 
+    setAddTagNewName(''); 
+  };
+
+  const handleChangeImage = () => {
+    const newUrl = prompt("Entrez la nouvelle URL de l'image :", currentImageUrl || '');
+    if (newUrl !== null) { // User clicked OK
+      form.setValue('imageUrl', newUrl.trim());
+    }
   };
 
   return (
@@ -160,19 +169,40 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL de l'image</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.png" {...field} disabled={isSubmitting} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Image du jeu</FormLabel>
+          <div className="mt-2 space-y-3">
+            <div className="w-full h-40 bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
+              {currentImageUrl ? (
+                <NextImage
+                  src={currentImageUrl}
+                  alt="Aperçu du jeu"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-contain"
+                  data-ai-hint="board game box"
+                  onError={() => {
+                    // Optional: handle image load error, e.g., by clearing the URL or showing a specific error placeholder
+                    // For now, if it errors, it might show a broken image icon or nothing based on browser.
+                    // A more robust solution would set a local state to show the Gamepad2 icon.
+                  }}
+                />
+              ) : (
+                <Gamepad2 className="h-16 w-16 text-muted-foreground" />
+              )}
+            </div>
+            <Button type="button" variant="outline" onClick={handleChangeImage} disabled={isSubmitting} className="w-full sm:w-auto">
+              <UploadCloud className="mr-2 h-4 w-4" />
+              Changer l'image (URL)
+            </Button>
+             <FormField
+                control={form.control}
+                name="imageUrl"
+                render={() => <FormMessage />} // Only for displaying Zod error message
+              />
+          </div>
+        </FormItem>
+
 
         <FormField
           control={form.control}
@@ -194,7 +224,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
             <div className="flex flex-wrap gap-2 mb-3 p-2 border rounded-md bg-muted/50">
               {tagFields.map((tag, index) => (
                 <Badge
-                  key={tag.id} // Use field.id provided by useFieldArray
+                  key={tag.id} 
                   variant="customColor"
                   className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
                 >
@@ -217,7 +247,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           
           <FormLabel className="mt-4 mb-2 block">Ajouter un Tag</FormLabel>
           <div className="flex items-start gap-2">
-            {/* Category Select */}
             <div className="w-1/3">
               <FormLabel htmlFor="add-tag-category" className="text-xs text-muted-foreground">Catégorie</FormLabel>
               <Select
@@ -238,7 +267,6 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
               </Select>
             </div>
 
-            {/* Existing Tag Select OR New Tag Input */}
             <div className="flex-grow space-y-2">
               <div>
                 <FormLabel htmlFor="add-tag-existing-name" className="text-xs text-muted-foreground">Choisir un tag existant</FormLabel>
@@ -248,7 +276,7 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
                   disabled={isSubmitting || !addTagCategory || availableExistingTagsForCategory.length === 0}
                 >
                   <SelectTrigger id="add-tag-existing-name" className="h-9">
-                    <SelectValue placeholder={availableExistingTagsForCategory.length === 0 ? "Aucun tag existant" : "Choisir un tag"} />
+                    <SelectValue placeholder={!addTagCategory ? "Choisir catégorie d'abord" : availableExistingTagsForCategory.length === 0 ? "Aucun tag existant" : "Choisir un tag"} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableExistingTagsForCategory.map(tagName => (
@@ -290,9 +318,11 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
           </div>
           {form.formState.errors.tags && (
             <FormMessage className="mt-2">
-              {/* Check if tags error is an array error or a general message */}
               {typeof form.formState.errors.tags.message === 'string' ? form.formState.errors.tags.message : 'Erreur avec les tags.'}
             </FormMessage>
+          )}
+           {form.formState.errors.root && (
+            <FormMessage className="mt-2">{form.formState.errors.root.message}</FormMessage>
           )}
         </FormItem>
 
@@ -316,5 +346,3 @@ export function EditGameForm({ gameToEdit, onSave, onCancel }: GameFormProps) {
     </Form>
   );
 }
-
-    
