@@ -15,7 +15,7 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        customColor: "", // New variant for applying custom colors without interference
+        customColor: "border-transparent bg-transparent text-foreground", // Added default transparent/neutral styles
       },
     },
     defaultVariants: {
