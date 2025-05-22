@@ -16,7 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"; // Removed DialogDescription as it's not used here
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -47,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockBoardGames, mockPlayers } from '@/lib/data';
 import type { BoardGame, TagDefinition, Player } from '@/lib/types';
@@ -960,7 +961,6 @@ export default function AdminPage() {
                              <CardDescription>Visualiser et gérer les utilisateurs enregistrés.</CardDescription>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-                            {/* Add search/filter for users later if needed */}
                             <Button onClick={handleAddUser} size="sm" className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Ajouter un utilisateur
