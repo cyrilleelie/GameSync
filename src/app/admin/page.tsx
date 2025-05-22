@@ -4,11 +4,19 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image'; // Import next/image
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableHeader,
@@ -17,23 +25,24 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { mockBoardGames } from '@/lib/data'; // Import mockBoardGames
-import type { BoardGame } from '@/lib/types'; // Import BoardGame type
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { mockBoardGames } from '@/lib/data';
+import type { BoardGame } from '@/lib/types';
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { getTagCategoryColorClass, getTranslatedTagCategory } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
+import { EditGameForm } from '@/components/admin/edit-game-form'; // New import
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
-  // For simplicity, we'll use mockBoardGames directly.
-  // In a real app, this would come from a state managed by a data fetching library or context.
-  const games: BoardGame[] = mockBoardGames;
+  const [adminGamesList, setAdminGamesList] = useState<BoardGame[]>(mockBoardGames);
+  const [isEditGameDialogOpen, setIsEditGameDialogOpen] = useState(false);
+  const [currentGameToEdit, setCurrentGameToEdit] = useState<BoardGame | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -54,12 +63,23 @@ export default function AdminPage() {
       title: "Fonctionnalité à venir",
       description: "L'ajout de nouveaux jeux sera bientôt disponible.",
     });
+    // TODO: Implement Add Game functionality, potentially reusing EditGameForm with no gameToEdit
   };
 
-  const handleEditGame = (gameName: string) => {
+  const handleOpenEditGameDialog = (game: BoardGame) => {
+    setCurrentGameToEdit(game);
+    setIsEditGameDialogOpen(true);
+  };
+
+  const handleSaveEditedGame = (updatedGameData: BoardGame) => {
+    setAdminGamesList(prevGames =>
+      prevGames.map(g => (g.id === updatedGameData.id ? { ...g, ...updatedGameData } : g))
+    );
+    setIsEditGameDialogOpen(false);
+    setCurrentGameToEdit(null);
     toast({
-      title: "Fonctionnalité à venir",
-      description: `La modification du jeu "${gameName}" sera bientôt disponible.`,
+      title: "Jeu Modifié",
+      description: `Les données du jeu "${updatedGameData.name}" ont été mises à jour.`,
     });
   };
 
@@ -68,8 +88,8 @@ export default function AdminPage() {
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
+    // TODO: Implement Delete Game functionality
   };
-
 
   if (!isMounted || authLoading) {
     return (
@@ -159,7 +179,7 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {games.map((game) => (
+                      {adminGamesList.map((game) => (
                         <TableRow key={game.id}>
                           <TableCell>
                             <div className="relative h-12 w-12 rounded overflow-hidden bg-muted">
@@ -185,7 +205,7 @@ export default function AdminPage() {
                               <div className="flex flex-wrap gap-1">
                                 {game.tags.slice(0, 3).map(tag => ( 
                                   <Badge
-                                    key={tag.name}
+                                    key={`${tag.categoryKey}-${tag.name}`}
                                     variant="customColor"
                                     className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
                                     title={`${getTranslatedTagCategory(tag.categoryKey)}: ${tag.name}`}
@@ -202,7 +222,7 @@ export default function AdminPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditGame(game.name)} title={`Modifier ${game.name}`}>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditGameDialog(game)} title={`Modifier ${game.name}`}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteGame(game.name)} title={`Supprimer ${game.name}`}>
@@ -213,7 +233,7 @@ export default function AdminPage() {
                       ))}
                     </TableBody>
                   </Table>
-                  {games.length === 0 && (
+                  {adminGamesList.length === 0 && (
                     <p className="text-muted-foreground text-center py-4">Aucun jeu dans la base de données pour le moment.</p>
                   )}
                 </CardContent>
@@ -244,6 +264,30 @@ export default function AdminPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {currentGameToEdit && (
+        <Dialog open={isEditGameDialogOpen} onOpenChange={(isOpen) => {
+          setIsEditGameDialogOpen(isOpen);
+          if (!isOpen) setCurrentGameToEdit(null);
+        }}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Modifier le jeu : {currentGameToEdit.name}</DialogTitle>
+              <DialogDescription>
+                Modifiez les informations du jeu ci-dessous.
+              </DialogDescription>
+            </DialogHeader>
+            <EditGameForm
+              gameToEdit={currentGameToEdit}
+              onSave={handleSaveEditedGame}
+              onCancel={() => {
+                setIsEditGameDialogOpen(false);
+                setCurrentGameToEdit(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
