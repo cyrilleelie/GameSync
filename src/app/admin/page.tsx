@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -81,6 +82,7 @@ export default function AdminPage() {
   });
 
   // Filters state
+  const [adminGameSearchQuery, setAdminGameSearchQuery] = useState('');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Record<TagCategoryKey, string[]>>(initialTagFilters());
@@ -151,20 +153,30 @@ export default function AdminPage() {
   };
 
   const resetAllFilters = () => {
+    setAdminGameSearchQuery('');
     setDescriptionFilter('all');
     setSelectedTagFilters(initialTagFilters());
   };
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
+    if (adminGameSearchQuery) count++;
     if (descriptionFilter !== 'all') count++;
     if (activeTagFilterBadges.length > 0) count++; // Simplified: count as 1 if any tag filter is active
     return count;
-  }, [descriptionFilter, activeTagFilterBadges]);
+  }, [adminGameSearchQuery, descriptionFilter, activeTagFilterBadges]);
 
 
   const displayedGames = useMemo(() => {
-    let games = adminGamesList.filter(game => {
+    let games = [...adminGamesList];
+
+    if (adminGameSearchQuery) {
+      games = games.filter(game => 
+        game.name.toLowerCase().includes(adminGameSearchQuery.toLowerCase())
+      );
+    }
+    
+    games = games.filter(game => {
       if (descriptionFilter === 'with') {
         return !!game.description && game.description.trim() !== '';
       }
@@ -189,7 +201,7 @@ export default function AdminPage() {
         );
       });
     });
-  }, [adminGamesList, descriptionFilter, selectedTagFilters]);
+  }, [adminGamesList, adminGameSearchQuery, descriptionFilter, selectedTagFilters]);
 
 
   const handleOpenAddGameDialog = () => {
@@ -313,122 +325,134 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
+                      <div className="flex-grow">
                         <CardTitle>Gestion des Jeux</CardTitle>
                         <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Columns className="mr-2 h-4 w-4" />
-                              Colonnes
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Colonnes Visibles</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuCheckboxItem
-                              checked={visibleColumns.tags}
-                              onCheckedChange={(checked) =>
-                                setVisibleColumns((prev) => ({ ...prev, tags: !!checked }))
-                              }
-                            >
-                              Tags
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={visibleColumns.description}
-                              onCheckedChange={(checked) =>
-                                setVisibleColumns((prev) => ({ ...prev, description: !!checked }))
-                              }
-                            >
-                              Description
-                            </DropdownMenuCheckboxItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        
-                        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-                            <SheetTrigger asChild>
-                                <Button variant="outline" size="sm" className="relative">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    Filtrer
-                                    {activeFilterCount > 0 && (
-                                        <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-1 text-xs">
-                                            {activeFilterCount}
-                                        </Badge>
-                                    )}
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent className="w-full sm:max-w-md flex flex-col">
-                                <SheetHeader>
-                                    <SheetTitle>Filtrer les Jeux</SheetTitle>
-                                    <SheetDescription>
-                                        Affinez votre recherche par description et par tags.
-                                    </SheetDescription>
-                                </SheetHeader>
-                                <ScrollArea className="flex-grow my-4 pr-6 -mr-6">
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h4 className="text-md font-semibold mb-2 text-primary">Filtrer par description</h4>
-                                            <RadioGroup value={descriptionFilter} onValueChange={(value) => setDescriptionFilter(value as 'all' | 'with' | 'without')}>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="all" id="desc-all" />
-                                                    <Label htmlFor="desc-all" className="font-normal">Tous</Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="with" id="desc-with" />
-                                                    <Label htmlFor="desc-with" className="font-normal">Avec description</Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="without" id="desc-without" />
-                                                    <Label htmlFor="desc-without" className="font-normal">Sans description</Label>
-                                                </div>
-                                            </RadioGroup>
-                                        </div>
-                                        <DropdownMenuSeparator/>
-                                        {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(categoryKey => {
-                                            const categoryName = getTranslatedTagCategory(categoryKey);
-                                            const tagsInCategory = allCategorizedTags[categoryKey];
-                                            if (!tagsInCategory || tagsInCategory.length === 0) return null;
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="search"
+                            placeholder="Rechercher un jeu..."
+                            className="pl-8 w-full"
+                            value={adminGameSearchQuery}
+                            onChange={(e) => setAdminGameSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end sm:justify-start">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Columns className="mr-2 h-4 w-4" />
+                                Colonnes
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Colonnes Visibles</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuCheckboxItem
+                                checked={visibleColumns.tags}
+                                onCheckedChange={(checked) =>
+                                  setVisibleColumns((prev) => ({ ...prev, tags: !!checked }))
+                                }
+                              >
+                                Tags
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={visibleColumns.description}
+                                onCheckedChange={(checked) =>
+                                  setVisibleColumns((prev) => ({ ...prev, description: !!checked }))
+                                }
+                              >
+                                Description
+                              </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                              <SheetTrigger asChild>
+                                  <Button variant="outline" size="sm" className="relative">
+                                      <Filter className="mr-2 h-4 w-4" />
+                                      Filtrer
+                                      {activeFilterCount > 0 && (
+                                          <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-1 text-xs">
+                                              {activeFilterCount}
+                                          </Badge>
+                                      )}
+                                  </Button>
+                              </SheetTrigger>
+                              <SheetContent className="w-full sm:max-w-md flex flex-col">
+                                  <SheetHeader>
+                                      <SheetTitle>Filtrer les Jeux</SheetTitle>
+                                      <SheetDescription>
+                                          Affinez votre recherche par description et par tags.
+                                      </SheetDescription>
+                                  </SheetHeader>
+                                  <ScrollArea className="flex-grow my-4 pr-6 -mr-6">
+                                      <div className="space-y-6">
+                                          <div>
+                                              <h4 className="text-md font-semibold mb-2 text-primary">Filtrer par description</h4>
+                                              <RadioGroup value={descriptionFilter} onValueChange={(value) => setDescriptionFilter(value as 'all' | 'with' | 'without')}>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="all" id="desc-all" />
+                                                      <Label htmlFor="desc-all" className="font-normal">Tous</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="with" id="desc-with" />
+                                                      <Label htmlFor="desc-with" className="font-normal">Avec description</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="without" id="desc-without" />
+                                                      <Label htmlFor="desc-without" className="font-normal">Sans description</Label>
+                                                  </div>
+                                              </RadioGroup>
+                                          </div>
+                                          <DropdownMenuSeparator/>
+                                          {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(categoryKey => {
+                                              const categoryName = getTranslatedTagCategory(categoryKey);
+                                              const tagsInCategory = allCategorizedTags[categoryKey];
+                                              if (!tagsInCategory || tagsInCategory.length === 0) return null;
 
-                                            return (
-                                                <div key={categoryKey}>
-                                                    <h4 className="text-md font-semibold mb-2 text-primary">{categoryName}</h4>
-                                                    <div className="space-y-2">
-                                                        {tagsInCategory.map(tagName => (
-                                                            <div key={tagName} className="flex items-center space-x-2">
-                                                                <Checkbox
-                                                                    id={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`}
-                                                                    checked={selectedTagFilters[categoryKey]?.includes(tagName)}
-                                                                    onCheckedChange={(checked) => handleTagSelection(categoryKey, tagName, !!checked)}
-                                                                />
-                                                                <Label htmlFor={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`} className="font-normal text-sm">
-                                                                    {tagName}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </ScrollArea>
-                                <SheetFooter className="mt-auto pt-4 border-t">
-                                    <Button variant="outline" onClick={resetAllFilters} className="w-full sm:w-auto">
-                                        <X className="mr-2 h-4 w-4" />
-                                        Réinitialiser
-                                    </Button>
-                                    <SheetClose asChild>
-                                        <Button className="w-full sm:w-auto">Appliquer</Button>
-                                    </SheetClose>
-                                </SheetFooter>
-                            </SheetContent>
-                        </Sheet>
+                                              return (
+                                                  <div key={categoryKey}>
+                                                      <h4 className="text-md font-semibold mb-2 text-primary">{categoryName}</h4>
+                                                      <div className="space-y-2">
+                                                          {tagsInCategory.map(tagName => (
+                                                              <div key={tagName} className="flex items-center space-x-2">
+                                                                  <Checkbox
+                                                                      id={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`}
+                                                                      checked={selectedTagFilters[categoryKey]?.includes(tagName)}
+                                                                      onCheckedChange={(checked) => handleTagSelection(categoryKey, tagName, !!checked)}
+                                                                  />
+                                                                  <Label htmlFor={`admin-filter-${categoryKey}-${tagName.replace(/\s+/g, '-')}`} className="font-normal text-sm">
+                                                                      {tagName}
+                                                                  </Label>
+                                                              </div>
+                                                          ))}
+                                                      </div>
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  </ScrollArea>
+                                  <SheetFooter className="mt-auto pt-4 border-t">
+                                      <Button variant="outline" onClick={resetAllFilters} className="w-full sm:w-auto">
+                                          <X className="mr-2 h-4 w-4" />
+                                          Réinitialiser
+                                      </Button>
+                                      <SheetClose asChild>
+                                          <Button className="w-full sm:w-auto">Appliquer</Button>
+                                      </SheetClose>
+                                  </SheetFooter>
+                              </SheetContent>
+                          </Sheet>
 
-                        <Button onClick={handleOpenAddGameDialog} size="sm">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Ajouter
-                        </Button>
+                          <Button onClick={handleOpenAddGameDialog} size="sm">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Ajouter
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
@@ -544,7 +568,7 @@ export default function AdminPage() {
                        <p className="text-muted-foreground text-center py-4">
                         {adminGamesList.length === 0 
                           ? "Aucun jeu dans la base de données pour le moment."
-                          : "Aucun jeu ne correspond à vos filtres."}
+                          : "Aucun jeu ne correspond à vos filtres ou à votre recherche."}
                       </p>
                     )}
                   </CardContent>
