@@ -327,7 +327,7 @@ export default function AdminPage() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="flex-grow">
                         <CardTitle>Gestion des Jeux</CardTitle>
-                        <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
+                        
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                         <div className="relative w-full sm:w-64">
@@ -621,3 +621,4 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
+
