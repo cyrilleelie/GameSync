@@ -96,7 +96,7 @@ export function GameCard({ game }: GameCardProps) {
 
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-4 relative">
         <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
           {game.imageUrl ? (
             <Image
@@ -112,7 +112,7 @@ export function GameCard({ game }: GameCardProps) {
             </div>
           )}
           {currentUser && (
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/70 p-1 rounded-md">
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
               {isOwned ? (
                 <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                   <Button
@@ -124,7 +124,7 @@ export function GameCard({ game }: GameCardProps) {
                     title={`Retirer ${game.name} de la collection`}
                     onClick={handleAttemptRemoveGame}
                   >
-                    {isProcessing && !isConfirmDialogOpen ? (
+                    {isProcessing && !isConfirmDialogOpen ? ( // Show loader only if action is direct, not opening dialog
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <ArchiveX className="h-5 w-5" />
@@ -165,7 +165,7 @@ export function GameCard({ game }: GameCardProps) {
                         disabled={isProcessing}
                         className="bg-destructive hover:bg-destructive/90"
                       >
-                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
+                        {isProcessing && isConfirmDialogOpen ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
