@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarDays, Check as CheckIcon } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarDays, Check as CheckIcon, Mail, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,12 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"; // Removed DialogDescription as it's not used here
 import {
   Sheet,
   SheetContent,
-  SheetHeader as SheetHeaderPrimitive, // Renamed to avoid conflict if CardHeader has a SheetHeader
+  SheetHeader as SheetHeaderPrimitive, 
   SheetTitle as SheetTitlePrimitive,
   SheetDescription as SheetDescriptionPrimitive,
   SheetTrigger,
@@ -50,8 +49,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mockBoardGames } from '@/lib/data';
-import type { BoardGame, TagDefinition } from '@/lib/types';
+import { mockBoardGames, mockPlayers } from '@/lib/data';
+import type { BoardGame, TagDefinition, Player } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { TAG_CATEGORY_DETAILS, getTagCategoryColorClass, getTranslatedTagCategory, type TagCategoryKey } from '@/lib/tag-categories';
@@ -59,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger as SelectTriggerPrimitive, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 const initialTagFilters = (): Record<TagCategoryKey, string[]> => {
@@ -109,13 +109,11 @@ export default function AdminPage() {
     publicationYear: true,
   });
 
-  // Filters state
   const [adminGameSearchQuery, setAdminGameSearchQuery] = useState('');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>(initialTagFilters());
 
-  // Tag Management State
   const [managedUniqueTags, setManagedUniqueTags] = useState<TagDefinition[]>([]);
   const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
   const [editedTagName, setEditedTagName] = useState('');
@@ -128,6 +126,8 @@ export default function AdminPage() {
   const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
   const [tagCategoryFilter, setTagCategoryFilter] = useState<string>('all');
   const [adminTagSearchQuery, setAdminTagSearchQuery] = useState('');
+
+  const [adminUsersList, setAdminUsersList] = useState<Player[]>(mockPlayers);
 
 
   useEffect(() => {
@@ -169,7 +169,7 @@ export default function AdminPage() {
   const activeTagFilterBadges = useMemo(() => {
     return Object.entries(selectedTagFilters).flatMap(([categoryKey, tags]) => 
       tags.map(tagName => ({
-        categoryKey: categoryKey as TagCategoryKey, // Cast for display purposes
+        categoryKey: categoryKey as TagCategoryKey, 
         categoryName: getTranslatedTagCategory(categoryKey),
         tagName: tagName
       }))
@@ -329,7 +329,7 @@ export default function AdminPage() {
     }
 
     let finalCategoryKey = newTagCategoryInput;
-    let finalCategoryName = newTagCategoryInput; // Not used beyond toast
+    let finalCategoryName = newTagCategoryInput; 
 
     if (newTagCategoryInput === CREATE_NEW_CATEGORY_VALUE) {
       if (!newCategoryNameInput.trim()) {
@@ -402,7 +402,6 @@ export default function AdminPage() {
         return;
     }
 
-
     const conflict = managedUniqueTags.find(
       (t) => t.name === editedTagName && t.categoryKey === editedTagCategory && 
              (t.name !== originalName || t.categoryKey !== originalCategory)
@@ -456,6 +455,28 @@ export default function AdminPage() {
     }
     return filtered;
   }, [managedUniqueTags, tagCategoryFilter, adminTagSearchQuery]);
+
+  // --- User Management Simulated Actions ---
+  const handleAddUser = () => {
+    toast({
+      title: "Fonctionnalité à venir",
+      description: "L'ajout d'utilisateurs sera bientôt disponible.",
+    });
+  };
+
+  const handleEditUser = (userName: string) => {
+    toast({
+      title: "Fonctionnalité à venir",
+      description: `La modification de l'utilisateur "${userName}" sera bientôt disponible.`,
+    });
+  };
+
+  const handleDeleteUser = (userName: string) => {
+    toast({
+      title: "Fonctionnalité à venir",
+      description: `La suppression de l'utilisateur "${userName}" sera bientôt disponible.`,
+    });
+  };
 
 
   if (!isMounted || authLoading) {
@@ -933,11 +954,68 @@ export default function AdminPage() {
               <TabsContent value="users">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Gestion des Utilisateurs</CardTitle>
-                    <CardDescription>Visualiser et gérer les utilisateurs.</CardDescription>
+                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex-grow">
+                             <CardTitle>Gestion des Utilisateurs</CardTitle>
+                             <CardDescription>Visualiser et gérer les utilisateurs enregistrés.</CardDescription>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                            {/* Add search/filter for users later if needed */}
+                            <Button onClick={handleAddUser} size="sm" className="w-full sm:w-auto">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Ajouter un utilisateur
+                            </Button>
+                        </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <p className="text-muted-foreground">Fonctionnalité à venir...</p>
+                    {adminUsersList.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[60px] py-3 font-semibold">Avatar</TableHead>
+                                    <TableHead className="min-w-[150px] py-3 font-semibold">Nom</TableHead>
+                                    <TableHead className="min-w-[200px] py-3 font-semibold">Email</TableHead>
+                                    <TableHead className="min-w-[100px] py-3 font-semibold">Rôle</TableHead>
+                                    <TableHead className="w-[100px] text-right py-3 font-semibold">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {adminUsersList.map((user) => (
+                                    <TableRow key={user.id}>
+                                        <TableCell>
+                                            <Avatar className="h-9 w-9">
+                                                <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="user avatar" />
+                                                <AvatarFallback>{user.name.substring(0,1).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                        </TableCell>
+                                        <TableCell className="font-medium">{user.name}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{user.email || <span className="italic">N/A</span>}</TableCell>
+                                        <TableCell className="text-xs">
+                                            <Badge 
+                                                variant={user.role === 'Administrateur' ? 'default' : 'secondary'}
+                                                className={cn(user.role === 'Administrateur' && 'bg-primary/80 hover:bg-primary/70')}
+                                            >
+                                                {user.role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditUser(user.name)} title={`Modifier ${user.name}`}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteUser(user.name)} title={`Supprimer ${user.name}`}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                            Aucun utilisateur à afficher pour le moment.
+                        </p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1038,3 +1116,5 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
+
+    
