@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -31,6 +31,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
@@ -59,6 +61,7 @@ export default function AdminPage() {
     description: true,
   });
 
+  const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
 
   useEffect(() => {
     setIsMounted(true);
@@ -120,7 +123,6 @@ export default function AdminPage() {
     setIsAddingGame(false);
   };
 
-
   const handleDeleteGame = (gameName: string) => {
     toast({
       title: "Fonctionnalité à venir",
@@ -128,12 +130,17 @@ export default function AdminPage() {
     });
   };
 
-  const handleFilterData = () => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: `Le filtrage des données sera bientôt disponible.`,
+  const displayedGames = useMemo(() => {
+    return adminGamesList.filter(game => {
+      if (descriptionFilter === 'with') {
+        return !!game.description && game.description.trim() !== '';
+      }
+      if (descriptionFilter === 'without') {
+        return !game.description || game.description.trim() === '';
+      }
+      return true; // 'all'
     });
-  };
+  }, [adminGamesList, descriptionFilter]);
 
 
   if (!isMounted || authLoading) {
@@ -237,10 +244,23 @@ export default function AdminPage() {
                             </DropdownMenuCheckboxItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button variant="outline" onClick={handleFilterData} size="sm">
-                          <Filter className="mr-2 h-4 w-4" />
-                          Filtrer
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Filter className="mr-2 h-4 w-4" />
+                              Filtrer
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Filtrer par description</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuRadioGroup value={descriptionFilter} onValueChange={(value) => setDescriptionFilter(value as 'all' | 'with' | 'without')}>
+                              <DropdownMenuRadioItem value="all">Tous</DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="with">Avec description</DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="without">Sans description</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button onClick={handleOpenAddGameDialog} size="sm">
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Ajouter
@@ -260,7 +280,7 @@ export default function AdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {adminGamesList.map((game) => (
+                        {displayedGames.map((game) => (
                           <TableRow key={game.id}>
                             <TableCell>
                               <div className="relative h-12 w-12 rounded overflow-hidden bg-muted">
@@ -334,8 +354,12 @@ export default function AdminPage() {
                         ))}
                       </TableBody>
                     </Table>
-                    {adminGamesList.length === 0 && (
-                      <p className="text-muted-foreground text-center py-4">Aucun jeu dans la base de données pour le moment.</p>
+                    {displayedGames.length === 0 && (
+                       <p className="text-muted-foreground text-center py-4">
+                        {adminGamesList.length === 0 
+                          ? "Aucun jeu dans la base de données pour le moment."
+                          : "Aucun jeu ne correspond à vos filtres."}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -387,3 +411,5 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
+
+    
