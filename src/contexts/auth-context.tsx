@@ -169,6 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('gameSync_skipGameRemoveConfirmation'); // Reset preference on logout
     setLoading(false);
     router.push('/login');
   };

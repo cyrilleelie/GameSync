@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Archive, ArchiveX, Loader2 } from 'lucide-react'; // Correction: ArchivePlus remplacé par Archive, Ajout de Loader2
+import { Gamepad2, Archive, ArchiveX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
@@ -19,8 +19,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  // AlertDialogTrigger, // No longer using AlertDialogTrigger directly for conditional opening
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cn } from '@/lib/utils';
 
 interface GameCardProps {
@@ -32,6 +34,7 @@ export function GameCard({ game }: GameCardProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(false);
 
   const isOwned = useMemo(() => {
     if (!currentUser || !currentUser.ownedGames) return false;
@@ -80,7 +83,16 @@ export function GameCard({ game }: GameCardProps) {
       });
     }
     setIsProcessing(false);
-    setIsConfirmDialogOpen(false); // Close dialog after action
+    setIsConfirmDialogOpen(false); // Ensure dialog is closed after action
+  };
+
+  const handleAttemptRemoveGame = () => {
+    if (localStorage.getItem('gameSync_skipGameRemoveConfirmation') === 'true') {
+      handleToggleOwnedGame('remove');
+    } else {
+      setDontAskAgain(false); // Reset checkbox state each time dialog is about to open
+      setIsConfirmDialogOpen(true);
+    }
   };
 
   return (
@@ -117,22 +129,22 @@ export function GameCard({ game }: GameCardProps) {
           
           {isOwned ? (
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={authLoading || isProcessing}
-                  className="shrink-0"
-                  aria-label={`Retirer ${game.name} de la collection`}
-                  title={`Retirer ${game.name} de la collection`}
-                >
-                  {isProcessing && !isConfirmDialogOpen ? ( // Show loader on button only if not opening dialog
-                    <Gamepad2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ArchiveX className="h-5 w-5 text-destructive" />
-                  )}
-                </Button>
-              </AlertDialogTrigger>
+              {/* Button now manually triggers dialog state */}
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={authLoading || isProcessing}
+                className="shrink-0 text-destructive hover:text-destructive/80"
+                aria-label={`Retirer ${game.name} de la collection`}
+                title={`Retirer ${game.name} de la collection`}
+                onClick={handleAttemptRemoveGame}
+              >
+                {isProcessing && !isConfirmDialogOpen ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ArchiveX className="h-5 w-5" />
+                )}
+              </Button>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
@@ -140,10 +152,31 @@ export function GameCard({ game }: GameCardProps) {
                     Êtes-vous sûr de vouloir retirer "{game.name}" de votre collection ?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="flex items-center space-x-2 py-3">
+                  <Checkbox
+                    id={`dont-ask-again-${game.id}`}
+                    checked={dontAskAgain}
+                    onCheckedChange={(checked) => setDontAskAgain(Boolean(checked))}
+                    disabled={isProcessing}
+                  />
+                  <Label htmlFor={`dont-ask-again-${game.id}`} className="text-sm font-normal text-muted-foreground">
+                    Ne plus me demander (pour cette session)
+                  </Label>
+                </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
+                  <AlertDialogCancel 
+                    onClick={() => setIsConfirmDialogOpen(false)} 
+                    disabled={isProcessing}
+                  >
+                    Annuler
+                  </AlertDialogCancel>
                   <AlertDialogAction 
-                    onClick={() => handleToggleOwnedGame('remove')} 
+                    onClick={() => {
+                      if (dontAskAgain) {
+                        localStorage.setItem('gameSync_skipGameRemoveConfirmation', 'true');
+                      }
+                      handleToggleOwnedGame('remove');
+                    }} 
                     disabled={isProcessing}
                     className="bg-destructive hover:bg-destructive/90"
                   >
@@ -163,7 +196,7 @@ export function GameCard({ game }: GameCardProps) {
               title={`Ajouter ${game.name} à la collection`}
             >
               {isProcessing ? (
-                <Gamepad2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <Archive className="h-5 w-5" />
               )}
