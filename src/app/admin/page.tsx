@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2 } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -108,15 +108,26 @@ export default function AdminPage() {
 
 
   const handleDeleteGame = (gameName: string) => {
-    // For now, this will only show a toast. Full delete functionality would filter adminGamesList.
     toast({
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
-    // Example of how to delete (if we were to implement it fully):
-    // setAdminGamesList(prevGames => prevGames.filter(g => g.name !== gameName));
-    // toast({ title: "Jeu Supprimé", description: `Le jeu "${gameName}" a été retiré.`});
   };
+
+  const handleSelectColumns = () => {
+    toast({
+      title: "Fonctionnalité à venir",
+      description: `La sélection des colonnes sera bientôt disponible.`,
+    });
+  };
+
+  const handleFilterData = () => {
+    toast({
+      title: "Fonctionnalité à venir",
+      description: `Le filtrage des données sera bientôt disponible.`,
+    });
+  };
+
 
   if (!isMounted || authLoading) {
     return (
@@ -184,15 +195,25 @@ export default function AdminPage() {
             <TabsContent value="games">
               <Card>
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                       <CardTitle>Gestion des Jeux</CardTitle>
                       <CardDescription>Ajoutez, modifiez ou supprimez des jeux de société.</CardDescription>
                     </div>
-                    <Button onClick={handleOpenAddGameDialog}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Ajouter un jeu
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={handleSelectColumns}>
+                        <Columns className="mr-2 h-4 w-4" />
+                        Sélectionner les colonnes
+                      </Button>
+                      <Button variant="outline" onClick={handleFilterData}>
+                        <Filter className="mr-2 h-4 w-4" />
+                        Filtrer les données
+                      </Button>
+                      <Button onClick={handleOpenAddGameDialog}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Ajouter un jeu
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -312,5 +333,7 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
 
     
