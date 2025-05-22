@@ -1,16 +1,18 @@
 
+import type { TagDefinition } from './tag-categories';
+
 export type UserRole = 'Administrateur' | 'Joueur';
 
 export interface Player {
   id: string;
   name: string;
-  email?: string; // Ajout de l'email
+  email?: string; 
   avatarUrl?: string;
-  gamePreferences: string[]; // list of game names
-  ownedGames?: string[]; // list of game names owned by the player
-  wishlist?: string[]; // list of game names the player wishes to acquire
-  availability: string; // textual description
-  role: UserRole; // Ajout du champ role
+  gamePreferences: string[]; 
+  ownedGames?: string[]; 
+  wishlist?: string[]; 
+  availability: string; 
+  role: UserRole; 
 }
 
 export interface GameSession {
@@ -23,13 +25,13 @@ export interface GameSession {
   currentPlayers: Player[];
   description?: string;
   host: Player;
-  duration?: string; // Nouvelle propriété pour la durée
+  duration?: string; 
 }
 
 export interface BoardGame {
   id: string;
   name: string;
   imageUrl: string;
-  tags?: string[];
+  tags?: TagDefinition[]; // Modifié de string[] à TagDefinition[]
   description?: string;
 }

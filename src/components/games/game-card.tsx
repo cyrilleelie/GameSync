@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, XCircle, Gift, Heart } from 'lucide-react';
+import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -28,10 +28,9 @@ import { cn } from '@/lib/utils';
 
 interface GameCardProps {
   game: BoardGame;
-  showCreateSessionButton?: boolean; // New prop
+  showCreateSessionButton?: boolean;
 }
 
-// Renamed original component
 function GameCardComponent({ game, showCreateSessionButton = false }: GameCardProps) {
   const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -74,13 +73,12 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
       updatedProfileData.ownedGames = newOwnedGames;
       toastTitle = "Jeu Retiré";
       successMessage = `"${game.name}" a été retiré de votre collection.`;
-    } else { // action === 'add'
+    } else { 
       newOwnedGames = [...currentOwnedGames, game.name];
       updatedProfileData.ownedGames = newOwnedGames;
       toastTitle = "Jeu Ajouté";
       successMessage = `"${game.name}" a été ajouté à votre collection !`;
 
-      // Check if game was in wishlist and remove it
       const currentWishlist = currentUser.wishlist || [];
       if (currentWishlist.includes(game.name)) {
         const newWishlist = currentWishlist.filter(gName => gName !== game.name);
@@ -130,7 +128,6 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
       toastTitle = "Retiré de la Wishlist";
       successMessage = `"${game.name}" a été retiré de votre wishlist.`;
     } else {
-      // Cannot add to wishlist if already owned
       if (isOwned) {
         toast({
           title: "Déjà Possédé",
@@ -287,7 +284,7 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
                   )}
                 </Button>
               )}
-              {showCreateSessionButton && (
+              {showCreateSessionButton && currentUser && (
                 <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80 hover:bg-primary/10" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
                   <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
                     <CalendarPlus className="h-5 w-5" />
@@ -304,8 +301,8 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
           </CardTitle>
           {game.tags && game.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
-              {game.tags.map(tag => (
-                <Badge key={tag} variant="outline">{tag}</Badge>
+              {game.tags.map(tagObj => (
+                <Badge key={tagObj.name} variant="outline">{tagObj.name}</Badge>
               ))}
             </div>
           )}
@@ -320,5 +317,4 @@ function GameCardComponent({ game, showCreateSessionButton = false }: GameCardPr
   );
 }
 
-// Export memoized version
 export const GameCard = React.memo(GameCardComponent);

@@ -6,18 +6,9 @@ import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
 import { GameCard } from '@/components/games/game-card';
 import { Button } from '@/components/ui/button';
-import { LibraryBig, ListFilter, Loader2, ChevronsUpDown, Check, X, PlusCircle } from 'lucide-react';
+import { LibraryBig, ListFilter, Loader2, X, PlusCircle, ChevronsUpDown, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -26,17 +17,41 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { RequestGameForm } from '@/components/games/request-game-form';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { TAG_CATEGORIES, getTranslatedTagCategory, type TagCategoryKey, type TagDefinition } from '@/lib/tag-categories';
+
+type SelectedFilters = Record<TagCategoryKey, string[]>;
+
+const initialFilters = (): SelectedFilters => {
+  const filters: Partial<SelectedFilters> = {};
+  (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+    filters[key] = [];
+  });
+  return filters as SelectedFilters;
+};
+
 
 export default function GamesPage() {
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>(initialFilters());
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
-  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -48,36 +63,73 @@ export default function GamesPage() {
     }
   }, [currentUser, authLoading, router, isMounted]);
 
-  const uniqueTags = useMemo(() => {
-    const tags = new Set<string>();
-    mockBoardGames.forEach(game => {
-      game.tags?.forEach(tag => tags.add(tag));
+  const allCategorizedTags = useMemo(() => {
+    const categorized: Record<TagCategoryKey, Set<string>> = {} as Record<TagCategoryKey, Set<string>>;
+    (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+      categorized[key] = new Set<string>();
     });
-    return Array.from(tags).sort((a, b) => a.localeCompare(b, 'fr'));
+
+    mockBoardGames.forEach(game => {
+      game.tags?.forEach(tag => {
+        if (tag.categoryKey in categorized) {
+          categorized[tag.categoryKey].add(tag.name);
+        }
+      });
+    });
+    
+    const result: Record<TagCategoryKey, string[]> = {} as Record<TagCategoryKey, string[]>;
+    (Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).forEach(key => {
+      result[key] = Array.from(categorized[key]).sort((a,b) => a.localeCompare(b, 'fr'));
+    });
+    return result;
   }, []);
 
+
+  const activeSelectedTags = useMemo(() => {
+    return Object.entries(selectedFilters).flatMap(([categoryKey, tags]) => 
+      tags.map(tagName => ({
+        categoryKey: categoryKey as TagCategoryKey,
+        categoryName: getTranslatedTagCategory(categoryKey as TagCategoryKey),
+        tagName: tagName
+      }))
+    );
+  }, [selectedFilters]);
+
   const filteredGames = useMemo(() => {
-    if (selectedTags.length === 0) {
+    const allSelectedTagNames = Object.values(selectedFilters).flat();
+    if (allSelectedTagNames.length === 0) {
       return mockBoardGames;
     }
-    return mockBoardGames.filter(game =>
-      selectedTags.some(tag => game.tags?.includes(tag))
-    );
-  }, [selectedTags]);
+    return mockBoardGames.filter(game => {
+      if (!game.tags || game.tags.length === 0) return false;
+      return game.tags.some(gameTag => allSelectedTagNames.includes(gameTag.name));
+    });
+  }, [selectedFilters]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prevTags =>
-      prevTags.includes(tag)
-        ? prevTags.filter(t => t !== tag)
-        : [...prevTags, tag]
-    );
+  const handleTagSelection = (categoryKey: TagCategoryKey, tagName: string, isChecked: boolean) => {
+    setSelectedFilters(prevFilters => {
+      const currentTagsForCategory = prevFilters[categoryKey] || [];
+      let newTagsForCategory;
+      if (isChecked) {
+        newTagsForCategory = [...currentTagsForCategory, tagName];
+      } else {
+        newTagsForCategory = currentTagsForCategory.filter(t => t !== tagName);
+      }
+      return {
+        ...prevFilters,
+        [categoryKey]: newTagsForCategory,
+      };
+    });
   };
 
-  const getTriggerText = () => {
-    if (selectedTags.length === 0) return "Tous les tags";
-    if (selectedTags.length === 1) return selectedTags[0];
-    return `${selectedTags.length} tags sélectionnés`;
+  const resetFilters = () => {
+    setSelectedFilters(initialFilters());
   };
+
+  const removeTagFromFilter = (categoryKey: TagCategoryKey, tagName: string) => {
+    handleTagSelection(categoryKey, tagName, false);
+  };
+
 
   if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
     return (
@@ -97,100 +149,103 @@ export default function GamesPage() {
           </h1>
           <p className="text-muted-foreground">Découvrez tous les jeux disponibles sur GameSync.</p>
         </div>
-        <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="mt-4 sm:mt-0">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Demander un jeu
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Demander l'ajout d'un jeu</DialogTitle>
-              <DialogDescription>
-                Le jeu que vous cherchez n'est pas dans la liste ? Remplissez ce formulaire pour nous le faire savoir.
-              </DialogDescription>
-            </DialogHeader>
-            <RequestGameForm onSubmitSuccess={() => setIsRequestDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+        <div className="flex gap-2">
+            <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="outline" className="relative">
+                        <ListFilter className="mr-2 h-4 w-4" />
+                        Filtrer
+                        {activeSelectedTags.length > 0 && (
+                            <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-1">
+                                {activeSelectedTags.length}
+                            </Badge>
+                        )}
+                    </Button>
+                </SheetTrigger>
+                <SheetContent className="w-full sm:max-w-md flex flex-col">
+                    <SheetHeader>
+                        <SheetTitle>Filtrer les Jeux</SheetTitle>
+                        <SheetDescription>
+                            Affinez votre recherche par catégories de tags.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <ScrollArea className="flex-grow my-4 pr-6 -mr-6"> {/* Added pr-6 and -mr-6 for scrollbar */}
+                        <div className="space-y-6">
+                            {(Object.keys(TAG_CATEGORIES) as TagCategoryKey[]).map(categoryKey => {
+                                const categoryName = getTranslatedTagCategory(categoryKey);
+                                const tagsInCategory = allCategorizedTags[categoryKey];
+                                if (!tagsInCategory || tagsInCategory.length === 0) return null;
 
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-          <ListFilter className="h-5 w-5 text-primary" />
-          Filtrer par tag(s)
-        </h2>
-        <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={isTagPopoverOpen}
-              className="w-full sm:w-[300px] justify-between"
-            >
-              {getTriggerText()}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-            <Command>
-              <CommandInput placeholder="Rechercher un tag..." />
-              <CommandList>
-                <CommandEmpty>Aucun tag trouvé.</CommandEmpty>
-                <CommandGroup>
-                  <CommandItem
-                    key="all-tags"
-                    value="Tous les tags"
-                    onSelect={() => {
-                      setSelectedTags([]);
-                    }}
-                  >
-                     <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedTags.length === 0 ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    Tous les tags (Réinitialiser)
-                  </CommandItem>
-                  {uniqueTags.map((tag) => (
-                    <CommandItem
-                      key={tag}
-                      value={tag}
-                      onSelect={() => {
-                        toggleTag(tag);
-                      }}
-                    >
-                      <span className={cn("mr-2 h-4 w-4", selectedTags.includes(tag) ? "opacity-100" : "opacity-0")}>
-                         <Check className="h-4 w-4" />
-                      </span>
-                      {tag}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+                                return (
+                                    <div key={categoryKey}>
+                                        <h4 className="text-md font-semibold mb-2 text-primary">{categoryName}</h4>
+                                        <div className="space-y-2">
+                                            {tagsInCategory.map(tagName => (
+                                                <div key={tagName} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`${categoryKey}-${tagName}`}
+                                                        checked={selectedFilters[categoryKey]?.includes(tagName)}
+                                                        onCheckedChange={(checked) => handleTagSelection(categoryKey, tagName, !!checked)}
+                                                    />
+                                                    <Label htmlFor={`${categoryKey}-${tagName}`} className="font-normal text-sm">
+                                                        {tagName}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </ScrollArea>
+                    <SheetFooter className="mt-auto pt-4 border-t">
+                        <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
+                            <X className="mr-2 h-4 w-4" />
+                            Réinitialiser les filtres
+                        </Button>
+                        <SheetClose asChild>
+                            <Button className="w-full sm:w-auto">Appliquer</Button>
+                        </SheetClose>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+            <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Demander un jeu
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Demander l'ajout d'un jeu</DialogTitle>
+                        <DialogDescription>
+                            Le jeu que vous cherchez n'est pas dans la liste ? Remplissez ce formulaire pour nous le faire savoir.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <RequestGameForm onSubmitSuccess={() => setIsRequestDialogOpen(false)} />
+                </DialogContent>
+            </Dialog>
+        </div>
       </div>
       
-      {selectedTags.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-2">
+      {activeSelectedTags.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
           <p className="text-sm font-medium mr-2 self-center">Filtres actifs:</p>
-          {selectedTags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
-              {tag}
+          {activeSelectedTags.map(({ categoryKey, categoryName, tagName }) => (
+            <Badge key={`${categoryKey}-${tagName}`} variant="secondary" className="flex items-center gap-1 pr-1">
+              <span className="font-normal text-muted-foreground">{categoryName}:</span> {tagName}
               <button
                 type="button"
-                onClick={() => toggleTag(tag)}
+                onClick={() => removeTagFromFilter(categoryKey, tagName)}
                 className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
-                aria-label={`Retirer ${tag}`}
+                aria-label={`Retirer ${tagName} de la catégorie ${categoryName}`}
               >
                 <X className="h-3 w-3 text-destructive hover:text-destructive/80" />
               </button>
             </Badge>
           ))}
+           <Button variant="link" onClick={resetFilters} className="p-0 h-auto text-xs">Tout effacer</Button>
         </div>
       )}
 
@@ -204,12 +259,12 @@ export default function GamesPage() {
       ) : (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">
-            {selectedTags.length > 0
-              ? `Aucun jeu ne correspond aux tags sélectionnés.`
+            {activeSelectedTags.length > 0
+              ? `Aucun jeu ne correspond aux filtres sélectionnés.`
               : "Aucun jeu dans la bibliothèque pour le moment."}
           </p>
-          {selectedTags.length > 0 && (
-            <Button variant="link" onClick={() => setSelectedTags([])} className="mt-2">
+          {activeSelectedTags.length > 0 && (
+            <Button variant="link" onClick={resetFilters} className="mt-2">
               Voir tous les jeux
             </Button>
           )}
