@@ -482,11 +482,11 @@ export default function AdminPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[80px] py-3">Image</TableHead>
-                          <TableHead className="min-w-[200px] py-3">Nom</TableHead>
-                          {visibleColumns.tags && <TableHead className="py-3">Tags</TableHead>}
-                          {visibleColumns.description && <TableHead className="min-w-[250px] max-w-[350px] py-3">Description</TableHead>}
-                          <TableHead className="w-[150px] text-right py-3">Actions</TableHead>
+                          <TableHead className="w-[80px] py-3 font-semibold">Image</TableHead>
+                          <TableHead className="min-w-[200px] py-3 font-semibold">Nom</TableHead>
+                          {visibleColumns.tags && <TableHead className="py-3 font-semibold">Tags</TableHead>}
+                          {visibleColumns.description && <TableHead className="min-w-[250px] max-w-[350px] py-3 font-semibold">Description</TableHead>}
+                          <TableHead className="w-[150px] text-right py-3 font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
