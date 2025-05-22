@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarDays } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2, Columns, Filter, X, Search, Building, CalendarDays, Check as CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -57,6 +57,8 @@ import { TAG_CATEGORY_DETAILS, getTagCategoryColorClass, getTranslatedTagCategor
 import { cn } from '@/lib/utils';
 import { EditGameForm, type GameFormValues } from '@/components/admin/edit-game-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger as SelectTriggerPrimitive, SelectValue } from "@/components/ui/select";
+
 
 const initialTagFilters = (): Record<TagCategoryKey, string[]> => {
   const filters: Partial<Record<TagCategoryKey, string[]>> = {};
@@ -64,6 +66,25 @@ const initialTagFilters = (): Record<TagCategoryKey, string[]> => {
     filters[key] = [];
   });
   return filters as Record<TagCategoryKey, string[]>;
+};
+
+const calculateUniqueTags = (games: BoardGame[]): TagDefinition[] => {
+  const tagSet = new Set<string>();
+  const uniqueTags: TagDefinition[] = [];
+  games.forEach(game => {
+    game.tags?.forEach(tag => {
+      const tagKey = `${tag.categoryKey}::${tag.name}`;
+      if (!tagSet.has(tagKey)) {
+        tagSet.add(tagKey);
+        uniqueTags.push(tag);
+      }
+    });
+  });
+  return uniqueTags.sort((a, b) => {
+    const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
+    if (categoryComparison !== 0) return categoryComparison;
+    return a.name.localeCompare(b.name);
+  });
 };
 
 export default function AdminPage() {
@@ -91,9 +112,17 @@ export default function AdminPage() {
   const [descriptionFilter, setDescriptionFilter] = useState<'all' | 'with' | 'without'>('all');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Record<TagCategoryKey, string[]>>(initialTagFilters());
 
+  // Tag Management State
+  const [managedUniqueTags, setManagedUniqueTags] = useState<TagDefinition[]>([]);
+  const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
+  const [editedTagName, setEditedTagName] = useState('');
+  const [editedTagCategory, setEditedTagCategory] = useState<TagCategoryKey | ''>('');
+
+
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    setManagedUniqueTags(calculateUniqueTags(adminGamesList));
+  }, [adminGamesList]); // Recalculate if adminGamesList changes (e.g. after adding/editing a game)
 
   useEffect(() => {
     if (isMounted && !authLoading) {
@@ -230,21 +259,27 @@ export default function AdminPage() {
         publisher: gameData.publisher || '',
         publicationYear: gameData.publicationYear || undefined,
       };
-      setAdminGamesList(prevGames => [newGame, ...prevGames]);
+      setAdminGamesList(prevGames => {
+        const updatedGames = [newGame, ...prevGames];
+        setManagedUniqueTags(calculateUniqueTags(updatedGames)); // Update unique tags list
+        return updatedGames;
+      });
       toast({
         title: "Jeu Ajouté",
         description: `Le jeu "${newGame.name}" a été ajouté à la liste.`,
       });
     } else { 
-      setAdminGamesList(prevGames =>
-        prevGames.map(g => (g.id === gameData.id ? { 
+      setAdminGamesList(prevGames => {
+        const updatedGames = prevGames.map(g => (g.id === gameData.id ? { 
           ...g, 
           ...gameData, 
           description: gameData.description || g.description || '',
           publisher: gameData.publisher || g.publisher || '',
           publicationYear: gameData.publicationYear || g.publicationYear,
-        } as BoardGame : g))
-      );
+        } as BoardGame : g));
+        setManagedUniqueTags(calculateUniqueTags(updatedGames)); // Update unique tags list
+        return updatedGames;
+      });
       toast({
         title: "Jeu Modifié",
         description: `Les données du jeu "${gameData.name}" ont été mises à jour.`,
@@ -266,37 +301,74 @@ export default function AdminPage() {
       title: "Fonctionnalité à venir",
       description: `La suppression du jeu "${gameName}" sera bientôt disponible.`,
     });
+    // Actual deletion logic would involve updating adminGamesList and managedUniqueTags
   };
 
-  const allUniqueTags: TagDefinition[] = useMemo(() => {
-    const tagSet = new Set<string>();
-    const uniqueTags: TagDefinition[] = [];
-    adminGamesList.forEach(game => {
-      game.tags?.forEach(tag => {
-        const tagKey = `${tag.categoryKey}::${tag.name}`;
-        if (!tagSet.has(tagKey)) {
-          tagSet.add(tagKey);
-          uniqueTags.push(tag);
-        }
-      });
-    });
-    return uniqueTags.sort((a, b) => {
-      const categoryComparison = a.categoryKey.localeCompare(b.categoryKey);
-      if (categoryComparison !== 0) return categoryComparison;
-      return a.name.localeCompare(b.name);
-    });
-  }, [adminGamesList]);
-
-  const handleAddTag = () => {
+  const handleAddTagAdmin = () => {
     toast({ title: "Fonctionnalité à venir", description: "L'ajout de tags sera bientôt disponible." });
   };
-
-  const handleEditTag = (tag: TagDefinition) => {
-    toast({ title: "Fonctionnalité à venir", description: `La modification du tag "${tag.name}" sera bientôt disponible.` });
+  
+  const handleStartEditTag = (tag: TagDefinition) => {
+    setEditingTagKey(`${tag.categoryKey}::${tag.name}`);
+    setEditedTagName(tag.name);
+    setEditedTagCategory(tag.categoryKey);
   };
 
-  const handleDeleteTag = (tag: TagDefinition) => {
-    toast({ title: "Fonctionnalité à venir", description: `La suppression du tag "${tag.name}" sera bientôt disponible.` });
+  const handleCancelEditTag = () => {
+    setEditingTagKey(null);
+    setEditedTagName('');
+    setEditedTagCategory('');
+  };
+
+  const handleSaveTagEdit = () => {
+    if (!editedTagName.trim() || !editedTagCategory) {
+      toast({ title: "Erreur", description: "Le nom et la catégorie du tag ne peuvent pas être vides.", variant: "destructive" });
+      return;
+    }
+
+    const originalTagKey = editingTagKey;
+    if (!originalTagKey) return;
+
+    const [originalCategory, originalName] = originalTagKey.split('::');
+
+    // Check for conflicts (if new name/category combo already exists as a *different* tag)
+    const conflict = managedUniqueTags.find(
+      (t) => t.name === editedTagName && t.categoryKey === editedTagCategory && 
+             (t.name !== originalName || t.categoryKey !== originalCategory)
+    );
+
+    if (conflict) {
+      toast({
+        title: "Conflit de Tag",
+        description: `Un tag nommé "${editedTagName}" dans la catégorie "${getTranslatedTagCategory(editedTagCategory)}" existe déjà.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Simulate update in managedUniqueTags
+    setManagedUniqueTags(prevTags => 
+      prevTags.map(t => 
+        (t.name === originalName && t.categoryKey === originalCategory) 
+        ? { name: editedTagName, categoryKey: editedTagCategory } 
+        : t
+      )
+    );
+
+    toast({
+      title: "Tag Modifié (Simulation)",
+      description: `Le tag "${originalName}" a été modifié en "${editedTagName}" (cat: ${getTranslatedTagCategory(editedTagCategory)}). Note : Cette modification est visuelle et n'affecte pas les jeux existants.`,
+    });
+    setEditingTagKey(null);
+  };
+
+  const handleDeleteTag = (tagToDelete: TagDefinition) => {
+     // Simulate deletion from managedUniqueTags
+    setManagedUniqueTags(prevTags => prevTags.filter(t => !(t.name === tagToDelete.name && t.categoryKey === tagToDelete.categoryKey)));
+    toast({
+      title: "Tag Supprimé (Simulation)",
+      description: `Le tag "${tagToDelete.name}" a été supprimé de cette liste. Note : Cette suppression est visuelle et n'affecte pas les jeux existants.`,
+    });
   };
 
 
@@ -646,7 +718,7 @@ export default function AdminPage() {
                   <CardHeader>
                     <div className="flex justify-between items-center">
                       <CardTitle>Gestion des Tags</CardTitle>
-                      <Button onClick={handleAddTag} size="sm">
+                      <Button onClick={handleAddTagAdmin} size="sm">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Ajouter un Tag
                       </Button>
@@ -654,7 +726,7 @@ export default function AdminPage() {
                     <CardDescription>Gérez les tags et leurs catégories.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {allUniqueTags.length > 0 ? (
+                    {managedUniqueTags.length > 0 ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -664,27 +736,72 @@ export default function AdminPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {allUniqueTags.map((tag) => (
-                            <TableRow key={`${tag.categoryKey}-${tag.name}`}>
-                              <TableCell>{tag.name}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="customColor"
-                                  className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
-                                >
-                                  {getTranslatedTagCategory(tag.categoryKey)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleEditTag(tag)} title={`Modifier le tag ${tag.name}`}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteTag(tag)} title={`Supprimer le tag ${tag.name}`}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {managedUniqueTags.map((tag) => {
+                            const currentTagKey = `${tag.categoryKey}::${tag.name}`;
+                            const isEditing = editingTagKey === currentTagKey;
+                            return (
+                              <TableRow key={currentTagKey}>
+                                <TableCell>
+                                  {isEditing ? (
+                                    <Input
+                                      value={editedTagName}
+                                      onChange={(e) => setEditedTagName(e.target.value)}
+                                      className="h-8 text-sm"
+                                    />
+                                  ) : (
+                                    tag.name
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {isEditing ? (
+                                    <Select 
+                                      value={editedTagCategory} 
+                                      onValueChange={(value) => setEditedTagCategory(value as TagCategoryKey)}
+                                    >
+                                      <SelectTriggerPrimitive className="h-8 text-sm">
+                                        <SelectValue placeholder="Choisir catégorie" />
+                                      </SelectTriggerPrimitive>
+                                      <SelectContent>
+                                        {(Object.keys(TAG_CATEGORY_DETAILS) as TagCategoryKey[]).map(catKey => (
+                                          <SelectItem key={catKey} value={catKey}>
+                                            {getTranslatedTagCategory(catKey)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Badge
+                                      variant="customColor"
+                                      className={cn("font-normal text-xs px-1.5 py-0.5", getTagCategoryColorClass(tag.categoryKey))}
+                                    >
+                                      {getTranslatedTagCategory(tag.categoryKey)}
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {isEditing ? (
+                                    <>
+                                      <Button variant="ghost" size="icon" onClick={handleSaveTagEdit} title="Sauvegarder">
+                                        <CheckIcon className="h-4 w-4 text-green-600" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={handleCancelEditTag} title="Annuler">
+                                        <X className="h-4 w-4 text-red-600" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button variant="ghost" size="icon" onClick={() => handleStartEditTag(tag)} title={`Modifier le tag ${tag.name}`}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteTag(tag)} title={`Supprimer le tag ${tag.name}`}>
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     ) : (
@@ -729,3 +846,4 @@ export default function AdminPage() {
     </TooltipProvider>
   );
 }
+
