@@ -4,9 +4,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // Import next/image
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, ListOrdered, Tags, Users, PlusCircle, Edit, Trash2, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -151,7 +152,8 @@ export default function AdminPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[250px]">Nom</TableHead>
+                        <TableHead className="w-[80px]">Image</TableHead>
+                        <TableHead className="min-w-[200px]">Nom</TableHead>
                         <TableHead>Tags</TableHead>
                         <TableHead className="w-[150px] text-right">Actions</TableHead>
                       </TableRow>
@@ -159,11 +161,29 @@ export default function AdminPage() {
                     <TableBody>
                       {games.map((game) => (
                         <TableRow key={game.id}>
+                          <TableCell>
+                            <div className="relative h-12 w-12 rounded overflow-hidden bg-muted">
+                              {game.imageUrl ? (
+                                <Image
+                                  src={game.imageUrl}
+                                  alt={`Image de ${game.name}`}
+                                  fill
+                                  sizes="50px"
+                                  className="object-cover"
+                                  data-ai-hint="board game box"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full w-full">
+                                  <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="font-medium">{game.name}</TableCell>
                           <TableCell>
                             {game.tags && game.tags.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {game.tags.slice(0, 3).map(tag => ( // Show max 3 tags for brevity
+                                {game.tags.slice(0, 3).map(tag => ( 
                                   <Badge
                                     key={tag.name}
                                     variant="customColor"
