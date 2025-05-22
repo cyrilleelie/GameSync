@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { mockBoardGames, getBoardGameByName, mockSessions } from '@/lib/data';
 import { useAuth } from '@/contexts/auth-context';
@@ -62,6 +62,9 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isGameComboboxOpen, setIsGameComboboxOpen] = useState(false);
 
+  const searchParams = useSearchParams();
+  const initialGameNameFromQuery = searchParams.get('gameName');
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -76,26 +79,37 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
       duration: sessionToEdit.duration || '',
       description: sessionToEdit.description || '',
     } : {
-      gameName: '',
+      gameName: initialGameNameFromQuery || '',
       location: '',
       maxPlayers: 4,
       duration: '',
       description: '',
+      // dateTime: new Date(), // Consider a default or leave undefined for user to pick
     },
   });
   
   useEffect(() => {
-    if (sessionToEdit && isMounted) {
-      form.reset({
-        gameName: sessionToEdit.gameName,
-        location: sessionToEdit.location,
-        dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
-        maxPlayers: sessionToEdit.maxPlayers,
-        duration: sessionToEdit.duration || '',
-        description: sessionToEdit.description || '',
-      });
+    if (isMounted) {
+      if (sessionToEdit) {
+        form.reset({
+          gameName: sessionToEdit.gameName,
+          location: sessionToEdit.location,
+          dateTime: typeof sessionToEdit.dateTime === 'string' ? parseISO(sessionToEdit.dateTime) : sessionToEdit.dateTime,
+          maxPlayers: sessionToEdit.maxPlayers,
+          duration: sessionToEdit.duration || '',
+          description: sessionToEdit.description || '',
+        });
+      } else {
+         // If creating a new session and gameName from query is available,
+         // ensure it's set in the form if it wasn't already by defaultValues
+         // or if the user cleared it.
+         const currentFormGameName = form.getValues('gameName');
+         if (initialGameNameFromQuery && currentFormGameName !== initialGameNameFromQuery) {
+           form.setValue('gameName', initialGameNameFromQuery);
+         }
+      }
     }
-  }, [sessionToEdit, form, isMounted]);
+  }, [sessionToEdit, form, isMounted, initialGameNameFromQuery ]);
 
 
   async function onSubmit(values: SessionFormValues) {
@@ -152,7 +166,6 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
             maxPlayers: values.maxPlayers,
             duration: values.duration, 
             description: values.description,
-            // category: selectedGame ? selectedGame.category : sessionsToUpdate[sessionIndex].category, // Supprimé
           };
           toast({
             title: 'Session Modifiée !',
@@ -176,7 +189,6 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           host: currentUser,
           duration: values.duration, 
           description: values.description,
-          // category: selectedGame ? selectedGame.category : undefined, // Supprimé
         };
         sessionsToUpdate.push(newSession);
         toast({
@@ -203,7 +215,8 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
     }
   }
   
-  if (!isMounted && sessionToEdit) { 
+  // Updated loading condition to handle pre-fill from query param
+  if (!isMounted && (sessionToEdit || initialGameNameFromQuery && !form.getValues('gameName'))) { 
     return (
         <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -288,17 +301,17 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-4 w-4",
-                                game.name === field.value
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {game.name}
-                          </CommandItem>
-                        ))}
+                                  "mr-2 h-4 w-4",
+                                  game.name === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {game.name}
+                            </CommandItem>
+                          ))}
                         {favoriteGames.length === 0 && otherGames.length === 0 && mockBoardGames.length > 0 && (
-                           mockBoardGames.sort((a,b) => a.name.localeCompare(b.name)).map((game) => ( // Fallback if somehow both lists are empty but mockBoardGames isn't
+                           mockBoardGames.sort((a,b) => a.name.localeCompare(b.name)).map((game) => ( 
                             <CommandItem
                               value={game.name}
                               key={game.id}
