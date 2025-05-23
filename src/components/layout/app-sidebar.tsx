@@ -21,16 +21,26 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, Loader2, Boxes } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
+
+// Custom hook to get the previous value of a prop or state
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
 
 export function AppSidebar() {
   const { currentUser, logout, loading: authLoading } = useAuth();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [activeAccordionValue, setActiveAccordionValue] = useState<string | undefined>(undefined);
+  const prevPathname = usePrevious(pathname);
 
   useEffect(() => {
     setIsMounted(true);
@@ -64,22 +74,29 @@ export function AppSidebar() {
   }, [isMounted, authLoading, currentUser]);
 
   useEffect(() => {
-    const activeParent = displayedNavItems.find(item => 
+    // Only run the effect if the pathname has actually changed from the previous render,
+    // or if it's the initial render (prevPathname is undefined).
+    // This prevents the effect from overriding user's direct accordion interactions
+    // when the pathname hasn't changed.
+    if (pathname === prevPathname && prevPathname !== undefined) {
+      return;
+    }
+
+    const activeParent = displayedNavItems.find(item =>
       item.children?.some(child => child.href === pathname)
     );
     if (activeParent && activeParent.id) {
       setActiveAccordionValue(activeParent.id);
     } else {
-       const isDirectLinkActiveInAnotherAccordion = displayedNavItems.some(item => 
-        item.id !== activeAccordionValue && item.children?.some(child => child.href === pathname)
-      );
+      // If no parent is active based on current pathname,
+      // (e.g., user navigated to a top-level link or a page not in an accordion)
+      // then close any open accordion.
       const isNonAccordionLinkActive = displayedNavItems.some(item => !item.children && item.href === pathname);
-
-      if (!isDirectLinkActiveInAnotherAccordion && !isNonAccordionLinkActive && !activeParent) {
+      if (isNonAccordionLinkActive || prevPathname === undefined) { // Also close on initial load if not in an accordion
          setActiveAccordionValue(undefined);
       }
     }
-  }, [pathname, displayedNavItems, activeAccordionValue]);
+  }, [pathname, displayedNavItems, prevPathname]);
 
 
   const handleLogout = async () => {
@@ -89,10 +106,10 @@ export function AppSidebar() {
   const renderHeaderContent = () => {
     return (
       <Link href="/" className="flex items-center gap-2 group" prefetch>
-        <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" /> 
-        <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
+         <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" /> 
+         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text group-hover:opacity-90 transition-opacity">
            <h1 className="text-xl font-semibold">GameSync</h1>
-        </span>
+         </span>
       </Link>
     );
   };
@@ -112,7 +129,7 @@ export function AppSidebar() {
       </Sidebar>
     );
   }
-
+  
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
