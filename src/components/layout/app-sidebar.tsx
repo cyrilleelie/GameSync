@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
 import { LogOut, Loader2, Boxes } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -53,14 +54,14 @@ export function AppSidebar() {
             if (child.requiresAdmin && (!currentUser || currentUser.role !== 'Administrateur')) return false;
             return true;
           });
-          if (visibleChildren.length > 0 || item.href) { // Keep parent if it's a direct link OR has visible children
+          if (visibleChildren.length > 0 || item.href) { 
             return { ...item, children: visibleChildren.length > 0 ? visibleChildren : undefined };
           }
-          return null; // Remove parent if it's not a direct link and has no visible children
+          return null; 
         }
         return item;
       }).filter(Boolean) as NavItem[];
-  }, [isMounted, authLoading, currentUser, pathname]);
+  }, [isMounted, authLoading, currentUser]);
 
   useEffect(() => {
     const activeParent = displayedNavItems.find(item => 
@@ -78,7 +79,7 @@ export function AppSidebar() {
          setActiveAccordionValue(undefined);
       }
     }
-  }, [pathname, displayedNavItems]);
+  }, [pathname, displayedNavItems, activeAccordionValue]);
 
 
   const handleLogout = async () => {
@@ -86,7 +87,6 @@ export function AppSidebar() {
   };
   
   const renderHeaderContent = () => {
-    // This function is called when isMounted is true AND authLoading is false
     return (
       <Link href="/" className="flex items-center gap-2 group" prefetch>
         <Boxes className="h-8 w-8 text-primary group-hover:text-primary/90 transition-colors" /> 
@@ -101,7 +101,6 @@ export function AppSidebar() {
     return (
       <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="p-4">
-          {/* Simplified header for SSR and initial client render */}
           <div className="flex items-center gap-2 text-sidebar-primary">
             <Boxes className="h-8 w-8" />
             <h1 className="text-xl font-semibold">GameSync</h1>
@@ -118,10 +117,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
         {authLoading ? (
-            <div className="flex items-center gap-2 text-sidebar-primary">
-              <Boxes className="h-8 w-8" />
-              <h1 className="text-xl font-semibold">GameSync</h1>
-            </div>
+          <div className="flex items-center gap-2 text-sidebar-primary">
+            <Boxes className="h-8 w-8" />
+            <h1 className="text-xl font-semibold">GameSync</h1>
+          </div>
         ) : renderHeaderContent()}
       </SidebarHeader>
       <SidebarContent>
@@ -198,10 +197,16 @@ export function AppSidebar() {
       </SidebarContent>
       {currentUser && !authLoading && ( 
         <SidebarFooter className="p-2 border-t">
-            <div className="p-2 mb-2 text-center">
-                <p className="text-sm font-medium text-sidebar-foreground">{currentUser.name}</p>
-                {currentUser.email && <p className="text-xs text-sidebar-foreground/70">{currentUser.email}</p>}
-                <p className="text-xs text-sidebar-foreground/70 capitalize">{currentUser.role}</p>
+            <div className="flex flex-col items-center gap-2 p-2 mb-2 text-center">
+                <Avatar>
+                    <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                    <AvatarFallback>{currentUser.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <p className="text-sm font-medium text-sidebar-foreground">{currentUser.name}</p>
+                    {currentUser.email && <p className="text-xs text-sidebar-foreground/70">{currentUser.email}</p>}
+                    <p className="text-xs text-sidebar-foreground/70 capitalize">{currentUser.role}</p>
+                </div>
             </div>
           <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
             <LogOut className="mr-2 h-5 w-5" />
