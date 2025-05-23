@@ -10,7 +10,8 @@ import {
   LayoutList, 
   Archive,
   Gift,
-  ShieldCheck, // Ajout de l'icône pour l'admin
+  ShieldCheck,
+  Home, // Added Home icon
   type LucideIcon,
 } from 'lucide-react';
 
@@ -23,7 +24,7 @@ export interface NavItem {
   disabled?: boolean;
   requiresAuth?: boolean;
   requiresGuest?: boolean;
-  requiresAdmin?: boolean; // Ajout d'une propriété pour les liens admin
+  requiresAdmin?: boolean;
   children?: NavItem[]; 
 }
 
@@ -32,7 +33,7 @@ export const navItems: NavItem[] = [
     id: 'home',
     title: 'Accueil',
     href: '/',
-    icon: LayoutDashboard,
+    icon: Home, // Changed from LayoutDashboard
   },
   {
     id: 'sessions-accordion',
@@ -73,7 +74,7 @@ export const navItems: NavItem[] = [
         id: 'all-games', 
         title: 'Tous les Jeux', 
         href: '/games', 
-        icon: LayoutList, // Changed from LibraryBig for variety, can be reverted
+        icon: LayoutList,
         requiresAuth: true,
       },
       {
@@ -105,7 +106,7 @@ export const navItems: NavItem[] = [
     href: '/admin',
     icon: ShieldCheck,
     requiresAuth: true,
-    requiresAdmin: true, // Ce lien ne sera visible que pour les administrateurs
+    requiresAdmin: true,
   },
   {
     id: 'login',
