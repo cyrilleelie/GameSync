@@ -3,7 +3,7 @@
 
 import { UserProfileDisplay } from '@/components/profile/user-profile-display';
 import { useAuth } from '@/contexts/auth-context'; // Import useAuth
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -14,7 +14,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -22,7 +22,7 @@ export default function ProfilePage() {
 
   if (!currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center">
+      <div className="flex flex-col items-center justify-center h-full text-center min-h-[calc(100vh-8rem)]">
         <p className="text-xl mb-4">Veuillez vous connecter pour voir votre profil.</p>
         <Button asChild>
           <Link href="/login">Se connecter</Link>
@@ -36,7 +36,7 @@ export default function ProfilePage() {
       <Card className="max-w-3xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mon Profil</CardTitle>
-          <CardDescription>Consultez et gérez les détails de votre profil GameSync.</CardDescription>
+          {/* <CardDescription>Consultez et gérez les détails de votre profil GameSync.</CardDescription> */}
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">
@@ -46,3 +46,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
