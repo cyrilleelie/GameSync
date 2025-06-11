@@ -1,80 +1,71 @@
+// Fichier : app/components/sessions/session-card.tsx (MIS À JOUR)
 
-import type { GameSession } from '@/lib/types';
 import Image from 'next/image';
-import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-// import { Badge } from '@/components/ui/badge'; // Badge n'est plus utilisé ici pour category
-import { CalendarDays, MapPin, Users, Gamepad2, ArrowRight, Timer } from 'lucide-react';
+import { CalendarIcon, ClockIcon, MapPinIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { Session } from '@/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-interface SessionCardProps {
-  session: GameSession;
-}
-
-export function SessionCard({ session }: SessionCardProps) {
-  const formattedDate = format(new Date(session.dateTime), 'd MMM yyyy', { locale: fr });
-  const formattedTime = format(new Date(session.dateTime), 'HH:mm', { locale: fr });
+// L'export est bien nommé, donc on garde `export const`
+export const SessionCard = ({ session }: { session: Session }) => {
+  
+  // --- DÉBUT DE LA CORRECTION DE LA DATE ---
+  let formattedDate = 'Date invalide';
+  try {
+    let dateObject;
+    // Cas 1: La date est un objet Timestamp de Firebase (recommandé)
+    if (session.date && typeof (session.date as any).toDate === 'function') {
+      dateObject = (session.date as any).toDate();
+    } else {
+      // Cas 2: La date est une chaîne de caractères (ex: "2024-07-20")
+      dateObject = new Date(session.date);
+    }
+    
+    // On vérifie que la date créée est valide avant de la formater
+    if (dateObject instanceof Date && !isNaN(dateObject.valueOf())) {
+      formattedDate = format(dateObject, 'd MMMM yyyy', { locale: fr });
+    }
+  } catch (error) {
+    console.error("Erreur de formatage de date pour la session:", session.id, error);
+  }
+  // --- FIN DE LA CORRECTION DE LA DATE ---
 
   return (
-    <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="pb-4">
-        {session.gameImageUrl ? (
-          <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
-            <Image
-              src={session.gameImageUrl}
-              alt={`Boîte du jeu ${session.gameName}`}
-              layout="fill"
-              objectFit="cover"
-              data-ai-hint="board game box"
-            />
-          </div>
-        ) : (
-           <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted flex items-center justify-center">
-            <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-          </div>
-        )}
-        <CardTitle className="text-2xl flex items-center gap-2">
-          <Gamepad2 className="h-6 w-6 text-primary shrink-0" />
-          {session.gameName}
-        </CardTitle>
-        <CardDescription>Organisé par {session.host.name}</CardDescription>
-        {/* {session.category && <Badge variant="outline" className="mt-1 w-fit">{session.category}</Badge>} Supprimé */}
-      </CardHeader>
-      <CardContent className="flex-grow space-y-3">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <CalendarDays className="mr-2 h-4 w-4 text-primary" />
-          <span>{formattedDate} à {formattedTime}</span>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105">
+      <div className="relative h-48 w-full">
+        {/* --- DÉBUT DE LA CORRECTION DE L'IMAGE --- */}
+        <Image
+          src={session.imageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(session.game)}`}
+          alt={`Image pour le jeu ${session.game}`}
+          fill // Remplace layout="fill" et objectFit="cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Aide Next.js à optimiser l'image
+          className="object-cover" // Assure que l'image couvre la zone
+        />
+        {/* --- FIN DE LA CORRECTION DE L'IMAGE --- */}
+      </div>
+      <div className="p-4">
+        <h3 className="text-lg font-bold truncate">{session.title}</h3>
+        <p className="text-sm text-gray-600 mb-2">{session.game}</p>
+        <div className="space-y-2 text-sm text-gray-700">
+          <p className="flex items-center">
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            {/* On utilise notre date formatée et sécurisée */}
+            {formattedDate} 
+          </p>
+          <p className="flex items-center">
+            <ClockIcon className="h-4 w-4 mr-2" />
+            {session.time}
+          </p>
+          <p className="flex items-center">
+            <MapPinIcon className="h-4 w-4 mr-2" />
+            {session.location}
+          </p>
+          <p className="flex items-center">
+            <UsersIcon className="h-4 w-4 mr-2" />
+            {session.participants ? `${session.participants.length} / ${session.slots} participants` : `0 / ${session.slots} participants`}
+          </p>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="mr-2 h-4 w-4 text-primary" />
-          <span>{session.location}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Users className="mr-2 h-4 w-4 text-primary" />
-          <span>
-            {session.currentPlayers.length} / {session.maxPlayers} joueurs
-          </span>
-        </div>
-        {session.duration && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Timer className="mr-2 h-4 w-4 text-primary" />
-            <span>Durée : {session.duration}</span>
-          </div>
-        )}
-        {session.description && (
-            <p className="text-sm text-foreground line-clamp-2 pt-2">{session.description}</p>
-        )}
-      </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" prefetch>
-          <Link href={`/sessions/${session.id}`}>
-            Voir les Détails
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
-}
+};
