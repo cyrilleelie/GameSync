@@ -1,49 +1,78 @@
-// Fichier : app/components/sessions/sessions-page-client.tsx (NOUVEAU FICHIER)
+// Fichier : src/components/sessions/sessions-page-client.tsx (AMÉLIORÉ)
 
 'use client';
 
 import { useState, useEffect } from 'react';
+// === NOUVEAU : On importe la fonction "limit" de firestore ===
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { SessionCard } from './session-card'; // Le chemin est maintenant './session-card'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'; 
+import { SessionCard } from './session-card';
 import { Session } from '@/types';
+import { Loader2 } from 'lucide-react';
 
-const SessionsPageClient = () => { // Renommé pour plus de clarté
+// === NOUVEAU : On définit les props que le composant peut recevoir ===
+interface SessionsPageClientProps {
+  limit?: number; // Le '?' signifie que la prop est optionnelle
+}
+
+// === NOUVEAU : On accepte les props, en particulier "limit" ===
+const SessionsPageClient = ({ limit: queryLimit }: SessionsPageClientProps) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessionsFromFirebase = async () => {
       try {
-        console.log("CLIENT: 1. Lancement de la récupération Firebase...");
-        const sessionsQuery = query(collection(db, 'sessions'), orderBy('date'));
-        const querySnapshot = await getDocs(sessionsQuery);
+        console.log(`DÉBUT: Récupération de ${queryLimit ? queryLimit : 'toutes les'} sessions...`);
 
-        const sessionsList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Session[];
+        // On construit la requête de base
+        const baseQuery = query(collection(db, 'sessions'), orderBy('createdAt', 'desc'));
+        
+        // === NOUVEAU : On applique la limite seulement si elle est fournie ===
+        const finalQuery = queryLimit ? query(baseQuery, limit(queryLimit)) : baseQuery;
 
-        console.log("CLIENT: 2. Données formatées:", sessionsList);
+        const querySnapshot = await getDocs(finalQuery);
+        
+        const sessionsList = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                dateTime: data.dateTime?.toDate ? data.dateTime.toDate() : new Date(),
+            } as Session;
+        });
+        
+        console.log("SUCCÈS: Sessions récupérées :", sessionsList);
         setSessions(sessionsList);
 
-      } catch (error) {
-        console.error("CLIENT: ERREUR Firebase:", error);
+      } catch (err) {
+        console.error("ERREUR Firestore:", err);
+        setError("Impossible de charger les sessions.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSessions();
-  }, []);
+    fetchSessionsFromFirebase();
+  }, []); // Le useEffect ne change pas
 
-  // La logique d'affichage est la même, mais sans le titre principal
+  // Le reste du composant (affichage du chargement, erreurs, etc.) est identique
   if (loading) {
-    return <p className="text-center text-gray-500 mt-8">Chargement des sessions...</p>;
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Chargement des sessions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="text-center text-destructive p-8">{error}</p>;
   }
 
   if (sessions.length === 0) {
-    return <p className="text-center text-gray-500 mt-8">Aucune session trouvée dans Firebase.</p>;
+    return <p className="text-center text-muted-foreground p-8">Aucune session de jeu n'a été trouvée.</p>
   }
 
   return (

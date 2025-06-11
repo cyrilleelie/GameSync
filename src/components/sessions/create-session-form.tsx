@@ -1,31 +1,18 @@
+// Fichier : src/components/sessions/create-session-form.tsx (MIS À JOUR)
 
 'use client';
 
+// Imports existants
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { CalendarIcon, Gamepad2, MapPin, Users, Info, Clock, Loader2, Timer, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -33,12 +20,16 @@ import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { mockBoardGames, getBoardGameByName, mockSessions } from '@/lib/data';
+import { mockBoardGames, getBoardGameByName } from '@/lib/data'; // On garde vos données mockées pour les jeux pour l'instant
 import { useAuth } from '@/contexts/auth-context';
 import type { GameSession } from '@/lib/types';
 
-const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
+// ===== NOUVEAUX IMPORTS FIREBASE =====
+import { db } from '@/lib/firebase';
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
+
+// Le schéma Zod reste identique
 const formSchema = z.object({
   gameName: z.string({ required_error: 'Veuillez sélectionner un jeu.'}).min(1, { message: 'Veuillez sélectionner un jeu.' }),
   location: z.string().min(3, { message: 'Le lieu doit comporter au moins 3 caractères.' }),
@@ -55,16 +46,17 @@ interface CreateSessionFormProps {
 }
 
 export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
+  // Tous vos hooks existants sont conservés
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isGameComboboxOpen, setIsGameComboboxOpen] = useState(false);
-
   const searchParams = useSearchParams();
   const initialGameNameFromQuery = searchParams.get('gameName');
 
+  // Toute la logique de `useEffect` et `useForm` est conservée
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -84,7 +76,6 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
       maxPlayers: 4,
       duration: '',
       description: '',
-      // dateTime: new Date(), // Consider a default or leave undefined for user to pick
     },
   });
   
@@ -100,122 +91,107 @@ export function CreateSessionForm({ sessionToEdit }: CreateSessionFormProps) {
           description: sessionToEdit.description || '',
         });
       } else {
-         // If creating a new session and gameName from query is available,
-         // ensure it's set in the form if it wasn't already by defaultValues
-         // or if the user cleared it.
-         const currentFormGameName = form.getValues('gameName');
-         if (initialGameNameFromQuery && currentFormGameName !== initialGameNameFromQuery) {
-           form.setValue('gameName', initialGameNameFromQuery);
-         }
+        const currentFormGameName = form.getValues('gameName');
+        if (initialGameNameFromQuery && currentFormGameName !== initialGameNameFromQuery) {
+          form.setValue('gameName', initialGameNameFromQuery);
+        }
       }
     }
   }, [sessionToEdit, form, isMounted, initialGameNameFromQuery ]);
 
 
+  // ===================================================================
+  // ===== ON MODIFIE UNIQUEMENT LA FONCTION onSubmit CI-DESSOUS =====
+  // ===================================================================
   async function onSubmit(values: SessionFormValues) {
-    setIsSubmitting(true);
+      setIsSubmitting(true);
 
-    if (!currentUser) {
-      toast({
-        title: "Utilisateur non connecté",
-        description: "Vous devez être connecté pour " + (sessionToEdit ? "modifier" : "créer") + " une session.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (sessionToEdit && sessionToEdit.host.id !== currentUser.id) {
-        toast({
-            title: "Action non autorisée",
-            description: "Vous n'êtes pas l'hôte de cette session.",
-            variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
-
-    const selectedGame = getBoardGameByName(values.gameName);
-    const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
-    
-    try {
-      const existingSessionsString = localStorage.getItem(LOCALSTORAGE_SESSIONS_KEY);
-      let sessionsToUpdate: GameSession[] = [];
-      if (existingSessionsString) {
-        const parsedSessions = JSON.parse(existingSessionsString);
-        if (Array.isArray(parsedSessions)) {
-           sessionsToUpdate = parsedSessions.map((s: any) => ({...s, dateTime: new Date(s.dateTime)}));
-        } else {
-           sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); 
-        }
-      } else {
-        sessionsToUpdate = mockSessions.map(s => ({...s, dateTime: new Date(s.dateTime)})); 
+      if (!currentUser) {
+          toast({
+          title: "Utilisateur non connecté",
+          description: "Vous devez être connecté pour " + (sessionToEdit ? "modifier" : "créer") + " une session.",
+          variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
       }
 
-      if (sessionToEdit) { 
-        const sessionIndex = sessionsToUpdate.findIndex(s => s.id === sessionToEdit.id);
-        if (sessionIndex > -1) {
-          sessionsToUpdate[sessionIndex] = {
-            ...sessionsToUpdate[sessionIndex],
-            gameName: values.gameName,
-            gameImageUrl: gameImageUrl,
-            dateTime: values.dateTime,
-            location: values.location,
-            maxPlayers: values.maxPlayers,
-            duration: values.duration, 
-            description: values.description,
-          };
+      if (sessionToEdit && sessionToEdit.host.id !== currentUser.id) { // On utilise bien .id ici, c'est correct
           toast({
-            title: 'Session Modifiée !',
-            description: `Votre session pour ${values.gameName} a été modifiée avec succès.`,
-            variant: 'default',
+              title: "Action non autorisée",
+              description: "Vous n'êtes pas l'hôte de cette session.",
+              variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+      }
+
+      const selectedGame = getBoardGameByName(values.gameName);
+      const gameImageUrl = selectedGame ? selectedGame.imageUrl : 'https://placehold.co/300x200.png?text=Image+Non+Disponible';
+      
+      try {
+          if (sessionToEdit) {
+          // La logique de modification ne change pas car elle n'utilise pas directement currentUser
+          if (!sessionToEdit.id) throw new Error("ID de session manquant pour la modification.");
+          
+          const sessionDocRef = doc(db, 'sessions', sessionToEdit.id);
+          await updateDoc(sessionDocRef, {
+              ...values,
+              gameImageUrl: gameImageUrl,
+              updatedAt: serverTimestamp(),
+          });
+
+          toast({
+              title: 'Session Modifiée !',
+              description: `Votre session pour ${values.gameName} a été mise à jour.`,
           });
           router.push(`/sessions/${sessionToEdit.id}`);
-        } else {
-          throw new Error("Session à modifier non trouvée.");
-        }
-      } else { 
-        const newSessionId = 's' + Date.now();
-        const newSession: GameSession = {
-          id: newSessionId,
-          gameName: values.gameName,
-          gameImageUrl: gameImageUrl,
-          dateTime: values.dateTime,
-          location: values.location,
-          maxPlayers: values.maxPlayers,
-          currentPlayers: [currentUser], 
-          host: currentUser,
-          duration: values.duration, 
-          description: values.description,
-        };
-        sessionsToUpdate.push(newSession);
-        toast({
-          title: 'Session Créée !',
-          description: `Votre session pour ${values.gameName} a été créée avec succès.`,
-          variant: 'default',
-        });
-        router.push('/sessions');
-      }
-      
-      localStorage.setItem(LOCALSTORAGE_SESSIONS_KEY, JSON.stringify(sessionsToUpdate));
-      router.refresh(); 
 
-    } catch (error) {
-      console.error("Failed to save session to localStorage", error);
-      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-      toast({
-        title: 'Erreur de Sauvegarde',
-        description: `Impossible d'enregistrer la session localement. ${errorMessage}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+          } else {
+          // --- LOGIQUE DE CRÉATION CORRIGÉE ---
+          await addDoc(collection(db, 'sessions'), {
+              ...values,
+              gameImageUrl: gameImageUrl,
+              host: {
+                  id: currentUser.id, // Correction de .uid en .id
+                  name: currentUser.displayName || currentUser.email,
+                  avatarUrl: currentUser.photoURL || '',
+              },
+              currentPlayers: [
+                  {
+                      id: currentUser.id, // Correction de .uid en .id
+                      name: currentUser.displayName || currentUser.email,
+                      avatarUrl: currentUser.photoURL || '',
+                  }
+              ],
+              createdAt: serverTimestamp(),
+          });
+          
+          toast({
+              title: 'Session Créée !',
+              description: `Votre session pour ${values.gameName} a été créée avec succès.`,
+          });
+          router.push('/sessions');
+          }
+          
+          router.refresh(); 
+
+      } catch (error) {
+          console.error("Erreur de sauvegarde Firestore", error);
+          const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+          toast({
+          title: 'Erreur de Sauvegarde',
+          description: `Impossible d'enregistrer la session. ${errorMessage}`,
+          variant: 'destructive',
+          });
+      } finally {
+          setIsSubmitting(false);
+      }
   }
-  
-  // Updated loading condition to handle pre-fill from query param
+  // ============================================================
+  // ===== FIN DE LA MODIFICATION DE LA FONCTION onSubmit =====
+  // ============================================================
+
   if (!isMounted && (sessionToEdit || initialGameNameFromQuery && !form.getValues('gameName'))) { 
     return (
         <div className="flex items-center justify-center p-8">
