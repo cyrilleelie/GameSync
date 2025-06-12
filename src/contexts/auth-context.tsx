@@ -1,196 +1,122 @@
-
 'use client';
 
-import type { Player, UserRole } from '@/lib/types'; // Import UserRole
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockPlayers } from '@/lib/data'; 
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, fetchSignInMethodsForEmail, linkWithCredential, User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
+export type AuthUser = User;
+
 interface AuthContextType {
-  currentUser: Player | null;
-  setCurrentUser: Dispatch<SetStateAction<Player | null>>;
-  login: (email: string, pass: string) => Promise<boolean>;
-  logout: () => void;
-  register: (name: string, email: string, pass: string) => Promise<boolean>;
+  currentUser: AuthUser | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   loginWithFacebook: () => Promise<boolean>;
-  updateUserProfile: (updatedData: Partial<Player>) => Promise<boolean>;
-  loading: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<Player | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    setLoading(true);
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        const parsedUser: Player = JSON.parse(storedUser);
-        // Ensure role is present, default to 'Joueur' if missing (for backward compatibility with old stored users)
-        if (!parsedUser.role) {
-          parsedUser.role = 'Joueur';
-        }
-        // Ensure ownedGames and wishlist are initialized if missing
-        if (!parsedUser.ownedGames) {
-          parsedUser.ownedGames = [];
-        }
-        if (!parsedUser.wishlist) {
-          parsedUser.wishlist = [];
-        }
-        setCurrentUser(parsedUser);
-      }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem('currentUser'); // Clear corrupted data
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, _pass: string): Promise<boolean> => {
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const user = mockPlayers.find(p => p.email === email);
-    if (user) {
-      // Ensure role is present from mockPlayers, default if somehow missing
-      const userToLogin: Player = { 
-        ...user, 
-        role: user.role || 'Joueur',
-        ownedGames: user.ownedGames || [],
-        wishlist: user.wishlist || [],
-       };
-      setCurrentUser(userToLogin);
-      localStorage.setItem('currentUser', JSON.stringify(userToLogin));
-      setLoading(false);
-      router.push('/');
-      return true;
-    }
-    setLoading(false);
+  const handleAuthSuccess = (user: User) => {
+    toast({ title: "Connexion réussie", description: `Bienvenue, ${user.displayName || user.email} !` });
+    router.push('/');
+    return true;
+  };
+
+  const handleAuthError = (error: any, providerName: string) => {
+    console.error(`Erreur de connexion ${providerName}:`, error);
+    toast({ title: "Échec de la connexion", description: "Une erreur est survenue.", variant: "destructive" });
     return false;
   };
 
-  const register = async (name: string, email: string, _pass: string): Promise<boolean> => {
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const existingUser = mockPlayers.find(p => p.email === email);
-    if (existingUser) {
-      setLoading(false);
-      return false; 
-    }
-    const newUser: Player = {
-      id: String(mockPlayers.length + 1 + Date.now()), // More unique ID for mock
-      name,
-      email,
-      avatarUrl: `https://placehold.co/100x100.png?text=${name.substring(0,1).toUpperCase()}`,
-      gamePreferences: [],
-      ownedGames: [], 
-      wishlist: [], // Initialize wishlist for new users
-      availability: 'Non spécifiée',
-      role: 'Joueur', // Default role for new users
-    };
-    setCurrentUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    // Optionally, add to mockPlayers in memory if other parts of the app read from it directly
-    // mockPlayers.push(newUser); 
-    setLoading(false);
-    router.push('/');
-    return true;
-  };
-
-  const loginWithProvider = async (userEmail: string, defaultRole: UserRole = 'Joueur'): Promise<boolean> => {
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 700));
-    let user = mockPlayers.find(p => p.email === userEmail);
-    
-    if (user) {
-      const userToLogin: Player = { 
-        ...user, 
-        role: user.role || defaultRole,
-        ownedGames: user.ownedGames || [],
-        wishlist: user.wishlist || [],
-       };
-      setCurrentUser(userToLogin);
-      localStorage.setItem('currentUser', JSON.stringify(userToLogin));
-    } else {
-      // If user not in mock, create a new one for simulation
-      const nameFromEmail = userEmail.split('@')[0];
-      const newUser: Player = {
-        id: String(mockPlayers.length + 1 + Date.now()),
-        name: nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1),
-        email: userEmail,
-        avatarUrl: `https://placehold.co/100x100.png?text=${nameFromEmail.substring(0,1).toUpperCase()}`,
-        gamePreferences: [],
-        ownedGames: [],
-        wishlist: [], // Initialize for new provider users
-        availability: 'Non spécifiée',
-        role: defaultRole,
-      };
-      setCurrentUser(newUser);
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
-      // mockPlayers.push(newUser); // Optionally add to in-memory mock
-    }
-    setLoading(false);
-    router.push('/');
-    return true;
-  }
-
   const loginWithGoogle = async (): Promise<boolean> => {
-    return loginWithProvider('alice@example.com', 'Administrateur'); // Alice is admin
+    console.log("AuthContext: Tentative de connexion Google...");
+    const provider = new GoogleAuthProvider();
+    try {
+      console.log("AuthContext: Appel de signInWithPopup...");
+      const result = await signInWithPopup(auth, provider);
+      console.log("AuthContext: signInWithPopup a RÉUSSI. Utilisateur:", result.user.displayName);
+      return handleAuthSuccess(result.user);
+    } catch (error) {
+      console.error("AuthContext: signInWithPopup a ÉCHOUÉ. Erreur attrapée:", error);
+      return handleAuthError(error, 'Google');
+    }
   };
 
   const loginWithFacebook = async (): Promise<boolean> => {
-    return loginWithProvider('bob@example.com'); // Bob is Joueur
-  };
-
-  const updateUserProfile = async (updatedData: Partial<Player>): Promise<boolean> => {
-    if (!currentUser) return false;
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const updatedUser: Player = { 
-      ...currentUser, 
-      ...updatedData,
-      role: updatedData.role || currentUser.role, 
-      ownedGames: updatedData.ownedGames ? [...updatedData.ownedGames] : [...(currentUser.ownedGames || [])],
-      wishlist: updatedData.wishlist ? [...updatedData.wishlist] : [...(currentUser.wishlist || [])],
-    };
-    setCurrentUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    
-    const userIndex = mockPlayers.findIndex(p => p.id === currentUser.id);
-    if (userIndex > -1) {
-      mockPlayers[userIndex] = updatedUser;
+    console.log("AuthContext: Tentative de connexion Facebook...");
+    const provider = new FacebookAuthProvider();
+    try {
+      console.log("AuthContext: Appel de signInWithPopup...");
+      const result = await signInWithPopup(auth, provider);
+      console.log("AuthContext: signInWithPopup a RÉUSSI. Utilisateur:", result.user.displayName);
+      return handleAuthSuccess(result.user);
+    } catch (error: any) {
+        if (error.code === 'auth/account-exists-with-different-credential') {
+            const email = error.customData?.email;
+            if (!email) return handleAuthError(error, 'Facebook');
+            const methods = await fetchSignInMethodsForEmail(auth, email);
+            if (methods[0] === 'google.com') {
+                toast({ title: 'Compte existant détecté', description: "Veuillez vous connecter avec Google pour lier votre compte Facebook.", duration: 7000 });
+                const googleProvider = new GoogleAuthProvider();
+                try {
+                    const googleResult = await signInWithPopup(auth, googleProvider);
+                    const facebookCredential = FacebookAuthProvider.credentialFromError(error);
+                    if (facebookCredential) {
+                        await linkWithCredential(googleResult.user, facebookCredential);
+                        return handleAuthSuccess(googleResult.user);
+                    }
+                } catch (linkError) {
+                    return handleAuthError(linkError, 'Google (liaison)');
+                }
+            }
+            return false;
+        } else {
+            return handleAuthError(error, 'Facebook');
+        }
     }
-
-    setLoading(false);
-    return true;
   };
 
-  const logout = () => {
-    setLoading(true);
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('gameSync_skipGameRemoveConfirmation'); // Reset preference on logout
-    setLoading(false);
+  const logout = async () => {
+    await signOut(auth);
+    toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
     router.push('/login');
   };
 
+  const login = async (email: string, password: string): Promise<boolean> => {
+    toast({ title: "Fonctionnalité non implémentée", description: "La connexion par email arrive bientôt." });
+    return false;
+  };
+
+  const value = { currentUser, loading, login, loginWithGoogle, loginWithFacebook, logout };
+
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, login, logout, register, loginWithGoogle, loginWithFacebook, updateUserProfile, loading }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth doit être utilisé à l\'intérieur d\'un AuthProvider');
   }
   return context;
 };

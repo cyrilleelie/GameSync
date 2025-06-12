@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { Loader2, LogIn } from 'lucide-react';
 
-// Simple Google Icon SVG
+// Icône Google SVG
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="mr-2">
     <path d="M17.64,9.2045c0-.6382-.0573-1.2518-.1646-1.8409H9V10.84h4.8436c-.2086,1.3418-.8409,2.4818-1.7673,3.2836V16.36h2.5536C16.58,14.82,17.64,12.28,17.64,9.2045Z" fill="#4285F4"/>
@@ -22,68 +21,45 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Simple Facebook Icon SVG
-const FacebookIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 fill-current">
-    <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" fill="#1877F2"/>
-  </svg>
-);
+// Icône Facebook SVG
+// const FacebookIcon = () => (
+//   <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 fill-current">
+//     <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" fill="#1877F2"/>
+//   </svg>
+// );
 
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loginWithGoogle, loginWithFacebook, loading: authLoading } = useAuth();
+  // On récupère toutes les fonctions du contexte, y compris `loading`
+  const { login, loginWithGoogle, loginWithFacebook, loading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isMounted, setIsMounted] = useState(false);
-
+  
+  // Redirige si l'utilisateur est déjà connecté
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    if (currentUser) {
+      router.push('/');
+    }
+  }, [currentUser, router]);
 
+  // Fonction pour la soumission du formulaire email/mot de passe (simulée)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast({ title: "Champs requis", description: "Veuillez entrer votre email et mot de passe.", variant: "destructive" });
-      return;
-    }
-    const success = await login(email, password);
-    if (success) {
-      toast({ title: "Connexion réussie", description: "Bienvenue !" });
-      // router.push('/'); // Redirect is handled in AuthContext now
-    } else {
-      toast({ title: "Échec de la connexion", description: "Email ou mot de passe incorrect.", variant: "destructive" });
-    }
+    await login(email, password);
   };
 
+  // Fonction pour la connexion Google (réelle)
   const handleGoogleLogin = async () => {
-    const success = await loginWithGoogle();
-    if (success) {
-      toast({ title: "Connexion Google réussie", description: "Bienvenue !" });
-      // router.push('/'); // Redirect is handled in AuthContext now
-    } else {
-      toast({ title: "Échec de la connexion Google", description: "Une erreur est survenue lors de la connexion avec Google (simulation).", variant: "destructive" });
-    }
+    console.log('--- BOUTON GOOGLE CLIQUÉ --- Le gestionnaire d\'événement fonctionne.');
+    await loginWithGoogle();
   };
-
-  const handleFacebookLogin = async () => {
-    const success = await loginWithFacebook();
-    if (success) {
-      toast({ title: "Connexion Facebook réussie", description: "Bienvenue !" });
-      // router.push('/'); // Redirect is handled in AuthContext now
-    } else {
-      toast({ title: "Échec de la connexion Facebook", description: "Une erreur est survenue lors de la connexion avec Facebook (simulation).", variant: "destructive" });
-    }
-  };
-
-  if (!isMounted) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  
+  // Fonction pour la connexion Facebook (simulée)
+  // const handleFacebookLogin = async () => {
+  //   await loginWithFacebook();
+  // };
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -147,10 +123,10 @@ export default function LoginPage() {
               {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               {authLoading ? 'Connexion...' : 'Se connecter avec Google'}
             </Button>
-            <Button variant="outline" className="w-full text-[#1877F2] hover:text-[#1877F2]/90 hover:bg-accent" onClick={handleFacebookLogin} disabled={authLoading}>
+            {/* <Button variant="outline" className="w-full text-[#1877F2] hover:text-[#1877F2]/90 hover:bg-accent" onClick={handleFacebookLogin} disabled={authLoading}>
               {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FacebookIcon />}
               {authLoading ? 'Connexion...' : 'Se connecter avec Facebook'}
-            </Button>
+            </Button> */}
           </div>
           <p className="mt-4 text-sm text-center text-muted-foreground">
             Pas encore de compte ?{' '}
