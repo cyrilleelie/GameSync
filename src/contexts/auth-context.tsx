@@ -1,19 +1,21 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, fetchSignInMethodsForEmail, linkWithCredential, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User, updateProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import type { Player } from '@/lib/types';
 
 export type AuthUser = User;
 
 interface AuthContextType {
   currentUser: AuthUser | null;
+  userProfile: Player | null; // Profil de la base de données
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
-  loginWithFacebook: () => Promise<boolean>;
+  updateUserProfileData: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -21,20 +23,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [userProfile, setUserProfile] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserProfile(userDocSnap.data() as Player);
+        } else {
+            try {
+                const newProfileData = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || '',
+                    photoURL: user.photoURL || '',
+                    createdAt: serverTimestamp(),
+                    bio: '',
+                    gamePreferences: [],
+                    ownedGames: [],
+                    wishlist: [],
+                    availability: '',
+                };
+                await setDoc(userDocRef, newProfileData);
+                setUserProfile(newProfileData as Player);
+            } catch (error) {
+                console.error("Erreur lors de la création du profil utilisateur:", error);
+            }
+        }
+      } else {
+        setCurrentUser(null);
+        setUserProfile(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const handleAuthSuccess = (user: User) => {
-    toast({ title: "Connexion réussie", description: `Bienvenue, ${user.displayName || user.email} !` });
     router.push('/');
     return true;
   };
@@ -44,52 +75,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Échec de la connexion", description: "Une erreur est survenue.", variant: "destructive" });
     return false;
   };
+  
+  const updateUserProfileData = async (data: { displayName?: string; photoURL?: string }) => {
+    if (auth.currentUser) {
+        try {
+            await updateProfile(auth.currentUser, data);
+            setCurrentUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser));
+            // Mettre à jour également le profil Firestore si nécessaire
+            const userDocRef = doc(db, 'users', auth.currentUser.uid);
+            await setDoc(userDocRef, { displayName: data.displayName, photoURL: data.photoURL }, { merge: true });
 
-  const loginWithGoogle = async (): Promise<boolean> => {
-    console.log("AuthContext: Tentative de connexion Google...");
-    const provider = new GoogleAuthProvider();
-    try {
-      console.log("AuthContext: Appel de signInWithPopup...");
-      const result = await signInWithPopup(auth, provider);
-      console.log("AuthContext: signInWithPopup a RÉUSSI. Utilisateur:", result.user.displayName);
-      return handleAuthSuccess(result.user);
-    } catch (error) {
-      console.error("AuthContext: signInWithPopup a ÉCHOUÉ. Erreur attrapée:", error);
-      return handleAuthError(error, 'Google');
+            toast({ title: "Profil d'authentification mis à jour." });
+        } catch (error) {
+            toast({ title: "Erreur", description: "Impossible de mettre à jour le profil.", variant: "destructive" });
+            throw error;
+        }
+    } else {
+        throw new Error("Aucun utilisateur n'est connecté.");
     }
   };
 
-  const loginWithFacebook = async (): Promise<boolean> => {
-    console.log("AuthContext: Tentative de connexion Facebook...");
-    const provider = new FacebookAuthProvider();
+  const loginWithGoogle = async (): Promise<boolean> => {
+    const provider = new GoogleAuthProvider();
     try {
-      console.log("AuthContext: Appel de signInWithPopup...");
       const result = await signInWithPopup(auth, provider);
-      console.log("AuthContext: signInWithPopup a RÉUSSI. Utilisateur:", result.user.displayName);
       return handleAuthSuccess(result.user);
-    } catch (error: any) {
-        if (error.code === 'auth/account-exists-with-different-credential') {
-            const email = error.customData?.email;
-            if (!email) return handleAuthError(error, 'Facebook');
-            const methods = await fetchSignInMethodsForEmail(auth, email);
-            if (methods[0] === 'google.com') {
-                toast({ title: 'Compte existant détecté', description: "Veuillez vous connecter avec Google pour lier votre compte Facebook.", duration: 7000 });
-                const googleProvider = new GoogleAuthProvider();
-                try {
-                    const googleResult = await signInWithPopup(auth, googleProvider);
-                    const facebookCredential = FacebookAuthProvider.credentialFromError(error);
-                    if (facebookCredential) {
-                        await linkWithCredential(googleResult.user, facebookCredential);
-                        return handleAuthSuccess(googleResult.user);
-                    }
-                } catch (linkError) {
-                    return handleAuthError(linkError, 'Google (liaison)');
-                }
-            }
-            return false;
-        } else {
-            return handleAuthError(error, 'Facebook');
-        }
+    } catch (error) {
+      return handleAuthError(error, 'Google');
     }
   };
 
@@ -99,12 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    toast({ title: "Fonctionnalité non implémentée", description: "La connexion par email arrive bientôt." });
-    return false;
-  };
-
-  const value = { currentUser, loading, login, loginWithGoogle, loginWithFacebook, logout };
+  const value = { currentUser, userProfile, loading, loginWithGoogle, updateUserProfileData, logout };
 
   return (
     <AuthContext.Provider value={value}>
