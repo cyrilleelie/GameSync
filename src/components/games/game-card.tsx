@@ -1,8 +1,9 @@
+// Fichier : src/components/games/game-card.tsx (VERSION FINALE AVEC LOGIQUE WISHLIST)
 
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { BoardGame, Player } from '@/lib/types';
+import type { BoardGame } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,317 +12,114 @@ import { Button } from '@/components/ui/button';
 import { Gamepad2, Archive, ArchiveX, Loader2, CalendarPlus, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { cn } from '@/lib/utils';
-import { getTagCategoryColorClass } from '@/lib/tag-categories'; 
+import { getTagCategoryColorClass } from '@/lib/tag-categories';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GameCardProps {
   game: BoardGame;
   showCreateSessionButton?: boolean;
 }
 
-function GameCardComponent({ game, showCreateSessionButton = false }: GameCardProps) {
-  const { currentUser, updateUserProfile, loading: authLoading } = useAuth();
+export function GameCard({ 
+    game, 
+    showCreateSessionButton = false,
+}: GameCardProps) {
+  
+  const { userProfile, refreshUserProfile } = useAuth();
   const { toast } = useToast();
-  const [isProcessingOwned, setIsProcessingOwned] = useState(false);
-  const [isProcessingWishlist, setIsProcessingWishlist] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [dontAskAgain, setDontAskAgain] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const isOwned = useMemo(() => {
-    if (!currentUser || !currentUser.ownedGames) return false;
-    return currentUser.ownedGames.includes(game.name);
-  }, [currentUser, game.name]);
+  const isOwned = useMemo(() => userProfile?.ownedGames?.includes(game.name) ?? false, [userProfile?.ownedGames, game.name]);
+  const isInWishlist = useMemo(() => userProfile?.wishlist?.includes(game.name) ?? false, [userProfile?.wishlist, game.name]);
 
-  const isInWishlist = useMemo(() => {
-    if (!currentUser || !currentUser.wishlist) return false;
-    return currentUser.wishlist.includes(game.name);
-  }, [currentUser, game.name]);
-
-  const handleToggleOwnedGame = async (action: 'add' | 'remove') => {
-    if (!currentUser) {
-      toast({
-        title: "Connexion Requise",
-        description: "Veuillez vous connecter pour gérer votre collection.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (authLoading || isProcessingOwned) return;
-
-    setIsProcessingOwned(true);
-    const currentOwnedGames = currentUser.ownedGames || [];
-    let newOwnedGames: string[];
-    let successMessage: string;
-    let toastTitle: string;
+  const handleToggleList = async (listName: 'ownedGames' | 'wishlist') => {
+    if (!userProfile) { toast({ title: "Connexion requise", variant: "destructive" }); return; }
+    setIsProcessing(true);
     
-    const updatedProfileData: Partial<Player> = {};
-
-    if (action === 'remove') {
-      newOwnedGames = currentOwnedGames.filter(g => g !== game.name);
-      updatedProfileData.ownedGames = newOwnedGames;
-      toastTitle = "Jeu Retiré";
-      successMessage = `"${game.name}" a été retiré de votre collection.`;
-    } else { 
-      newOwnedGames = [...currentOwnedGames, game.name];
-      updatedProfileData.ownedGames = newOwnedGames;
-      toastTitle = "Jeu Ajouté";
-      successMessage = `"${game.name}" a été ajouté à votre collection !`;
-
-      const currentWishlist = currentUser.wishlist || [];
-      if (currentWishlist.includes(game.name)) {
-        const newWishlist = currentWishlist.filter(gName => gName !== game.name);
-        updatedProfileData.wishlist = newWishlist;
-        // toastTitle = "Jeu Ajouté & Retiré de la Wishlist"; // Already handled by successMessage update below
-        successMessage = `"${game.name}" a été ajouté à votre collection et retiré de votre wishlist.`;
+    const userDocRef = doc(db, 'users', userProfile.uid);
+    const isInList = listName === 'ownedGames' ? isOwned : isInWishlist;
+    
+    try {
+      // --- DÉBUT DE LA LOGIQUE AMÉLIORÉE ---
+      if (listName === 'ownedGames') {
+        if (isOwned) {
+          // Retirer de la collection
+          await updateDoc(userDocRef, { ownedGames: arrayRemove(game.name) });
+          toast({ title: 'Retiré de la collection' });
+        } else {
+          // Ajouter à la collection
+          const updates: { ownedGames: any; wishlist?: any } = {
+            ownedGames: arrayUnion(game.name)
+          };
+          // Si le jeu est dans la wishlist, on le retire en même temps
+          if (isInWishlist) {
+            updates.wishlist = arrayRemove(game.name);
+            toast({ title: 'Jeu ajouté !', description: 'Il a aussi été retiré de votre wishlist.'});
+          } else {
+            toast({ title: 'Ajouté à la collection !' });
+          }
+          await updateDoc(userDocRef, updates);
+        }
+      } else { // C'est pour la wishlist
+        const operation = isInWishlist ? arrayRemove : arrayUnion;
+        await updateDoc(userDocRef, { wishlist: operation(game.name) });
+        toast({ title: isInWishlist ? 'Retiré de la wishlist' : 'Ajouté à la wishlist' });
       }
-    }
+      // --- FIN DE LA LOGIQUE AMÉLIORÉE ---
+      
+      // On rafraîchit le profil dans toute l'application
+      await refreshUserProfile();
 
-    const success = await updateUserProfile(updatedProfileData);
-
-    if (success) {
-      toast({
-        title: toastTitle,
-        description: successMessage,
-      });
-    } else {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour votre profil. Veuillez réessayer.",
-        variant: "destructive",
-      });
-    }
-    setIsProcessingOwned(false);
-    setIsConfirmDialogOpen(false);
-  };
-
-  const handleToggleWishlistGame = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Connexion Requise",
-        description: "Veuillez vous connecter pour gérer votre wishlist.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (authLoading || isProcessingWishlist) return;
-
-    setIsProcessingWishlist(true);
-    const currentWishlist = currentUser.wishlist || [];
-    let newWishlist: string[];
-    let successMessage: string;
-    let toastTitle: string;
-
-    if (isInWishlist) {
-      newWishlist = currentWishlist.filter(gName => gName !== game.name);
-      toastTitle = "Retiré de la Wishlist";
-      successMessage = `"${game.name}" a été retiré de votre wishlist.`;
-    } else {
-      if (isOwned) {
-        toast({
-          title: "Déjà Possédé",
-          description: `"${game.name}" est déjà dans votre collection et ne peut pas être ajouté à la wishlist.`,
-          variant: "default"
-        });
-        setIsProcessingWishlist(false);
-        return;
-      }
-      newWishlist = [...currentWishlist, game.name];
-      toastTitle = "Ajouté à la Wishlist";
-      successMessage = `"${game.name}" a été ajouté à votre wishlist !`;
-    }
-
-    const success = await updateUserProfile({ wishlist: newWishlist });
-
-    if (success) {
-      toast({
-        title: toastTitle,
-        description: successMessage,
-      });
-    } else {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour votre wishlist. Veuillez réessayer.",
-        variant: "destructive",
-      });
-    }
-    setIsProcessingWishlist(false);
-  };
-
-  const handleAttemptRemoveGame = () => {
-    if (localStorage.getItem('gameSync_skipGameRemoveConfirmation') === 'true') {
-      handleToggleOwnedGame('remove');
-    } else {
-      setDontAskAgain(false);
-      setIsConfirmDialogOpen(true);
+    } catch(error) {
+      toast({ title: "Erreur", description: "La mise à jour du profil a échoué.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
+  // Le JSX reste identique
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="pb-4">
-        <div className="relative h-48 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
-          {currentUser && (
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-card/20 p-1 rounded-md">
-              {!isOwned && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleToggleWishlistGame}
-                  disabled={authLoading || isProcessingWishlist}
-                  className={cn(
-                    "hover:bg-pink-500/20",
-                    isInWishlist ? "text-pink-500 hover:text-pink-600" : "text-muted-foreground hover:text-pink-500"
-                  )}
-                  aria-label={isInWishlist ? `Retirer ${game.name} de la wishlist` : `Ajouter ${game.name} à la wishlist`}
-                  title={isInWishlist ? `Retirer ${game.name} de la wishlist` : `Ajouter ${game.name} à la wishlist`}
-                >
-                  {isProcessingWishlist ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Heart className={cn("h-5 w-5", isInWishlist && "fill-current")} />
-                  )}
-                </Button>
-              )}
-              {isOwned ? (
-                <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-                   <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={authLoading || isProcessingOwned}
-                      className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                      onClick={handleAttemptRemoveGame}
-                      aria-label={`Retirer ${game.name} de la collection`}
-                      title={`Retirer ${game.name} de la collection`}
-                    >
-                      {isProcessingOwned && !isConfirmDialogOpen ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <ArchiveX className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Êtes-vous sûr de vouloir retirer "{game.name}" de votre collection ?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="flex items-center space-x-2 py-3">
-                      <Checkbox
-                        id={`dont-ask-again-${game.id}`}
-                        checked={dontAskAgain}
-                        onCheckedChange={(checked) => setDontAskAgain(Boolean(checked))}
-                        disabled={isProcessingOwned}
-                      />
-                      <Label htmlFor={`dont-ask-again-${game.id}`} className="text-sm font-normal text-muted-foreground">
-                        Ne plus me demander (pour cette session)
-                      </Label>
-                    </div>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel
-                        onClick={() => setIsConfirmDialogOpen(false)}
-                        disabled={isProcessingOwned}
-                      >
-                        Annuler
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => {
-                          if (dontAskAgain) {
-                            localStorage.setItem('gameSync_skipGameRemoveConfirmation', 'true');
-                          }
-                          handleToggleOwnedGame('remove');
-                        }}
-                        disabled={isProcessingOwned}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                        {isProcessingOwned && isConfirmDialogOpen ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Supprimer'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleToggleOwnedGame('add')}
-                  disabled={authLoading || isProcessingOwned}
-                  className="text-primary hover:text-primary/80 hover:bg-primary/10"
-                  aria-label={`Ajouter ${game.name} à la collection`}
-                  title={`Ajouter ${game.name} à la collection`}
-                >
-                  {isProcessingOwned ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Archive className="h-5 w-5" />
-                  )}
-                </Button>
-              )}
-              {showCreateSessionButton && currentUser && (
-                <Button asChild variant="ghost" size="icon" className="text-primary hover:text-primary/80 hover:bg-primary/10" aria-label={`Créer une session pour ${game.name}`} title={`Créer une session pour ${game.name}`}>
-                  <Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`} prefetch>
-                    <CalendarPlus className="h-5 w-5" />
-                  </Link>
-                </Button>
-              )}
-            </div>
+        <div className="relative w-full aspect-[4/3] bg-muted rounded-md overflow-hidden flex items-center justify-center">
+          {userProfile && (
+            <TooltipProvider delayDuration={200}>
+              <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+                {!isOwned && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => handleToggleList('wishlist')} disabled={isProcessing} className={cn("hover:bg-pink-500/20", isInWishlist ? "text-pink-500 hover:text-pink-600" : "text-muted-foreground hover:text-pink-500")}>
+                        {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className={cn("h-5 w-5", isInWishlist && "fill-current")} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{isInWishlist ? 'Retirer de la wishlist' : 'Ajouter à la wishlist'}</p></TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => handleToggleList('ownedGames')} disabled={isProcessing} className={cn(isOwned ? "text-destructive hover:text-destructive/80" : "text-primary hover:text-primary/80")}>
+                        {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : (isOwned ? <ArchiveX className="h-5 w-5" /> : <Archive className="h-5 w-5" />)}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{isOwned ? 'Retirer de ma collection' : 'Ajouter à ma collection'}</p></TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           )}
-          {game.imageUrl ? (
-            <Image
-              src={game.imageUrl}
-              alt={`Boîte du jeu ${game.name}`}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover"
-              data-ai-hint="board game box"
-            />
-          ) : (
-             <div className="flex items-center justify-center h-full">
-              <Gamepad2 className="h-16 w-16 text-muted-foreground" />
-            </div>
-          )}
+          {game.imageUrl ? ( <Image src={game.imageUrl} alt={`Boîte du jeu ${game.name}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain" /> ) : ( <Gamepad2 className="h-16 w-16 text-muted-foreground" /> )}
         </div>
-
         <div>
-          <CardTitle className="text-xl flex items-center gap-2">
-            {game.name}
-          </CardTitle>
-          {game.tags && game.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {game.tags.map(tagObj => (
-                <Badge
-                  key={tagObj.name}
-                  variant="customColor" 
-                  className={cn("font-normal", getTagCategoryColorClass(tagObj.categoryKey))}
-                >
-                  {tagObj.name}
-                </Badge>
-              ))}
-            </div>
-          )}
+          <CardTitle className="text-xl flex items-center gap-2 mt-4">{game.name}</CardTitle>
+          {game.tags && game.tags.length > 0 && ( <div className="flex flex-wrap gap-1 mt-2">{game.tags.slice(0, 3).map(tag => (<Badge key={tag.name} variant="customColor" className={cn("font-normal", getTagCategoryColorClass(tag.categoryKey))}>{tag.name}</Badge>))}</div> )}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow space-y-3">
-        {game.description && (
-            <p className="text-sm text-foreground line-clamp-3">{game.description}</p>
-        )}
+      <CardContent className="flex-grow flex flex-col">
+        <p className="text-sm text-foreground line-clamp-3 flex-grow">{game.description}</p>
+        {showCreateSessionButton && userProfile && ( <Button asChild className="w-full mt-4"><Link href={`/sessions/create?gameName=${encodeURIComponent(game.name)}`}><CalendarPlus className="mr-2 h-4 w-4" />Créer une session</Link></Button> )}
       </CardContent>
     </Card>
   );
 }
-
-export const GameCard = React.memo(GameCardComponent);

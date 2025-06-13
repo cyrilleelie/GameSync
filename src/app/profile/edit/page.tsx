@@ -1,4 +1,4 @@
-// Fichier : src/app/profile/edit/page.tsx
+// Fichier : src/app/profile/edit/page.tsx (VERSION CORRECTE)
 
 'use client';
 
@@ -12,11 +12,11 @@ import type { Player } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
-import { EditProfileForm } from '@/components/profile/edit-profile-form'; // On importe notre futur formulaire
+import { EditProfileForm } from '@/components/profile/edit-profile-form';
 
 export default function EditProfilePage() {
   const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const router = useRouter(); // On récupère le routeur pour la navigation
   
   const [profile, setProfile] = useState<Player | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -34,16 +34,28 @@ export default function EditProfilePage() {
       const docSnap = await getDoc(userDocRef);
 
       if (docSnap.exists()) {
-        setProfile(docSnap.data() as Player);
+        const data = docSnap.data();
+        const serializableProfile = {
+          ...data,
+          createdAt: data.createdAt?.toDate().toISOString(),
+        } as Player;
+        setProfile(serializableProfile);
       } else {
-        console.error("Aucun profil trouvé à modifier.");
-        router.push('/profile'); // Redirige si pas de profil
+        router.push('/profile');
       }
       setLoadingProfile(false);
     };
 
     fetchUserProfile();
   }, [currentUser, authLoading, router]);
+
+
+  // === LA FONCTION POUR GÉRER L'ANNULATION ===
+  const handleCancel = () => {
+    // On utilise le routeur pour retourner à la page de profil
+    router.push('/profile');
+  };
+
 
   if (authLoading || loadingProfile) {
     return (
@@ -54,7 +66,7 @@ export default function EditProfilePage() {
   }
 
   if (!profile) {
-    return <p>Impossible de charger le profil à modifier.</p>;
+    return <p className="container mx-auto py-8">Impossible de charger le profil à modifier.</p>;
   }
 
   return (
@@ -66,8 +78,11 @@ export default function EditProfilePage() {
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">
-          {/* On passe le profil chargé au composant de formulaire */}
-          <EditProfileForm userProfile={profile} />
+          {/* On passe la fonction handleCancel au formulaire via la prop onCancel */}
+          <EditProfileForm 
+            userProfile={profile} 
+            onCancel={handleCancel} 
+          />
         </CardContent>
       </Card>
     </div>

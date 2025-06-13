@@ -1,38 +1,71 @@
+// Fichier : src/app/my-wishlist/page.tsx (CONNECTÉ À FIREBASE)
 
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { mockBoardGames } from '@/lib/data';
-import { GameCard } from '@/components/games/game-card';
-import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Frown } from 'lucide-react';
+import type { BoardGame } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function MyWishlistPage() {
-  const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
+// Imports Firebase
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
+// Imports UI
+import { GameCard } from '@/components/games/game-card';
+import { Button } from '@/components/ui/button';
+import { Gift, Loader2, Frown } from 'lucide-react';
+
+export default function MyWishlistPage() {
+  // On récupère le userProfile qui contient la wishlist
+  const { userProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
+  // États pour les données et le chargement
+  const [allGames, setAllGames] = useState<BoardGame[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
+
+  // On charge la bibliothèque complète de jeux depuis Firebase
   useEffect(() => {
-    setIsMounted(true);
+    const fetchAllGames = async () => {
+      setIsLoading(true);
+      try {
+        const gamesRef = collection(db, "games");
+        const q = query(gamesRef, orderBy("name"));
+        const querySnapshot = await getDocs(q);
+        const gamesFromDb = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as BoardGame[];
+        setAllGames(gamesFromDb);
+      } catch (error) {
+        console.error("Erreur de chargement de la bibliothèque de jeux:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllGames();
   }, []);
 
+
   useEffect(() => {
-    if (isMounted && !authLoading && !currentUser) {
+    if (isMounted && !authLoading && !userProfile) {
       router.push('/login');
     }
-  }, [currentUser, authLoading, router, isMounted]);
+  }, [userProfile, authLoading, router, isMounted]);
 
+  
+  // La logique de filtrage utilise maintenant le userProfile et les jeux de Firebase
   const wishlistGames = useMemo(() => {
-    if (!currentUser || !currentUser.wishlist) {
+    if (!userProfile || !userProfile.wishlist || userProfile.wishlist.length === 0) {
       return [];
     }
-    return mockBoardGames.filter(game => currentUser.wishlist!.includes(game.name));
-  }, [currentUser]);
+    return allGames.filter(game => userProfile.wishlist!.includes(game.name));
+  }, [userProfile, allGames]);
 
-  if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
+  // La condition de chargement est mise à jour
+  if (!isMounted || authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -40,6 +73,7 @@ export default function MyWishlistPage() {
     );
   }
 
+  // TOUT LE JSX EST CONSERVÉ À L'IDENTIQUE
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -58,7 +92,13 @@ export default function MyWishlistPage() {
       {wishlistGames.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {wishlistGames.map((game) => (
-            <GameCard key={game.id} game={game} showCreateSessionButton={false} />
+            <GameCard 
+                key={game.id} 
+                game={game} 
+                showCreateSessionButton={false}
+                // On peut aussi cacher le bouton d'ajout à la wishlist ici
+                // showAddToWishlistButton={false} 
+            />
           ))}
         </div>
       ) : (
@@ -72,7 +112,7 @@ export default function MyWishlistPage() {
           </p>
           <div className="flex gap-4">
             <Button asChild>
-              <Link href="/games" prefetch>Parcourir tous les jeux</Link>
+              <Link href="/games">Parcourir tous les jeux</Link>
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-// Fichier : src/components/profile/edit-profile-form.tsx (COMPLET ET CORRIGÉ)
+// Fichier : src/components/profile/edit-profile-form.tsx (COMPLET ET DÉFINITIF)
 
 'use client';
 
@@ -11,133 +11,151 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from '@/hooks/use-toast';
+import type { Player, BoardGame, TagDefinition, TagCategoryKey } from '@/lib/types';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Loader2, PlusCircle, Gamepad2, UploadCloud, Building, CalendarDays, X as XIcon, User } from 'lucide-react';
+import NextImage from 'next/image';
+import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import type { Player } from '@/lib/types';
-import { mockBoardGames } from '@/lib/data';
-import { Loader2, User, Image as ImageIcon, Gamepad2, CalendarDays, PlusCircle, Archive, Gift } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { cn } from '@/lib/utils';
+import { doc, updateDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { useAuth } from '@/contexts/auth-context';
 
-// Helper icon
-const XCircle = (props: React.SVGProps<SVGSVGElement>) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg> );
 
-// === Schéma mis à jour avec les vrais noms de champs de Firebase ===
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: 'Le nom doit comporter au moins 2 caractères.' }),
-  photoURL: z.string().url({ message: 'Veuillez entrer une URL valide.' }).optional().or(z.literal('')),
+  photoURL: z.string().url({ message: "Veuillez entrer une URL valide ou laissez vide." }).optional().or(z.literal('')),
+  availability: z.string().optional(),
   gamePreferences: z.array(z.string()).optional(), 
   ownedGames: z.array(z.string()).optional(),
   wishlist: z.array(z.string()).optional(),
-  availability: z.string().optional(),
 });
-
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 interface EditProfileFormProps {
-  userProfile: Player; // Renommé pour la clarté
+  userProfile: Player;
+  onCancel: () => void;
 }
 
-export function EditProfileForm({ userProfile }: EditProfileFormProps) {
+const MAX_IMAGE_SIZE_MB = 2;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
+export function EditProfileForm({ userProfile, onCancel }: EditProfileFormProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser, updateUserProfileData, loading: authLoading } = useAuth();
+  const { currentUser, updateUserProfileData, refreshUserProfile, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [allSystemGames, setAllSystemGames] = useState<BoardGame[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Votre logique de gestion des listes de jeux est conservée
   const [selectedGameToAdd, setSelectedGameToAdd] = useState<string>('');
   const [selectedOwnedGameToAdd, setSelectedOwnedGameToAdd] = useState<string>('');
   const [selectedWishlistGameToAdd, setSelectedWishlistGameToAdd] = useState<string>('');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    // === CORRECTION DU PRÉ-REMPLISSAGE ===
-    // On utilise les données du profil chargé pour initialiser le formulaire
     defaultValues: {
-      displayName: userProfile.displayName || '',
-      photoURL: userProfile.photoURL || '',
-      gamePreferences: userProfile.gamePreferences || [],
-      ownedGames: userProfile.ownedGames || [],
-      wishlist: userProfile.wishlist || [],
-      availability: userProfile.availability || '',
+      displayName: userProfile.displayName || '', photoURL: userProfile.photoURL || '',
+      gamePreferences: userProfile.gamePreferences || [], ownedGames: userProfile.ownedGames || [],
+      wishlist: userProfile.wishlist || [], availability: userProfile.availability || '',
     },
   });
 
-  // Vos fonctions pour gérer les listes de jeux sont conservées
-  const currentFavoriteGames = form.watch('gamePreferences') || [];
-  const handleAddFavoriteGame = () => { if (selectedGameToAdd && !currentFavoriteGames.includes(selectedGameToAdd)) { form.setValue('gamePreferences', [...currentFavoriteGames, selectedGameToAdd], { shouldValidate: true }); setSelectedGameToAdd(''); } };
-  const handleRemoveFavoriteGame = (gameToRemove: string) => { form.setValue('gamePreferences', currentFavoriteGames.filter(game => game !== gameToRemove), { shouldValidate: true }); };
-  const currentOwnedGames = form.watch('ownedGames') || [];
-  const handleAddOwnedGame = () => { if (selectedOwnedGameToAdd && !currentOwnedGames.includes(selectedOwnedGameToAdd)) { form.setValue('ownedGames', [...currentOwnedGames, selectedOwnedGameToAdd], { shouldValidate: true }); setSelectedOwnedGameToAdd(''); } };
-  const handleRemoveOwnedGame = (gameToRemove: string) => { form.setValue('ownedGames', currentOwnedGames.filter(game => game !== gameToRemove), { shouldValidate: true }); };
-  const currentWishlistGames = form.watch('wishlist') || [];
-  const handleAddWishlistGame = () => { if (selectedWishlistGameToAdd && !currentWishlistGames.includes(selectedWishlistGameToAdd)) { form.setValue('wishlist', [...currentWishlistGames, selectedWishlistGameToAdd], { shouldValidate: true }); setSelectedWishlistGameToAdd(''); } };
-  const handleRemoveWishlistGame = (gameToRemove: string) => { form.setValue('wishlist', currentWishlistGames.filter(game => game !== gameToRemove), { shouldValidate: true }); };
+  // === LA VARIABLE MANQUANTE EST DÉFINIE ICI ===
+  // `form.watch` permet de suivre la valeur d'un champ en temps réel
+  const currentImageUrl = form.watch('photoURL');
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingData(true);
+      try {
+        const gamesQuery = query(collection(db, 'games'), orderBy('name', 'asc'));
+        const gamesSnapshot = await getDocs(gamesQuery);
+        setAllSystemGames(gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as BoardGame[]);
+      } catch (error) { toast({ title: "Erreur", description: "Impossible de charger la liste des jeux.", variant: "destructive" }); }
+      finally { setIsLoadingData(false); }
+    };
+    fetchData();
+  }, [toast]);
 
-  // === MISE À JOUR DE LA FONCTION onSubmit AVEC FIREBASE ===
+  const currentFavoriteGames = form.watch('gamePreferences') || [];
+  const handleAddFavoriteGame = () => { if (selectedGameToAdd && !currentFavoriteGames.includes(selectedGameToAdd)) { form.setValue('gamePreferences', [...currentFavoriteGames, selectedGameToAdd]); setSelectedGameToAdd(''); }};
+  const handleRemoveFavoriteGame = (game: string) => { form.setValue('gamePreferences', currentFavoriteGames.filter(g => g !== game)); };
+  
+  const currentOwnedGames = form.watch('ownedGames') || [];
+  const handleAddOwnedGame = () => { if (selectedOwnedGameToAdd && !currentOwnedGames.includes(selectedOwnedGameToAdd)) { form.setValue('ownedGames', [...currentOwnedGames, selectedOwnedGameToAdd]); const wishlist = form.getValues('wishlist')||[]; if(wishlist.includes(selectedOwnedGameToAdd)){form.setValue('wishlist', wishlist.filter(g=>g!==selectedOwnedGameToAdd)); toast({title:"Jeu déplacé", description:`${selectedOwnedGameToAdd} a été ajouté à la collection et retiré de la wishlist.`})} setSelectedOwnedGameToAdd(''); form.trigger(['ownedGames', 'wishlist']); }};
+  const handleRemoveOwnedGame = (game: string) => { form.setValue('ownedGames', currentOwnedGames.filter(g => g !== game)); };
+
+  const currentWishlistGames = form.watch('wishlist') || [];
+  const handleAddWishlistGame = () => { if (selectedWishlistGameToAdd && !currentWishlistGames.includes(selectedWishlistGameToAdd)) { form.setValue('wishlist', [...currentWishlistGames, selectedWishlistGameToAdd]); setSelectedWishlistGameToAdd(''); }};
+  const handleRemoveWishlistGame = (game: string) => { form.setValue('wishlist', currentWishlistGames.filter(g => g !== game)); };
+
   async function onSubmit(values: ProfileFormValues) {
     if (!currentUser) return;
     setIsSubmitting(true);
-    
     try {
-      // Étape 1: Mettre à jour le profil d'authentification (nom & photo) via le contexte
-      await updateUserProfileData({
-        displayName: values.displayName,
-        photoURL: values.photoURL,
-      });
-
-      // Étape 2: Mettre à jour le document dans Firestore avec TOUTES les données
+      await updateUserProfileData({ displayName: values.displayName, photoURL: values.photoURL });
       const userDocRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userDocRef, {
-        displayName: values.displayName,
-        photoURL: values.photoURL,
-        gamePreferences: values.gamePreferences,
-        ownedGames: values.ownedGames,
-        wishlist: values.wishlist,
-        availability: values.availability,
-      });
-
-      toast({ title: 'Profil Mis à Jour !', description: 'Vos informations ont été enregistrées avec succès.' });
+      await updateDoc(userDocRef, { ...values });
+      await refreshUserProfile();
+      toast({ title: 'Profil Mis à Jour !' });
       router.push('/profile');
-      router.refresh();
-
-    } catch (error) {
-      toast({ title: 'Erreur', description: 'Impossible de mettre à jour le profil. Veuillez réessayer.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { toast({ title: 'Erreur', variant: 'destructive' }); } 
+    finally { setIsSubmitting(false); }
   }
-
-  // Vos listes de jeux disponibles sont conservées
-  const availableGamesForPrefs = mockBoardGames.filter((bg) => !currentFavoriteGames.includes(bg.name)).sort((a, b) => a.name.localeCompare(b.name));
-  const availableGamesForOwned = mockBoardGames.filter((bg) => !currentOwnedGames.includes(bg.name)).sort((a, b) => a.name.localeCompare(b.name));
-  const availableGamesForWishlist = mockBoardGames.filter((bg) => !currentWishlistGames.includes(bg.name)).sort((a, b) => a.name.localeCompare(b.name));
+  
+  const handleImageUploadClick = () => { fileInputRef.current?.click(); };
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) { if (file.size > MAX_IMAGE_SIZE_BYTES) { toast({ title: "Image trop volumineuse", variant: "destructive" }); return; } const reader = new FileReader(); reader.onload = (e) => { form.setValue('photoURL', e.target?.result as string, { shouldValidate: true }); }; reader.readAsDataURL(file); } if (fileInputRef.current) { fileInputRef.current.value = ""; } };
+  
+  const availableGamesForPrefs = useMemo(() => allSystemGames.filter(g => !currentFavoriteGames.includes(g.name)), [allSystemGames, currentFavoriteGames]);
+  const availableGamesForOwned = useMemo(() => allSystemGames.filter(g => !currentOwnedGames.includes(g.name)), [allSystemGames, currentOwnedGames]);
+  const availableGamesForWishlist = useMemo(() => allSystemGames.filter(g => !currentWishlistGames.includes(g.name)), [allSystemGames, currentWishlistGames]);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* --- LE JSX EST ADAPTÉ POUR UTILISER LES BONS NOMS DE CHAMPS --- */}
-        <FormField control={form.control} name="displayName" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2"><User className="h-5 w-5 text-primary" />Nom d'Affichage</FormLabel><FormControl><Input placeholder="Votre nom ou pseudo" {...field} disabled={isSubmitting || authLoading} /></FormControl><FormMessage /></FormItem> )} />
-        <FormField control={form.control} name="photoURL" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" />URL de l'Avatar (Optionnel)</FormLabel><FormControl><Input placeholder="https://exemple.com/votre-avatar.png" {...field} disabled={isSubmitting || authLoading} /></FormControl><FormDescription>Laissez vide pour utiliser votre photo de profil Google.</FormDescription><FormMessage /></FormItem> )} />
-        
-        {/* Jeux Favoris */}
-        <FormItem><FormLabel className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Jeux Favoris</FormLabel><div className="space-y-3"><div className="flex items-center gap-2"><Select value={selectedGameToAdd} onValueChange={setSelectedGameToAdd}><SelectTrigger disabled={isSubmitting || authLoading || availableGamesForPrefs.length === 0}><SelectValue placeholder={availableGamesForPrefs.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} /></SelectTrigger><SelectContent>{availableGamesForPrefs.map((game) => ( <SelectItem key={game.id} value={game.name}>{game.name}</SelectItem> ))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddFavoriteGame} disabled={isSubmitting || authLoading || !selectedGameToAdd}><PlusCircle className="h-5 w-5" /><span className="sr-only">Ajouter le jeu aux favoris</span></Button></div><FormDescription>Ajoutez vos jeux de société préférés à votre liste.</FormDescription><FormField control={form.control} name="gamePreferences" render={({ field }) => (<>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map((gameName) => (<Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">{gameName}<button type="button" onClick={() => handleRemoveFavoriteGame(gameName)} disabled={isSubmitting || authLoading} className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none" aria-label={`Retirer ${gameName} des favoris`}><XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" /></button></Badge>))}</div>)}<FormMessage /></>)}/></div></FormItem>
-        
-        {/* Jeux Possédés */}
-        <FormItem><FormLabel className="flex items-center gap-2"><Archive className="h-5 w-5 text-primary" />Mes Jeux Possédés</FormLabel><div className="space-y-3"><div className="flex items-center gap-2"><Select value={selectedOwnedGameToAdd} onValueChange={setSelectedOwnedGameToAdd}><SelectTrigger disabled={isSubmitting || authLoading || availableGamesForOwned.length === 0}><SelectValue placeholder={availableGamesForOwned.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} /></SelectTrigger><SelectContent>{availableGamesForOwned.map((game) => ( <SelectItem key={game.id} value={game.name}>{game.name}</SelectItem> ))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddOwnedGame} disabled={isSubmitting || authLoading || !selectedOwnedGameToAdd}><PlusCircle className="h-5 w-5" /><span className="sr-only">Ajouter le jeu à ma collection</span></Button></div><FormDescription>Ajoutez les jeux de société que vous possédez à votre collection.</FormDescription><FormField control={form.control} name="ownedGames" render={({ field }) => (<>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map((gameName) => (<Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">{gameName}<button type="button" onClick={() => handleRemoveOwnedGame(gameName)} disabled={isSubmitting || authLoading} className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none" aria-label={`Retirer ${gameName} de la collection`}><XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" /></button></Badge>))}</div>)}<FormMessage /></>)}/></div></FormItem>
-        
-        {/* Wishlist */}
-        <FormItem><FormLabel className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" />Ma Wishlist</FormLabel><div className="space-y-3"><div className="flex items-center gap-2"><Select value={selectedWishlistGameToAdd} onValueChange={setSelectedWishlistGameToAdd}><SelectTrigger disabled={isSubmitting || authLoading || availableGamesForWishlist.length === 0}><SelectValue placeholder={availableGamesForWishlist.length === 0 ? "Tous les jeux ajoutés" : "Sélectionnez un jeu"} /></SelectTrigger><SelectContent>{availableGamesForWishlist.map((game) => ( <SelectItem key={game.id} value={game.name}>{game.name}</SelectItem> ))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddWishlistGame} disabled={isSubmitting || authLoading || !selectedWishlistGameToAdd}><PlusCircle className="h-5 w-5" /><span className="sr-only">Ajouter le jeu à ma wishlist</span></Button></div><FormDescription>Ajoutez les jeux de société que vous aimeriez acquérir.</FormDescription><FormField control={form.control} name="wishlist" render={({ field }) => (<>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map((gameName) => (<Badge key={gameName} variant="secondary" className="flex items-center gap-1 pr-1">{gameName}<button type="button" onClick={() => handleRemoveWishlistGame(gameName)} disabled={isSubmitting || authLoading} className="rounded-full hover:bg-destructive/20 disabled:pointer-events-none" aria-label={`Retirer ${gameName} de la wishlist`}><XCircle className="h-4 w-4 text-destructive hover:text-destructive/80" /></button></Badge>))}</div>)}<FormMessage /></>)}/></div></FormItem>
-
-        {/* Disponibilité */}
-        <FormField control={form.control} name="availability" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" />Disponibilité</FormLabel><FormControl><Textarea placeholder="Décrivez vos disponibilités générales. Ex : Soirs de semaine, Weekends..." className="resize-y min-h-[80px]" {...field} disabled={isSubmitting || authLoading} /></FormControl><FormMessage /></FormItem> )} />
-        
-        <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || authLoading}>
-          {(isSubmitting || authLoading) ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement...</>) : ('Enregistrer les Modifications')}
-        </Button>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4 max-h-[90vh] overflow-y-auto pr-2">
+        <FormItem>
+          <FormLabel>Image du profil</FormLabel>
+          <div className="mt-2 space-y-4 flex flex-col items-center">
+            <div className="relative h-32 w-32 bg-muted rounded-full overflow-hidden flex items-center justify-center border shadow-inner">
+              {currentImageUrl ? (
+                <NextImage src={currentImageUrl} alt="Aperçu de l'avatar" fill sizes="128px" className="object-cover" />
+              ) : (
+                <User className="h-16 w-16 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+                <Button type="button" variant="outline" size="sm" onClick={handleImageUploadClick} disabled={isSubmitting || authLoading}><UploadCloud className="mr-2 h-4 w-4" />Charger une image</Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileSelected} accept="image/*" className="hidden"/>
+                <FormField control={form.control} name="photoURL" render={({ field }) => (<FormControl><Input placeholder="Ou collez une URL d'image" {...field} disabled={isSubmitting || authLoading} className="text-center text-xs h-9" /></FormControl>)} />
+            </div>
+            <FormMessage>{form.formState.errors.photoURL?.message}</FormMessage>
+            <FormDescription>Chargez une image (max {MAX_IMAGE_SIZE_MB}Mo) ou collez une URL.</FormDescription>
+          </div>
+        </FormItem>
+        <FormField control={form.control} name="displayName" render={({ field }) => ( <FormItem><FormLabel>Nom d'Affichage</FormLabel><FormControl><Input placeholder="Votre nom ou pseudo" {...field} disabled={isSubmitting || authLoading} /></FormControl><FormMessage /></FormItem> )} />
+        <FormField control={form.control} name="availability" render={({ field }) => ( <FormItem><FormLabel>Disponibilité</FormLabel><FormControl><Textarea placeholder="Décrivez vos disponibilités générales. Ex : Soirs de semaine, Weekends..." {...field} disabled={isSubmitting || authLoading} /></FormControl><FormMessage /></FormItem> )} />
+        <FormItem>
+          <FormLabel>Jeux Favoris</FormLabel>
+          <div className="flex items-center gap-2"><Select value={selectedGameToAdd} onValueChange={setSelectedGameToAdd}><SelectTrigger disabled={isLoadingData}><SelectValue placeholder={isLoadingData ? "Chargement..." : "Ajouter un jeu..."} /></SelectTrigger><SelectContent>{availableGamesForPrefs.map(g=>(<SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddFavoriteGame} disabled={!selectedGameToAdd || isSubmitting}><PlusCircle className="h-5 w-5" /></Button></div>
+          <FormField control={form.control} name="gamePreferences" render={({ field }) => (<FormItem>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map(game => (<Badge key={game} variant="secondary">{game}<button type="button" onClick={() => handleRemoveFavoriteGame(game)} disabled={isSubmitting || authLoading} className="ml-1.5 p-0.5"><XIcon className="h-3 w-3"/></button></Badge>))}</div>)}<FormMessage /></FormItem>)} />
+        </FormItem>
+        <FormItem>
+          <FormLabel>Ma Collection</FormLabel>
+          <div className="flex items-center gap-2"><Select value={selectedOwnedGameToAdd} onValueChange={setSelectedOwnedGameToAdd}><SelectTrigger disabled={isLoadingData}><SelectValue placeholder={isLoadingData ? "Chargement..." : "Ajouter un jeu..."} /></SelectTrigger><SelectContent>{availableGamesForOwned.map(g=>(<SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddOwnedGame} disabled={!selectedOwnedGameToAdd || isSubmitting}><PlusCircle className="h-5 w-5" /></Button></div>
+          <FormField control={form.control} name="ownedGames" render={({ field }) => (<FormItem>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map(game => (<Badge key={game}>{game}<button type="button" onClick={() => handleRemoveOwnedGame(game)} disabled={isSubmitting || authLoading} className="ml-1.5 p-0.5"><XIcon className="h-3 w-3"/></button></Badge>))}</div>)}<FormMessage /></FormItem>)} />
+        </FormItem>
+        <FormItem>
+          <FormLabel>Ma Wishlist</FormLabel>
+          <div className="flex items-center gap-2"><Select value={selectedWishlistGameToAdd} onValueChange={setSelectedWishlistGameToAdd}><SelectTrigger disabled={isLoadingData}><SelectValue placeholder={isLoadingData ? "Chargement..." : "Ajouter un jeu..."} /></SelectTrigger><SelectContent>{availableGamesForWishlist.map(g=>(<SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>))}</SelectContent></Select><Button type="button" variant="outline" size="icon" onClick={handleAddWishlistGame} disabled={!selectedWishlistGameToAdd || isSubmitting}><PlusCircle className="h-5 w-5" /></Button></div>
+          <FormField control={form.control} name="wishlist" render={({ field }) => (<FormItem>{field.value && field.value.length > 0 && (<div className="flex flex-wrap gap-2 pt-2">{field.value.map(game => (<Badge key={game}>{game}<button type="button" onClick={() => handleRemoveWishlistGame(game)} disabled={isSubmitting || authLoading} className="ml-1.5 p-0.5"><XIcon className="h-3 w-3"/></button></Badge>))}</div>)}<FormMessage /></FormItem>)} />
+        </FormItem>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>Annuler</Button>
+          <Button type="submit" disabled={isSubmitting || authLoading}>{ (isSubmitting || authLoading) ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enregistrement...</>) : ('Enregistrer les Modifications')}</Button>
+        </div>
       </form>
     </Form>
   );

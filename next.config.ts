@@ -1,23 +1,24 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+const config: NextConfig = {
+  // Vous pouvez avoir d'autres options ici, comme reactStrictMode
+  reactStrictMode: true,
+
+  // On ajoute la configuration pour les images externes
   images: {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        // Le port et le pathname peuvent être laissés vides pour autoriser tout le domaine,
+        // ou être plus spécifiques si vous le souhaitez.
+      },
+      {
+        protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
       },
     ],
   },
 };
 
-export default nextConfig;
+export default config;

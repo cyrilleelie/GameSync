@@ -1,39 +1,73 @@
+// Fichier : src/app/my-games/page.tsx (CONNECTÉ À FIREBASE)
 
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { mockBoardGames } from '@/lib/data';
 import type { BoardGame } from '@/lib/types';
-import { GameCard } from '@/components/games/game-card';
-import { Button } from '@/components/ui/button';
-import { Archive, Loader2, Frown } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function MyGamesPage() {
-  const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
+// Imports Firebase
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
+// Imports UI
+import { GameCard } from '@/components/games/game-card';
+import { Button } from '@/components/ui/button';
+import { Archive, Loader2, Frown } from 'lucide-react';
+
+export default function MyGamesPage() {
+  const { userProfile, loading: authLoading } = useAuth(); // On utilise userProfile
+  const router = useRouter();
+  
+  // === NOUVEAUX ÉTATS POUR GÉRER LES DONNÉES DE FIREBASE ===
+  const [allGames, setAllGames] = useState<BoardGame[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
+
+  // === CHARGEMENT DES JEUX DEPUIS FIREBASE ===
   useEffect(() => {
-    setIsMounted(true);
+    // Cette fonction sera utilisée pour charger TOUS les jeux une seule fois.
+    const fetchAllGames = async () => {
+      setIsLoading(true);
+      try {
+        const gamesRef = collection(db, "games");
+        const q = query(gamesRef, orderBy("name"));
+        const querySnapshot = await getDocs(q);
+        const gamesFromDb = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as BoardGame[];
+        setAllGames(gamesFromDb);
+      } catch (error) {
+        console.error("Erreur de chargement de la bibliothèque de jeux:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllGames();
   }, []);
 
+
   useEffect(() => {
-    if (isMounted && !authLoading && !currentUser) {
+    if (isMounted && !authLoading && !userProfile) {
       router.push('/login');
     }
-  }, [currentUser, authLoading, router, isMounted]);
+  }, [userProfile, authLoading, router, isMounted]);
 
+  
+  // === LA LOGIQUE DE FILTRAGE EST MISE À JOUR ===
+  // Elle utilise maintenant le userProfile et la liste des jeux de Firebase
   const ownedGamesList = useMemo(() => {
-    if (!currentUser || !currentUser.ownedGames) {
+    if (!userProfile || !userProfile.ownedGames || userProfile.ownedGames.length === 0) {
       return [];
     }
-    return mockBoardGames.filter(game => currentUser.ownedGames!.includes(game.name));
-  }, [currentUser]);
+    // On filtre la liste complète des jeux pour ne garder que ceux dont le nom est dans notre profil
+    return allGames.filter(game => userProfile.ownedGames!.includes(game.name));
+  }, [userProfile, allGames]);
 
-  if (!isMounted || authLoading || (!currentUser && !authLoading && isMounted)) {
+  // La condition de chargement prend en compte l'authentification ET le chargement des jeux
+  if (!isMounted || authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -41,6 +75,7 @@ export default function MyGamesPage() {
     );
   }
 
+  // TOUT LE JSX EST CONSERVÉ À L'IDENTIQUE
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -59,7 +94,12 @@ export default function MyGamesPage() {
       {ownedGamesList.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {ownedGamesList.map((game) => (
-            <GameCard key={game.id} game={game} showCreateSessionButton={true} />
+            <GameCard 
+              key={game.id} 
+              game={game} 
+              showCreateSessionButton={true}
+              showAddToWishlistButton={false} 
+            />
           ))}
         </div>
       ) : (
@@ -73,10 +113,10 @@ export default function MyGamesPage() {
           </p>
           <div className="flex gap-4">
             <Button asChild>
-              <Link href="/profile/edit" prefetch>Ajouter des jeux à ma collection</Link>
+              <Link href="/profile/edit">Ajouter des jeux à ma collection</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/games" prefetch>Parcourir tous les jeux</Link>
+              <Link href="/games">Parcourir tous les jeux</Link>
             </Button>
           </div>
         </div>
