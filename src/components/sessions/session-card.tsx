@@ -1,87 +1,69 @@
-// Fichier : src/components/sessions/session-card.tsx (VERSION FINALE)
+// Fichier : src/components/sessions/session-card.tsx (MIS À JOUR)
 
 import Image from 'next/image';
-import { CalendarIcon, ClockIcon, MapPinIcon, UsersIcon } from '@heroicons/react/24/outline';
-import { Session } from '@/types'; // Gardons votre type Session pour l'instant
+import Link from 'next/link';
+import { Session } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import Link from 'next/link';
+
+// Imports UI et icônes
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, ClockIcon, MapPinIcon, UsersIcon, Gamepad2 } from 'lucide-react';
 
 export const SessionCard = ({ session }: { session: Session }) => {
 
-  // --- "TRADUCTION" DES DONNÉES ---
-  // On s'adapte à la nouvelle structure tout en restant compatible avec l'ancienne
-  const title = session.title || session.gameName || 'Session sans titre';
-  const gameName = session.game || session.gameName || 'Jeu non spécifié';
-  const imageUrl = session.imageUrl || session.gameImageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(gameName)}`;
-  const location = session.location || 'Lieu non spécifié';
-  const slots = session.slots || session.maxPlayers || 0;
-  
-  // Le nombre de participants vient de la longueur du tableau `currentPlayers` ou `participants`
-  const participantCount = session.currentPlayers?.length || session.participants?.length || 0;
-
-  // --- GESTION DE LA DATE (LA PARTIE LA PLUS IMPORTANTE) ---
-  let formattedDate = 'Date invalide';
-  let formattedTime = 'Heure invalide';
-
-  try {
-    let dateObject: Date | null = null;
-    
-    // Cas 1: La date est un objet Timestamp de Firebase (la nouvelle méthode)
-    // C'est le format que votre formulaire crée.
-    if (session.dateTime && typeof (session.dateTime as any).toDate === 'function') {
-      dateObject = (session.dateTime as any).toDate();
-    } 
-    // Cas 2: La date est déjà un objet Date JavaScript
-    else if (session.dateTime instanceof Date) {
-      dateObject = session.dateTime;
-    }
-    // Cas 3: La date est une chaîne de caractères (ancienne méthode)
-    else if (typeof session.date === 'string') {
-      dateObject = new Date(session.date);
-    }
-
-    // Si on a réussi à créer un objet Date valide, on le formate
-    if (dateObject && !isNaN(dateObject.valueOf())) {
-      formattedDate = format(dateObject, 'd MMMM yyyy', { locale: fr });
-      formattedTime = format(dateObject, 'HH:mm', { locale: fr });
-    }
-  } catch (error) {
-    console.error("Erreur de formatage de date pour la session:", session.id, error);
+  // Logique de formatage de la date (conservée)
+  let formattedDate = 'Date non définie';
+  let formattedTime = 'Heure non définie';
+  if (session.dateTime) {
+      const dateObject = new Date(session.dateTime);
+      if (!isNaN(dateObject.valueOf())) {
+          formattedDate = format(dateObject, 'd MMMM yy', { locale: fr });
+          formattedTime = format(dateObject, 'HH:mm', { locale: fr });
+      }
   }
+  
+  // Utilisation de la nouvelle propriété `gameImageUrl`
+  const imageUrl = session.gameImageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(session.gameName)}`;
 
   return (
     <Link href={`/sessions/${session.id}`} legacyBehavior>
-        <a className="block bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 duration-300">
-            <div className="relative h-48 w-full">
+        <a className="block bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 duration-300 h-full">
+            {/* === DÉBUT DE LA MODIFICATION === */}
+            <div className="relative w-full aspect-[4/3] bg-muted flex items-center justify-center">
                 <Image
-                src={imageUrl}
-                alt={`Image pour le jeu ${gameName}`}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="object-cover"
+                    src={imageUrl}
+                    alt={`Image pour ${session.gameName}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-contain" // On utilise object-contain ici
                 />
             </div>
+            {/* === FIN DE LA MODIFICATION === */}
+
             <div className="p-4">
-                <h3 className="text-lg font-bold truncate" title={title}>{title}</h3>
-                <p className="text-sm text-gray-600 mb-2">{gameName}</p>
-                <div className="space-y-2 text-sm text-gray-700">
-                <p className="flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{formattedDate}</span>
-                </p>
-                <p className="flex items-center">
-                    <ClockIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{formattedTime}</span>
-                </p>
-                <p className="flex items-center">
-                    <MapPinIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{location}</span>
-                </p>
-                <p className="flex items-center">
-                    <UsersIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{`${participantCount} / ${slots} participants`}</span>
-                </p>
+                <Badge variant="secondary" className="mb-2 font-normal">{session.gameName}</Badge>
+                <h3 className="text-lg font-bold truncate" title={session.gameName}>
+                    {session.gameName}
+                </h3>
+                <div className="mt-2 space-y-2 text-sm text-gray-700">
+                    <p className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <span>{formattedDate}</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                        <ClockIcon className="h-4 w-4 text-primary" />
+                        <span>{formattedTime}</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                        <MapPinIcon className="h-4 w-4 text-primary" />
+                        <span className="truncate">{session.location}</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                        <UsersIcon className="h-4 w-4 text-primary" />
+                        <span>{session.currentPlayers?.length || 0} / {session.maxPlayers} participants</span>
+                    </p>
                 </div>
             </div>
         </a>

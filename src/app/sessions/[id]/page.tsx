@@ -1,117 +1,86 @@
-// Fichier : src/app/sessions/[id]/page.tsx (MIS À JOUR AVEC FIREBASE)
+// Fichier : src/app/sessions/[id]/page.tsx (FORMAT DE DATE CORRIGÉ)
 
-'use client'; 
-
-// Imports existants
-import { SessionDetailClient } from '@/components/sessions/session-detail-client';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Loader2 } from "lucide-react";
-import { notFound, useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-context';
-import { useEffect, useState } from 'react';
-import type { GameSession } from '@/lib/types';
-
-// === NOUVEAUX IMPORTS POUR FIREBASE ===
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { notFound } from 'next/navigation';
+import type { GameSession } from '@/lib/types';
+import Link from 'next/link';
+import Image from 'next/image';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-// La constante pour localStorage n'est plus nécessaire
-// const LOCALSTORAGE_SESSIONS_KEY = 'gameSessions';
+// Imports UI
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { CalendarDays, MapPin, Users, Info, Gamepad2, Timer, Clock, ArrowLeft } from 'lucide-react';
 
-export default function SessionDetailPage() {
-  const params = useParams();
-  const { currentUser, loading: authLoading } = useAuth();
-  const [session, setSession] = useState<GameSession | null | undefined>(undefined);
-  const [loadingSession, setLoadingSession] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+import { SessionInteractionButtons } from '@/components/sessions/session-interaction-buttons';
 
-  const sessionId = typeof params.id === 'string' ? params.id : undefined;
+async function getSessionData(id: string): Promise<GameSession | null> {
+  const sessionDocRef = doc(db, 'sessions', id);
+  const sessionDocSnap = await getDoc(sessionDocRef);
+  if (!sessionDocSnap.exists()) return null;
+  
+  const data = sessionDocSnap.data();
+  return { 
+    id: sessionDocSnap.id, 
+    ...data,
+    dateTime: data.dateTime?.toDate().toISOString(),
+    createdAt: data.createdAt?.toDate().toISOString(),
+    updatedAt: data.updatedAt?.toDate().toISOString(),
+  } as GameSession;
+}
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // ===================================================================
-  // === DÉBUT DE LA MODIFICATION : ON REMPLACE localStorage PAR FIREBASE ===
-  // ===================================================================
-  useEffect(() => {
-    // Si on n'est pas encore monté ou qu'il n'y a pas d'ID, on ne fait rien
-    if (!isMounted || !sessionId) {
-      if (isMounted && !sessionId) {
-        setLoadingSession(false);
-        setSession(null);
-      }
-      return;
-    }
-
-    // On crée une fonction asynchrone pour pouvoir utiliser await
-    const fetchSessionFromFirebase = async () => {
-      setLoadingSession(true);
-      try {
-        console.log(`Récupération de la session avec l'ID: ${sessionId}`);
-        
-        // 1. On crée une référence directe au document dans Firestore
-        const sessionDocRef = doc(db, 'sessions', sessionId);
-
-        // 2. On récupère le document
-        const sessionDocSnap = await getDoc(sessionDocRef);
-
-        // 3. On vérifie si le document existe
-        if (sessionDocSnap.exists()) {
-          const data = sessionDocSnap.data();
-          // On formate les données pour qu'elles correspondent à notre type GameSession
-          const processedSession: GameSession = {
-            id: sessionDocSnap.id,
-            ...data,
-            // On convertit les Timestamps de Firebase en objets Date JavaScript
-            dateTime: data.dateTime?.toDate(),
-            createdAt: data.createdAt?.toDate(),
-          } as GameSession;
-          setSession(processedSession);
-        } else {
-          // Si le document n'existe pas dans Firebase
-          console.warn("Session non trouvée dans Firestore pour l'ID:", sessionId);
-          setSession(null);
-        }
-      } catch (e) {
-        console.error("Erreur lors de la récupération de la session depuis Firebase", e);
-        setSession(null); // En cas d'erreur, on considère que la session n'est pas trouvée
-      } finally {
-        setLoadingSession(false);
-      }
-    };
-
-    fetchSessionFromFirebase();
-  }, [sessionId, isMounted]); // Ce useEffect se relance si l'ID de la session change
-  // ============================================================
-  // === FIN DE LA MODIFICATION ===
-  // ============================================================
-
-
-  // Le reste de votre logique d'affichage est parfaitement conservé
-  if (!isMounted || authLoading || loadingSession || session === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+export default async function SessionDetailPage({ params }: { params: { id: string } }) {
+  const session = await getSessionData(params.id);
 
   if (!session) {
     notFound();
   }
-  
-  if (!currentUser) {
-     return (
-       <Alert variant="destructive" className="mt-8 max-w-xl mx-auto">
-         <Terminal className="h-4 w-4" />
-         <AlertTitle>Accès Restreint</AlertTitle>
-         <AlertDescription>
-           Vous devez être connecté pour voir les détails de la session.
-         </AlertDescription>
-       </Alert>
-     );
-  }
 
-  return <SessionDetailClient session={session} currentUser={currentUser} />;
+  // === LA CORRECTION EST ICI ===
+  // On utilise 'PPP' pour un format de date long et sûr (ex: 13 juin 2025)
+  const formattedDate = format(new Date(session.dateTime), 'PPP', { locale: fr });
+  const formattedTime = format(new Date(session.dateTime), 'HH:mm', { locale: fr });
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="mb-6">
+        <Button variant="outline" asChild size="sm">
+            <Link href="/sessions"><ArrowLeft className="mr-2 h-4 w-4" />Retour aux sessions</Link>
+        </Button>
+      </div>
+      <Card className="max-w-3xl mx-auto shadow-xl">
+        <CardHeader className="relative">
+            <div className="relative h-72 w-full mb-4 rounded-t-md overflow-hidden bg-muted">
+                <Image src={session.gameImageUrl || 'https://placehold.co/600x300.png'} alt={`Boîte du jeu ${session.gameName}`} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" priority/>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                    <CardTitle className="text-3xl font-bold flex items-center gap-2 mb-1"><Gamepad2 className="h-8 w-8 text-primary shrink-0" />{session.gameName}</CardTitle>
+                    <CardDescription>Organisée par : <span className="font-medium text-primary">{session.host.name}</span></CardDescription>
+                </div>
+            </div>
+        </CardHeader>
+        <Separator/>
+        <CardContent className="pt-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>Date & Heure</h3><p>{formattedDate} à {formattedTime}</p></div>
+                <div><h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary"/>Lieu</h3><p>{session.location}</p></div>
+                {session.duration && (<div><h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><Timer className="h-5 w-5 text-primary"/>Durée Estimée</h3><p>{session.duration}</p></div>)}
+            </div>
+            {session.description && (<div><h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><Info className="h-5 w-5 text-primary"/>Description</h3><p className="whitespace-pre-wrap">{session.description}</p></div>)}
+            <Separator/>
+            <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><Users className="h-5 w-5 text-primary"/>Joueurs ({session.currentPlayers.length}/{session.maxPlayers})</h3>
+                {session.currentPlayers.length > 0 ? (<ul className="space-y-3">{session.currentPlayers.map(player => (<li key={player.id} className="flex items-center gap-3 p-2 rounded-md border bg-card"><Avatar className="h-8 w-8"><AvatarImage src={player.avatarUrl} alt={player.name} /><AvatarFallback>{player.name.substring(0,1)}</AvatarFallback></Avatar><span className="font-medium">{player.name}</span>{player.id === session.host.id && <Badge variant="outline">Hôte</Badge>}</li>))}</ul>) : (<p className="text-muted-foreground">Aucun joueur n'a encore rejoint.</p>)}
+            </div>
+            <SessionInteractionButtons session={session} />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
