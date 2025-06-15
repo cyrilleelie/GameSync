@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { BoardGame, TagCategoryKey } from '@/lib/types';
+import type { BoardGame } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { TAG_CATEGORY_DETAILS, getTranslatedTagCategory, getTagCategoryColorClass } from '@/lib/tag-categories';
+import { TAG_CATEGORY_DETAILS, getTranslatedTagCategory, getTagCategoryColorClass, type TagCategoryKey } from '@/lib/tag-categories';
 import { cn } from '@/lib/utils';
 
 type SelectedFilters = Record<TagCategoryKey, string[]>;
