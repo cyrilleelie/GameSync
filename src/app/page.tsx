@@ -29,12 +29,12 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
       <div className="text-center space-y-6">
         <Image 
-          src="https://placehold.co/600x300.png" 
+          src="/banner.jpg" 
           alt="Collage de jeux de société" 
-          width={600} 
-          height={300} 
+          width={640} 
+          height={480} 
           className="rounded-lg shadow-xl mx-auto"
-          data-ai-hint="board games collage"
+          priority
         />
         <h1 className="text-5xl font-bold tracking-tight text-primary">Bienvenue sur GameSync !</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
