@@ -40,7 +40,7 @@
     "firebase": "^10.12.3",
     "geist": "^1.4.2",
     "lucide-react": "^0.414.0",
-    "next": "14.2.5",
+    "next": "14.2.30",
     "next-international": "^1.2.5",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
