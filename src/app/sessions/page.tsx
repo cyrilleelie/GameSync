@@ -146,7 +146,7 @@ export default function SessionsPage() {
               <SheetFooter className="mt-auto pt-4 border-t"><Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto"><X className="mr-2 h-4 w-4" />Réinitialiser</Button><SheetClose asChild><Button className="w-full sm:w-auto">Appliquer</Button></SheetClose></SheetFooter>
             </SheetContent>
           </Sheet>
-          <Button asChild prefetch><Link href="/sessions/create"><PlusCircle className="mr-2 h-4 w-4" />Créer une Session</Link></Button>
+          <Button asChild><Link href="/sessions/create" prefetch><PlusCircle className="mr-2 h-4 w-4" />Créer une Session</Link></Button>
         </div>
       </div>
       {filteredSessions.length > 0 ? (

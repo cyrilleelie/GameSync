@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Session } from '@/lib/types';
+import { GameSession } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, ClockIcon, MapPinIcon, UsersIcon, Gamepad2 } from 'lucide-react';
 
-export const SessionCard = ({ session }: { session: Session }) => {
+export const SessionCard = ({ session }: { session: GameSession }) => {
 
   // Logique de formatage de la date (conservée)
   let formattedDate = 'Date non définie';

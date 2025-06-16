@@ -1,24 +1,20 @@
+// Fichier : src/app/layout.tsx (CORRIGÉ POUR LA POLICE GEIST)
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context'; 
-import { AppSidebar } from '@/components/layout/app-sidebar'; 
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/layout/app-sidebar'; 
+import Link from 'next/link';
 import { Boxes } from 'lucide-react'; 
 
+// === DÉBUT DE LA CORRECTION ===
+// On importe les polices directement depuis le paquet 'geist'
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
+// === FIN DE LA CORRECTION ===
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'GameSync - Organisez Vos Sessions de Jeux de Société',
@@ -32,7 +28,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      {/* On applique les polices en utilisant leurs variables CSS */}
+      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <AuthProvider> 
           <SidebarProvider defaultOpen>
             <AppSidebar /> 

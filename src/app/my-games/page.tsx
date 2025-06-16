@@ -98,7 +98,6 @@ export default function MyGamesPage() {
               key={game.id} 
               game={game} 
               showCreateSessionButton={true}
-              showAddToWishlistButton={false} 
             />
           ))}
         </div>

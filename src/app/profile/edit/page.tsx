@@ -1,4 +1,4 @@
-// Fichier : src/app/profile/edit/page.tsx (VERSION CORRECTE)
+// Fichier : src/app/profile/edit/page.tsx (FINAL ET SYNCHRONISÉ)
 
 'use client';
 
@@ -12,11 +12,11 @@ import type { Player } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
-import { EditProfileForm } from '@/components/profile/edit-profile-form';
+import EditProfileForm from '@/components/profile/edit-profile-form';
 
 export default function EditProfilePage() {
-  const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter(); // On récupère le routeur pour la navigation
+  const { currentUser, userProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
   
   const [profile, setProfile] = useState<Player | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -28,34 +28,31 @@ export default function EditProfilePage() {
       return;
     }
 
-    const fetchUserProfile = async () => {
-      setLoadingProfile(true);
-      const userDocRef = doc(db, 'users', currentUser.uid);
-      const docSnap = await getDoc(userDocRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const serializableProfile = {
-          ...data,
-          createdAt: data.createdAt?.toDate().toISOString(),
-        } as Player;
-        setProfile(serializableProfile);
-      } else {
-        router.push('/profile');
-      }
+    // Le userProfile du contexte est la source la plus fiable
+    if (userProfile) {
+      setProfile(userProfile);
       setLoadingProfile(false);
-    };
+    } else {
+      // Sécurité : si le contexte n'est pas encore prêt, on va chercher manuellement
+      const fetchUserProfile = async () => {
+        setLoadingProfile(true);
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as Player);
+        } else {
+          // Si aucun profil n'existe, on ne peut rien éditer
+          router.push('/profile'); 
+        }
+        setLoadingProfile(false);
+      };
+      fetchUserProfile();
+    }
+  }, [currentUser, userProfile, authLoading, router]);
 
-    fetchUserProfile();
-  }, [currentUser, authLoading, router]);
-
-
-  // === LA FONCTION POUR GÉRER L'ANNULATION ===
   const handleCancel = () => {
-    // On utilise le routeur pour retourner à la page de profil
     router.push('/profile');
   };
-
 
   if (authLoading || loadingProfile) {
     return (
@@ -78,7 +75,6 @@ export default function EditProfilePage() {
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">
-          {/* On passe la fonction handleCancel au formulaire via la prop onCancel */}
           <EditProfileForm 
             userProfile={profile} 
             onCancel={handleCancel} 

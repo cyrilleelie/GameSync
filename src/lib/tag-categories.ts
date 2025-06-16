@@ -1,43 +1,34 @@
+// Fichier : src/lib/tag-categories.ts (CORRIGÉ)
+
+import { cn } from '@/lib/utils';
 
 export const TAG_CATEGORY_DETAILS = {
-  type: {
-    name: 'Type de Jeu / Public Cible',
-    colorClass: 'bg-[var(--color-1)] text-neutral-800 border-[var(--color-1)] dark:bg-neutral-800 dark:text-[var(--color-1)] dark:border-[var(--color-1)]',
-  },
-  theme: {
-    name: 'Thématique / Univers',
-    colorClass: 'bg-[var(--color-2)] text-neutral-800 border-[var(--color-2)] dark:bg-neutral-800 dark:text-[var(--color-2)] dark:border-[var(--color-2)]',
-  },
-  mechanics: {
-    name: 'Mécaniques Principales',
-    colorClass: 'bg-[var(--color-3)] text-neutral-800 border-[var(--color-3)] dark:bg-neutral-800 dark:text-[var(--color-3)] dark:border-[var(--color-3)]',
-  },
-  interaction: {
-    name: 'Interaction entre Joueurs',
-    colorClass: 'bg-[var(--color-4)] text-neutral-800 border-[var(--color-4)] dark:bg-neutral-800 dark:text-[var(--color-4)] dark:border-[var(--color-4)]',
-  },
+  theme: { name: 'Thème', colorClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
+  type: { name: 'Type de jeu', colorClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+  mechanics: { name: 'Mécanique', colorClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
+  interaction: { name: 'Interaction', colorClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
 } as const;
 
 export type TagCategoryKey = keyof typeof TAG_CATEGORY_DETAILS;
 
+// L'interface à corriger
 export interface TagDefinition {
+  id?: string;
   name: string;
-  categoryKey: TagCategoryKey | string; // Allow string for ad-hoc categories
+  // On s'assure que categoryKey utilise bien le type strict
+  categoryKey: TagCategoryKey; 
 }
 
-// Helper pour obtenir le nom traduit d'une catégorie de tag
-export function getTranslatedTagCategory(categoryKey: TagCategoryKey | string): string {
-  if (categoryKey in TAG_CATEGORY_DETAILS) {
-    return TAG_CATEGORY_DETAILS[categoryKey as TagCategoryKey]?.name || String(categoryKey);
+export const getTranslatedTagCategory = (key: string | undefined): string => {
+  if (key && key in TAG_CATEGORY_DETAILS) {
+    return TAG_CATEGORY_DETAILS[key as TagCategoryKey].name;
   }
-  return String(categoryKey); // Return the key itself if not found
-}
+  return 'Inconnue';
+};
 
-// Helper pour obtenir les classes de couleur d'une catégorie de tag
-export function getTagCategoryColorClass(categoryKey: TagCategoryKey | string): string {
-  if (categoryKey in TAG_CATEGORY_DETAILS) {
-    return TAG_CATEGORY_DETAILS[categoryKey as TagCategoryKey]?.colorClass || 'bg-gray-200 text-gray-800 border-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500'; // Fallback for known keys with missing colorClass
+export const getTagCategoryColorClass = (key: string | undefined): string => {
+  if (key && key in TAG_CATEGORY_DETAILS) {
+    return TAG_CATEGORY_DETAILS[key as TagCategoryKey].colorClass;
   }
-  // Default color for ad-hoc/unknown categories
-  return 'bg-muted text-muted-foreground border-border dark:bg-muted/50 dark:text-muted-foreground/70 dark:border-border';
-}
+  return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+};

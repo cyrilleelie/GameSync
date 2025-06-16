@@ -1,9 +1,9 @@
-// Fichier : src/app/sessions/[id]/page.tsx (FORMAT DE DATE CORRIGÉ)
+// Fichier : src/app/sessions/[id]/page.tsx (FINAL ET SYNCHRONISÉ)
 
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { notFound } from 'next/navigation';
-import type { GameSession } from '@/lib/types';
+import type { GameSession, Player } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -16,9 +16,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, MapPin, Users, Info, Gamepad2, Timer, Clock, ArrowLeft } from 'lucide-react';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+// On importe notre composant client pour les boutons
 import { SessionInteractionButtons } from '@/components/sessions/session-interaction-buttons';
 
+// La fonction getSessionData est correcte et sérialise bien les dates
 async function getSessionData(id: string): Promise<GameSession | null> {
   const sessionDocRef = doc(db, 'sessions', id);
   const sessionDocSnap = await getDoc(sessionDocRef);
@@ -41,8 +44,6 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
     notFound();
   }
 
-  // === LA CORRECTION EST ICI ===
-  // On utilise 'PPP' pour un format de date long et sûr (ex: 13 juin 2025)
   const formattedDate = format(new Date(session.dateTime), 'PPP', { locale: fr });
   const formattedTime = format(new Date(session.dateTime), 'HH:mm', { locale: fr });
 
@@ -61,7 +62,8 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                     <CardTitle className="text-3xl font-bold flex items-center gap-2 mb-1"><Gamepad2 className="h-8 w-8 text-primary shrink-0" />{session.gameName}</CardTitle>
-                    <CardDescription>Organisée par : <span className="font-medium text-primary">{session.host.name}</span></CardDescription>
+                    {/* === CORRECTION ICI === */}
+                    <CardDescription>Organisée par : <span className="font-medium text-primary">{session.host.displayName}</span></CardDescription>
                 </div>
             </div>
         </CardHeader>
@@ -76,8 +78,23 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
             <Separator/>
             <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><Users className="h-5 w-5 text-primary"/>Joueurs ({session.currentPlayers.length}/{session.maxPlayers})</h3>
-                {session.currentPlayers.length > 0 ? (<ul className="space-y-3">{session.currentPlayers.map(player => (<li key={player.id} className="flex items-center gap-3 p-2 rounded-md border bg-card"><Avatar className="h-8 w-8"><AvatarImage src={player.avatarUrl} alt={player.name} /><AvatarFallback>{player.name.substring(0,1)}</AvatarFallback></Avatar><span className="font-medium">{player.name}</span>{player.id === session.host.id && <Badge variant="outline">Hôte</Badge>}</li>))}</ul>) : (<p className="text-muted-foreground">Aucun joueur n'a encore rejoint.</p>)}
+                {session.currentPlayers.length > 0 ? (
+                  <ul className="space-y-3">
+                    {/* === CORRECTION DANS LA LISTE DES JOUEURS === */}
+                    {session.currentPlayers.map(player => (
+                      <li key={player.uid} className="flex items-center gap-3 p-2 rounded-md border bg-card">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={player.photoURL || undefined} alt={player.displayName || 'Avatar'} />
+                          <AvatarFallback>{(player.displayName || 'P').substring(0,1)}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{player.displayName}</span>
+                        {player.uid === session.host.uid && <Badge variant="outline">Hôte</Badge>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (<p className="text-muted-foreground">Aucun joueur n'a encore rejoint.</p>)}
             </div>
+            
             <SessionInteractionButtons session={session} />
         </CardContent>
       </Card>

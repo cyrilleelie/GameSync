@@ -1,3 +1,5 @@
+// Fichier : src/app/login/page.tsx (NETTOYÉ)
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,45 +23,43 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Icône Facebook SVG
-// const FacebookIcon = () => (
-//   <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 fill-current">
-//     <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" fill="#1877F2"/>
-//   </svg>
-// );
-
+// L'icône Facebook a été supprimée
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // On récupère toutes les fonctions du contexte, y compris `loading`
-  const { login, loginWithGoogle, loginWithFacebook, loading: authLoading, currentUser } = useAuth();
+  // On retire `loginWithFacebook` de la déstructuration
+  const { login, loginWithGoogle, loading: authLoading, currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  
-  // Redirige si l'utilisateur est déjà connecté
-  useEffect(() => {
-    if (currentUser) {
-      router.push('/');
-    }
-  }, [currentUser, router]);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Fonction pour la soumission du formulaire email/mot de passe (simulée)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast({ title: "Champs requis", description: "Veuillez entrer votre email et mot de passe.", variant: "destructive" });
+      return;
+    }
     await login(email, password);
   };
 
-  // Fonction pour la connexion Google (réelle)
   const handleGoogleLogin = async () => {
-    console.log('--- BOUTON GOOGLE CLIQUÉ --- Le gestionnaire d\'événement fonctionne.');
     await loginWithGoogle();
   };
-  
-  // Fonction pour la connexion Facebook (simulée)
-  // const handleFacebookLogin = async () => {
-  //   await loginWithFacebook();
-  // };
+
+  // La fonction handleFacebookLogin a été supprimée
+
+  if (!isMounted || authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -75,27 +75,11 @@ export default function LoginPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="vous@exemple.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-                disabled={authLoading}
-              />
+              <Input id="email" type="email" placeholder="vous@exemple.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={authLoading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="Votre mot de passe"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                disabled={authLoading}
-              />
+              <Input id="password" type="password" placeholder="Votre mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={authLoading} />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
@@ -108,14 +92,8 @@ export default function LoginPage() {
 
         <div className="px-6 pb-4">
           <div className="relative my-3">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Ou continuer avec
-              </span>
-            </div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou continuer avec</span></div>
           </div>
 
           <div className="grid grid-cols-1 gap-2">
@@ -123,16 +101,11 @@ export default function LoginPage() {
               {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               {authLoading ? 'Connexion...' : 'Se connecter avec Google'}
             </Button>
-            {/* <Button variant="outline" className="w-full text-[#1877F2] hover:text-[#1877F2]/90 hover:bg-accent" onClick={handleFacebookLogin} disabled={authLoading}>
-              {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FacebookIcon />}
-              {authLoading ? 'Connexion...' : 'Se connecter avec Facebook'}
-            </Button> */}
+            {/* Le bouton Facebook a été supprimé */}
           </div>
           <p className="mt-4 text-sm text-center text-muted-foreground">
             Pas encore de compte ?{' '}
-            <Button variant="link" asChild className="p-0 h-auto">
-              <Link href="/register">Inscrivez-vous</Link>
-            </Button>
+            <Button variant="link" asChild className="p-0 h-auto"><Link href="/register">Inscrivez-vous</Link></Button>
           </p>
         </div>
       </Card>

@@ -1,123 +1,96 @@
-// Fichier : src/app/my-sessions/page.tsx (MIS À JOUR AVEC FIREBASE)
+// Fichier : src/app/my-sessions/page.tsx (FINAL AVEC LE BON COMPOSANT)
 
 'use client';
 
-// Imports de React et Next.js
 import { useState, useMemo, useEffect } from 'react';
+import type { GameSession } from '@/lib/types';
+import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Imports de vos composants UI, types, et contexte (inchangés)
+// Imports Firebase
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, or } from 'firebase/firestore';
+
+// Imports UI (on importe bien SessionCard)
 import { SessionCard } from '@/components/sessions/session-card';
-import type { GameSession } from '@/lib/types';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Loader2, ClipboardList, Frown } from 'lucide-react';
-
-// === NOUVEAUX IMPORTS POUR FIREBASE ===
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
-
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function MySessionsPage() {
-  // Vos états existants sont conservés
-  const [allSessions, setAllSessions] = useState<GameSession[]>([]);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
-
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
+  
+  const [mySessions, setMySessions] = useState<GameSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // =========================================================
-  // === DÉBUT DE LA MODIFICATION : ON REMPLACE localStorage ===
-  // =========================================================
-  useEffect(() => {
-    // Si l'authentification est en cours ou si l'utilisateur n'est pas encore chargé, on attend.
-    if (!isMounted || authLoading) return;
-
-    // Si le chargement est terminé et qu'il n'y a pas d'utilisateur, on le redirige.
+    if (authLoading) return;
     if (!currentUser) {
-      router.push('/login');
+      setIsLoading(false);
       return;
     }
 
-    const fetchAllSessions = async () => {
-      setIsLoadingSessions(true);
-      
-      // --- AVERTISSEMENT DE PERFORMANCE ---
-      // Pour trouver les sessions d'un participant, la méthode actuelle charge TOUTES les
-      // sessions et les filtre côté client. C'est acceptable pour quelques centaines
-      // de sessions, mais ce n'est pas idéal pour une application à grande échelle.
-      // Une meilleure approche serait d'ajouter un tableau `participantIds: ['id1', 'id2']`
-      // à chaque session pour permettre une requête beaucoup plus efficace.
-      console.warn("Chargement de toutes les sessions pour filtrage côté client. À optimiser pour la mise à l'échelle.");
-
+    const fetchMySessions = async () => {
+      setIsLoading(true);
       try {
-        const sessionsCollectionRef = collection(db, 'sessions');
-        const querySnapshot = await getDocs(sessionsCollectionRef);
-        const sessionsFromDb = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            dateTime: doc.data().dateTime?.toDate(),
-        })) as GameSession[];
-        setAllSessions(sessionsFromDb);
-      } catch (e) {
-        console.error("Erreur lors du chargement des sessions depuis Firebase", e);
+        const sessionsCollection = collection(db, 'sessions');
+        const q = query(
+          sessionsCollection,
+          or(
+            where('host.uid', '==', currentUser.uid),
+            where('participantIds', 'array-contains', currentUser.uid)
+          )
+        );
+        const querySnapshot = await getDocs(q);
+        const sessionsList = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id, ...data,
+            dateTime: data.dateTime?.toDate(), createdAt: data.createdAt?.toDate(),
+          } as GameSession;
+        });
+        setMySessions(sessionsList);
+      } catch (err) {
+        console.error("Erreur lors de la récupération de vos sessions:", err);
       } finally {
-        setIsLoadingSessions(false);
+        setIsLoading(false);
       }
     };
-    
-    fetchAllSessions();
-  }, [currentUser, authLoading, router, isMounted]);
-  // =======================================================
-  // === FIN DE LA MODIFICATION ===
-  // =======================================================
+    fetchMySessions();
+  }, [currentUser, authLoading]);
 
-
-  // Votre logique de filtrage `useMemo` est conservée et parfaitement fonctionnelle
   const myUpcomingSessions = useMemo(() => {
-    if (isLoadingSessions || authLoading || !currentUser) return [];
-    
     const now = new Date();
-    return allSessions.filter(session => {
-        // Condition 1 : L'utilisateur est l'hôte OU est dans la liste des joueurs
-        const isUserInvolved = 
-            session.host.id === currentUser.uid || 
-            session.currentPlayers.some(player => player.id === currentUser.uid);
+    return mySessions
+      .filter(session => new Date(session.dateTime) >= now)
+      .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+  }, [mySessions]);
 
-        // Condition 2 : La session n'a pas encore eu lieu
-        const isUpcoming = new Date(session.dateTime) >= now;
-
-        return isUserInvolved && isUpcoming;
-    }).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
-  }, [allSessions, currentUser, isLoadingSessions, authLoading]);
-
-  // Votre JSX de chargement est conservé
-  if (!isMounted || authLoading || isLoadingSessions) {
+  if (authLoading || isLoading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <ClipboardList className="h-8 w-8 text-primary" />
-              Mes Sessions à Venir
-            </h1>
-            <p className="text-muted-foreground">Les sessions auxquelles vous êtes inscrit(e) et qui n'ont pas encore eu lieu.</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center min-h-[calc(100vh-15rem)]">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Tout le reste de votre JSX est conservé à l'identique
+  // Fallback si l'utilisateur arrive ici sans être connecté
+  if (!currentUser) {
+    return (
+        <div className="container mx-auto py-8 text-center">
+             <Alert className="max-w-xl mx-auto">
+                <Frown className="h-4 w-4" />
+                <AlertTitle>Connectez-vous</AlertTitle>
+                <AlertDescription>
+                    Vous devez être connecté pour voir cette page.
+                </AlertDescription>
+            </Alert>
+        </div>
+    )
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -126,20 +99,26 @@ export default function MySessionsPage() {
             <ClipboardList className="h-8 w-8 text-primary" />
             Mes Sessions à Venir
           </h1>
-          <p className="text-muted-foreground">Les sessions auxquelles vous êtes inscrit(e) et qui n'ont pas encore eu lieu.</p>
+          <p className="text-muted-foreground">Les sessions que vous avez créées ou rejointes.</p>
         </div>
       </div>
       {myUpcomingSessions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {myUpcomingSessions.map((session) => (
+            // === LA CORRECTION EST ICI ===
+            // On utilise le bon composant, sans "as any" car les types correspondent
             <SessionCard key={session.id} session={session} />
           ))}
         </div>
       ) : (
         <div className="text-center py-12 flex flex-col items-center">
           <Frown className="h-16 w-16 text-muted-foreground mb-4" />
-          <p className="text-xl text-muted-foreground mb-2">Vous n'êtes inscrit(e) à aucune session à venir pour le moment.</p>
-          <p className="text-sm text-muted-foreground mb-6">Pourquoi ne pas explorer les sessions disponibles ou en créer une nouvelle ?</p>
+          <p className="text-xl text-muted-foreground mb-2">
+            Vous n'êtes inscrit(e) à aucune session à venir.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Pourquoi ne pas explorer les sessions disponibles ou en créer une nouvelle ?
+          </p>
           <div className="flex gap-4">
             <Button asChild><Link href="/sessions">Parcourir les Sessions</Link></Button>
             <Button asChild variant="outline"><Link href="/sessions/create">Créer une Session</Link></Button>

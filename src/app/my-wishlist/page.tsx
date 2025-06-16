@@ -96,8 +96,6 @@ export default function MyWishlistPage() {
                 key={game.id} 
                 game={game} 
                 showCreateSessionButton={false}
-                // On peut aussi cacher le bouton d'ajout à la wishlist ici
-                // showAddToWishlistButton={false} 
             />
           ))}
         </div>

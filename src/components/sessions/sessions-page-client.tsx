@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'; 
 import { SessionCard } from './session-card';
-import { Session } from '@/types';
+import { GameSession } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 // === NOUVEAU : On définit les props que le composant peut recevoir ===
@@ -17,7 +17,7 @@ interface SessionsPageClientProps {
 
 // === NOUVEAU : On accepte les props, en particulier "limit" ===
 const SessionsPageClient = ({ limit: queryLimit }: SessionsPageClientProps) => {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ const SessionsPageClient = ({ limit: queryLimit }: SessionsPageClientProps) => {
                 id: doc.id,
                 ...data,
                 dateTime: data.dateTime?.toDate ? data.dateTime.toDate() : new Date(),
-            } as Session;
+            } as GameSession;
         });
         
         console.log("SUCCÈS: Sessions récupérées :", sessionsList);

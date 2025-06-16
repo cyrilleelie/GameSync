@@ -1,24 +1,20 @@
-// Fichier : src/components/admin/users-tab.tsx (CORRIGÉ)
+// Fichier : src/components/admin/users-tab.tsx (CORRECTION FINALE DU TYPAGE)
 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { Player } from '@/lib/types';
-
-// Imports Firebase
+import type { Player, UserRole } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-
-// Imports UI et icônes
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-// === LA CORRECTION EST ICI ===
-import { Edit, Trash2, PlusCircle, Loader2, UserCog } from 'lucide-react'; 
+import { Loader2, PlusCircle, Edit, Trash2, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditUserForm, type UserFormValues } from '@/components/admin/edit-user-form';
 
@@ -30,23 +26,22 @@ export function UsersTab() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<Player | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'));
-      const usersFromDb = usersSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id }) as Player);
+      const usersFromDb = usersSnapshot.docs.map(doc => ({ ...doc.data() }) as Player);
       setUsers(usersFromDb);
     } catch (error) {
-      console.error("Erreur de chargement des utilisateurs:", error);
       toast({ title: "Erreur de chargement des utilisateurs", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleOpenEditDialog = (user: Player) => {
     setUserToEdit(user);
@@ -55,7 +50,6 @@ export function UsersTab() {
 
   const handleSaveUser = async (userData: UserFormValues) => {
     if (!userData.uid) return;
-    
     const userDocRef = doc(db, 'users', userData.uid);
     try {
       await setDoc(userDocRef, { role: userData.role }, { merge: true });
@@ -110,7 +104,8 @@ export function UsersTab() {
                 <TableRow key={user.uid}>
                   <TableCell>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.photoURL} alt={user.displayName} />
+                      {/* === LA CORRECTION EST ICI === */}
+                      <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? 'Avatar'} />
                       <AvatarFallback>{(user.displayName || 'U').substring(0,1)}</AvatarFallback>
                     </Avatar>
                   </TableCell>
@@ -125,9 +120,15 @@ export function UsersTab() {
                     <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(user)}>
                       <UserCog className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteUser(user.uid, user.displayName)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80"><Trash2 className="h-4 w-4" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action supprimera le profil de l'utilisateur de la base de données Firestore, mais pas son compte d'authentification.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteUser(user.uid, user.displayName || 'cet utilisateur')} className="bg-destructive hover:bg-destructive/90">Confirmer</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}

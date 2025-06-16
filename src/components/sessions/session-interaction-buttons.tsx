@@ -26,14 +26,14 @@ export function SessionInteractionButtons({ session }: SessionInteractionButtons
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isUserHost = useMemo(() => session.host?.id === currentUser?.uid, [session.host, currentUser]);
-  const isUserJoined = useMemo(() => session.currentPlayers?.some(p => p.id === currentUser?.uid), [session.currentPlayers, currentUser]);
+  const isUserHost = useMemo(() => session.host?.uid === currentUser?.uid, [session.host, currentUser]);
+  const isUserJoined = useMemo(() => session.currentPlayers?.some(p => p.uid === currentUser?.uid), [session.currentPlayers, currentUser]);
   const canJoin = useMemo(() => !isUserJoined && session.currentPlayers.length < session.maxPlayers, [isUserJoined, session.currentPlayers, session.maxPlayers]);
 
   const handleJoinOrLeave = async (action: 'join' | 'leave') => {
     if (!currentUser) return;
     setIsSubmitting(true);
-    const playerObject = { id: currentUser.uid, name: currentUser.displayName || '', avatarUrl: currentUser.photoURL || '' };
+    const playerObject = { uid: currentUser.uid, name: currentUser.displayName || '', avatarUrl: currentUser.photoURL || '' };
     const sessionRef = doc(db, 'sessions', session.id);
     const operation = action === 'join' ? arrayUnion(playerObject) : arrayRemove(playerObject);
     

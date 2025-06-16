@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User, updateProfile } from 'firebase/auth';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User, updateProfile, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,10 @@ interface AuthContextType {
   currentUser: AuthUser | null;
   userProfile: Player | null;
   loading: boolean;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
+  loginWithFacebook: () => Promise<boolean>;
   updateUserProfileData: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -32,33 +35,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchAndSetUserProfile = async (user: User) => {
     const userDocRef = doc(db, 'users', user.uid);
     const userDocSnap = await getDoc(userDocRef);
-
     if (userDocSnap.exists()) {
-      setUserProfile(userDocSnap.data() as Player);
+      setUserProfile({ uid: user.uid, ...userDocSnap.data() } as Player);
     } else {
-      // Le profil n'existe pas, on le crée (cas d'une toute première connexion)
       try {
-        const newProfileData: Player = {
+        const newProfileData: Omit<Player, 'id'> = {
           uid: user.uid,
-          email: user.email || '',
-          displayName: user.displayName || user.email || 'Nouveau Joueur',
-          photoURL: user.photoURL || '',
-          createdAt: new Date(), // On utilise un objet Date ici, il sera converti par Firestore
+          email: user.email,
+          displayName: user.displayName || user.email?.split('@')[0] || 'Nouveau Joueur',
+          photoURL: user.photoURL,
           role: 'Utilisateur',
+          createdAt: new Date(),
           bio: '',
-        	gamePreferences: [],
-        	ownedGames: [],
-        	wishlist: [],
-        	availability: '',
+          gamePreferences: [],
+          ownedGames: [],
+          wishlist: [],
+          availability: '',
         };
-        await setDoc(userDocRef, {
-            ...newProfileData,
-            createdAt: serverTimestamp() // On envoie la version serveur à Firestore
-        });
-        setUserProfile(newProfileData);
-      } catch (error) {
-        console.error("Erreur lors de la création du profil utilisateur:", error);
-      }
+        await setDoc(userDocRef, { ...newProfileData, createdAt: serverTimestamp() });
+        setUserProfile(newProfileData as Player);
+      } catch (error) { console.error("Erreur création profil:", error); }
     }
   };
 
@@ -78,21 +74,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshUserProfile = async () => {
     if (auth.currentUser) {
-      console.log("Rafraîchissement du profil utilisateur...");
       await fetchAndSetUserProfile(auth.currentUser);
-      toast({ title: "Profil synchronisé", duration: 2000 });
     }
   };
 
   const handleAuthSuccess = (user: User) => {
-    toast({ title: "Connexion réussie", description: `Bienvenue, ${user.displayName || user.email} !` });
     router.push('/');
     return true;
   };
 
-  const handleAuthError = (error: any, providerName: string) => {
-    console.error(`Erreur de connexion ${providerName}:`, error);
-    toast({ title: "Échec de la connexion", description: "Une erreur est survenue.", variant: "destructive" });
+  const handleAuthError = (error: any) => {
+    let message = "Une erreur est survenue.";
+    if (error.code === 'auth/email-already-in-use') {
+        message = "Cet email est déjà utilisé par un autre compte.";
+    }
+    console.error("Erreur Auth:", error);
+    toast({ title: "Échec", description: message, variant: "destructive" });
     return false;
   };
 
@@ -100,11 +97,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (auth.currentUser) {
       try {
         await updateProfile(auth.currentUser, data);
-        setCurrentUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser));
         const userDocRef = doc(db, 'users', auth.currentUser.uid);
         await setDoc(userDocRef, { displayName: data.displayName, photoURL: data.photoURL }, { merge: true });
-        await refreshUserProfile(); // On rafraîchit le profil local après la mise à jour
-        toast({ title: "Profil d'authentification mis à jour." });
+        await refreshUserProfile();
+        toast({ title: "Profil mis à jour." });
       } catch (error) {
         toast({ title: "Erreur", description: "Impossible de mettre à jour le profil.", variant: "destructive" });
         throw error;
@@ -120,17 +116,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const result = await signInWithPopup(auth, provider);
       return handleAuthSuccess(result.user);
     } catch (error) {
-      return handleAuthError(error, 'Google');
+      return handleAuthError(error);
     }
   };
 
-  const logout = async () => {
-    await signOut(auth);
-    toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
-    router.push('/login');
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+      // Le onAuthStateChanged s'occupera de créer le profil Firestore.
+      toast({ title: "Compte créé !", description: `Bienvenue sur GameSync, ${name} !` });
+      return handleAuthSuccess(userCredential.user);
+    } catch (error) {
+      return handleAuthError(error);
+    }
   };
 
-  const value = { currentUser, userProfile, loading, loginWithGoogle, updateUserProfileData, logout, refreshUserProfile };
+  const login = async (): Promise<boolean> => {
+    toast({ title: "Non implémenté", description: "La connexion par email et mot de passe n'est pas encore disponible." });
+    return false;
+  };
+
+  const loginWithFacebook = async (): Promise<boolean> => {
+    toast({ title: "Non implémenté", description: "La connexion avec Facebook a été mise de côté pour le moment." });
+    return false;
+  };
+
+  const logout = async () => {
+    try {
+        await signOut(auth);
+        toast({ title: "Déconnexion réussie" });
+        router.push('/login');
+    } catch(error) {
+        toast({ title: "Erreur de déconnexion", variant: "destructive" });
+    }
+  };
+
+  const value = { currentUser, userProfile, loading, register, login, loginWithGoogle, loginWithFacebook, updateUserProfileData, logout, refreshUserProfile };
 
   return (
     <AuthContext.Provider value={value}>

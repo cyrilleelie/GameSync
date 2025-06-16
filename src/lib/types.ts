@@ -1,31 +1,42 @@
+// Fichier : src/lib/types.ts (FINAL ET CORRIGÉ)
 
 import type { TagDefinition } from './tag-categories';
 
-export type UserRole = 'Administrateur' | 'Joueur';
+export type UserRole = 'Administrateur' | 'Utilisateur';
 
-export interface Player {
-  id: string;
-  name: string;
-  email?: string; 
-  avatarUrl?: string;
-  gamePreferences: string[]; 
-  ownedGames?: string[]; 
-  wishlist?: string[]; 
-  availability: string; 
-  role: UserRole; 
-}
+// Le nouveau type Player qui correspond à nos données Firebase
+export type Player = {
+  uid: string; // L'ID de l'authentification, clé primaire
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  role: UserRole;
+  
+  // Champs personnalisés du profil
+  bio?: string;
+  availability?: string;
+  gamePreferences?: string[];
+  ownedGames?: string[];
+  wishlist?: string[];
+  
+  createdAt: any; // Peut être un Timestamp ou une string ISO
+};
 
+// On ajoute l'ID optionnel qui vient de la base de données
 export interface GameSession {
-  id: string;
+  id: string; 
   gameName: string;
   gameImageUrl?: string;
-  dateTime: Date;
+  dateTime: Date | string; // Peut être une Date ou une string ISO
   location: string;
   maxPlayers: number;
   currentPlayers: Player[];
   description?: string;
   host: Player;
   duration?: string; 
+  participantIds?: string[];
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface BoardGame {
@@ -37,4 +48,3 @@ export interface BoardGame {
   publisher?: string;
   publicationYear?: number;
 }
-
